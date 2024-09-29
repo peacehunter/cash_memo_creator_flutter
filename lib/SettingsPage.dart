@@ -4,9 +4,17 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'l10n/gen_l10n/app_localizations.dart';
+
 class SettingsPage extends StatefulWidget {
   @override
+ // _SettingsPageState createState() => _SettingsPageState();
+  final Function(String) updateLocale;
+  const SettingsPage({Key? key, required this.updateLocale}) : super(key: key);
+
+  @override
   _SettingsPageState createState() => _SettingsPageState();
+
 }
 
 class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderStateMixin {
@@ -19,6 +27,7 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
   String? watermarkImagePath;
   int selectedWatermarkOption = 0; // 0: Text, 1: Image, 2: Both, 3: None
   String selectedLanguage = 'en'; // Default language
+  var localizations;
 
   @override
   void initState() {
@@ -30,6 +39,8 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
     _tabController = TabController(length: 4, vsync: this); // Update length to 4 for language tab
     loadCompanyInfo();
     loadLanguagePreference(); // Load language preference
+
+
   }
 
   Future<void> loadCompanyInfo() async {
@@ -73,6 +84,7 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
     await prefs.setInt('watermarkOption', selectedWatermarkOption); // Save watermark option
     await prefs.setString('appLanguage', selectedLanguage); // Save language preference
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Settings saved!')));
+    widget.updateLocale(selectedLanguage);
   }
 
   Future<void> pickLogo() async {
@@ -107,16 +119,18 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    localizations = AppLocalizations.of(context)!; // Get localization
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        title:  Text('${localizations.settings_label}'),
         bottom: TabBar(
           controller: _tabController,
-          tabs: const [
-            Tab(text: 'Company Info', icon: Icon(Icons.business)),
-            Tab(text: 'Watermark', icon: Icon(Icons.water)),
-            Tab(text: 'N.B.', icon: Icon(Icons.note)), // Add N.B. tab
-            Tab(text: 'Language', icon: Icon(Icons.language)), // Add Language tab
+          tabs:  [
+            Tab(text: '${localizations.company_info_tab_label}', icon: const Icon(Icons.business)),
+            Tab(text: '${localizations.watermark_tab_label}', icon: const Icon(Icons.water)),
+            Tab(text: '${localizations.nb_tab_label}', icon: const Icon(Icons.note)), // Add N.B. tab
+            Tab(text: '${localizations.language_tab_label}', icon: const Icon(Icons.language)), // Add Language tab
           ],
           labelColor: Colors.white,
           unselectedLabelColor: Colors.grey,
@@ -141,13 +155,6 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
             padding: const EdgeInsets.all(16.0),
             child: ElevatedButton(
               onPressed: saveCompanyInfo,
-              child: Text(
-                'Save Settings',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                ),
-              ),
               style: ElevatedButton.styleFrom(
                 foregroundColor: Colors.white, backgroundColor: Colors.teal.shade700,
                 padding: EdgeInsets.symmetric(horizontal: 30, vertical: 12),
@@ -155,6 +162,13 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                   borderRadius: BorderRadius.circular(10),
                 ),
                 elevation: 5,
+              ),
+              child:  Text(
+                '${localizations.save_settings_label}',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
               ),
             ),
           ),
@@ -169,37 +183,37 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Customize Your Company Info',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+           Text(
+            '${localizations.customize_company_info}',
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           _buildInputField(
-            label: 'Company Name',
+            label: '${localizations.pdf_company_name}',
             controller: companyNameController,
             icon: Icons.business,
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           _buildInputField(
-            label: 'Company Address',
+            label: '${localizations.company_address}',
             controller: companyAddressController,
             icon: Icons.location_on,
           ),
-          SizedBox(height: 30),
+          const SizedBox(height: 30),
           Text(
-            'Company Logo',
+            '${localizations.company_logo}',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 10),
           logoPath == null
-              ? Text('No logo selected', style: TextStyle(color: Colors.grey))
+              ? Text('${localizations.no_logo}', style: TextStyle(color: Colors.grey))
               : Image.file(File(logoPath!), height: 100),
           SizedBox(height: 20),
           Center(
             child: ElevatedButton.icon(
               onPressed: pickLogo,
               icon: Icon(Icons.image),
-              label: Text('Select Logo'),
+              label: Text('${localizations.select_logo}'),
               style: ElevatedButton.styleFrom(
                 foregroundColor: Colors.white, backgroundColor: Colors.teal.shade700,
                 shape: RoundedRectangleBorder(
@@ -221,31 +235,31 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Watermark Settings',
+           Text(
+            '${localizations.watermark_settings_label}',
             style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
           _buildInputField(
-            label: 'Watermark Text',
+            label: '${localizations.watermark_text_label}',
             controller: watermarkTextController,
             icon: Icons.text_fields,
           ),
           const SizedBox(height: 20),
-          const Text(
-            'Watermark Image',
+           Text(
+            '${localizations.watermark_image_label}',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 10),
           watermarkImagePath == null
-              ? const Text('No watermark image selected', style: TextStyle(color: Colors.grey))
+              ?  Text('${localizations.no_watermark_image_label}', style: TextStyle(color: Colors.grey))
               : Image.file(File(watermarkImagePath!), height: 100),
           const SizedBox(height: 20),
           Center(
             child: ElevatedButton.icon(
               onPressed: pickWatermarkImage,
               icon: const Icon(Icons.image),
-              label: const Text('Select Watermark Image'),
+              label:  Text('${localizations.select_watermark_image_label}'),
               style: ElevatedButton.styleFrom(
                 foregroundColor: Colors.white, backgroundColor: Colors.teal.shade700,
                 shape: RoundedRectangleBorder(
@@ -256,12 +270,12 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
             ),
           ),
           SizedBox(height: 40),
-          const Text(
-            'Select Watermark Type',
+           Text(
+            '${localizations.select_watermark_type_label}',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           RadioListTile(
-            title: Text("Text"),
+            title: Text("${localizations.watermark_type_text_label}"),
             value: 0,
             groupValue: selectedWatermarkOption,
             onChanged: (value) {
@@ -271,7 +285,7 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
             },
           ),
           RadioListTile(
-            title: Text("Image"),
+            title: Text("${localizations.watermark_type_image_label}"),
             value: 1,
             groupValue: selectedWatermarkOption,
             onChanged: (value) {
@@ -281,7 +295,7 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
             },
           ),
           RadioListTile(
-            title: Text("Both"),
+            title: Text("${localizations.watermark_type_both_label}"),
             value: 2,
             groupValue: selectedWatermarkOption,
             onChanged: (value) {
@@ -291,7 +305,7 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
             },
           ),
           RadioListTile(
-            title: Text("None"),
+            title: Text("${localizations.watermark_type_none_label}"),
             value: 3,
             groupValue: selectedWatermarkOption,
             onChanged: (value) {
@@ -312,12 +326,12 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'N.B. (Note Well)',
+          '${localizations.nb_label}',
             style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 20),
           _buildInputField(
-            label: 'Special Message',
+            label: '${localizations.special_message_title}',
             controller: nbController,
             icon: Icons.note,
           ),
@@ -333,11 +347,11 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Select Language',
+            '${localizations.select_language_title}',
             style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
           RadioListTile(
-            title: Text("English"),
+            title: Text("${localizations.language_english_title}"),
             value: 'en',
             groupValue: selectedLanguage,
             onChanged: (value) {
@@ -347,7 +361,7 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
             },
           ),
           RadioListTile(
-            title: Text("Bengali"),
+            title: Text("${localizations.language_bengali_title}"),
             value: 'bn',
             groupValue: selectedLanguage,
             onChanged: (value) {

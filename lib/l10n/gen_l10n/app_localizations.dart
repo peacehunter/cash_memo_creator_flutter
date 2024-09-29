@@ -286,6 +286,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Subtotal'**
   String get product_subtotal;
+
+  /// No description provided for @settings_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settings_label;
+
+  /// No description provided for @company_info_tab_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Company info'**
+  String get company_info_tab_label;
+
+  /// No description provided for @watermark_tab_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Watermark'**
+  String get watermark_tab_label;
+
+  /// No description provided for @nb_tab_label.
+  ///
+  /// In en, this message translates to:
+  /// **'N.B.'**
+  String get nb_tab_label;
+
+  /// No description provided for @language_tab_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get language_tab_label;
+
+  /// No description provided for @customize_company_info.
+  ///
+  /// In en, this message translates to:
+  /// **'Customize Your Company Info'**
+  String get customize_company_info;
+
+  /// No description provided for @customize_company_logo.
+  ///
+  /// In en, this message translates to:
+  /// **'Company Logo'**
+  String get customize_company_logo;
+
+  /// No description provided for @no_logo.
+  ///
+  /// In en, this message translates to:
+  /// **'No logo selected'**
+  String get no_logo;
+
+  /// No description provided for @select_logo.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Logo'**
+  String get select_logo;
+
+  /// No description provided for @company_address.
+  ///
+  /// In en, this message translates to:
+  /// **'Company address'**
+  String get company_address;
+
+  /// No description provided for @company_logo.
+  ///
+  /// In en, this message translates to:
+  /// **'Company Logo'**
+  String get company_logo;
+
+  /// No description provided for @watermark_settings_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Watermark Settings'**
+  String get watermark_settings_label;
+
+  /// No description provided for @watermark_text_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Watermark Text'**
+  String get watermark_text_label;
+
+  /// No description provided for @watermark_image_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Watermark Image'**
+  String get watermark_image_label;
+
+  /// No description provided for @no_watermark_image_label.
+  ///
+  /// In en, this message translates to:
+  /// **'No watermark image selected'**
+  String get no_watermark_image_label;
+
+  /// No description provided for @select_watermark_image_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Watermark Image'**
+  String get select_watermark_image_label;
+
+  /// No description provided for @select_watermark_type_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Watermark Type'**
+  String get select_watermark_type_label;
+
+  /// No description provided for @watermark_type_text_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get watermark_type_text_label;
+
+  /// No description provided for @watermark_type_image_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Image'**
+  String get watermark_type_image_label;
+
+  /// No description provided for @watermark_type_both_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Both'**
+  String get watermark_type_both_label;
+
+  /// No description provided for @watermark_type_none_label.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get watermark_type_none_label;
+
+  /// No description provided for @nb_label.
+  ///
+  /// In en, this message translates to:
+  /// **'N.B. (Note Well)'**
+  String get nb_label;
+
+  /// No description provided for @special_message_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Special Message'**
+  String get special_message_title;
+
+  /// No description provided for @select_language_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Language'**
+  String get select_language_title;
+
+  /// No description provided for @language_english_title.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get language_english_title;
+
+  /// No description provided for @language_bengali_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Bengali'**
+  String get language_bengali_title;
+
+  /// No description provided for @save_settings_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Settings'**
+  String get save_settings_label;
+
+  /// No description provided for @cash_memo_created.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash memo created successfully!'**
+  String get cash_memo_created;
+
+  /// No description provided for @product_added.
+  ///
+  /// In en, this message translates to:
+  /// **'Product added successfully!'**
+  String get product_added;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

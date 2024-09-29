@@ -11,7 +11,7 @@ import 'PreviewPage.dart';
 import 'Memo.dart';
 import 'dart:typed_data' as typed_data;
 import 'l10n/gen_l10n/app_localizations.dart';
-
+import 'CashMemoPdfPrintService.dart';
 class CashMemoEdit extends StatefulWidget {
   final Memo? memo;
   final int? memoIndex;
@@ -72,27 +72,13 @@ class _CashMemoEditState extends State<CashMemoEdit> {
     super.dispose();
   }
 
-  Future<void> printPdfInner() async {
-    const platform = MethodChannel('com.tuhin.cash_memo/pdf_print');
 
-    String batteryLevel;
-    try {
-      final result = await platform.invokeMethod<String>('pdf_print');
-      print(result);
-      print("method called flutter");
-    } on PlatformException catch (e) {
-      batteryLevel = "Failed to get battery level: '${e.message}'.";
-    }
-
-
-  }
 
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
 
-    printPdfInner();
     print("widget.autoGenerate value : ${widget.autoGenerate}");
     print("widget.memo value : ${widget.memo}");
     // Check if we need to automatically generate the memo
@@ -147,31 +133,14 @@ class _CashMemoEditState extends State<CashMemoEdit> {
     loadCompanyInfo(localizations);
   }
 
-  // Function to load the custom Bangla font
-  Future<pw.Font> loadBengaliFont() async {
-    final fontData = await rootBundle.load('assets/fonts/Nikosh.ttf');
-    return pw.Font.ttf(fontData);
-  }
 
-  Future<pw.Font> loadFont(String languageCode) async {
 
-    if (languageCode == 'bn') {
-      // Load Bengali font
-      final fontData = await rootBundle.load('assets/fonts/NotoSansBengali.ttf');
-      return pw.Font.ttf(fontData);
-    } else {
-      // Use built-in font for English (e.g., Helvetica)
-      return pw.Font.helvetica();
-
-    }
-  }
 
   Future<void> loadCompanyInfo(localizations) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      companyName =
-          prefs.getString('companyName') ?? localizations.pdf_company_name;
-      companyAddress = prefs.getString('companyAddress') ?? 'Company Address';
+      companyName = prefs.getString('companyName') ?? localizations.pdf_company_name;
+      companyAddress = prefs.getString('companyAddress') ?? '';
       companyLogoPath = prefs.getString('companyLogo') ?? '';
       watermarkText = prefs.getString('watermarkText') ?? '';
       watermarkImagePath = prefs.getString('watermarkImage') ?? '';
@@ -218,9 +187,6 @@ class _CashMemoEditState extends State<CashMemoEdit> {
   Future<void> generateCashMemo(localizations,int selectedTemplate,int selectedWatermarkOption,String? watermarkText,String? watermarkImagePath) async {
     final pdf = pw.Document();
 
-    String languageCode = Localizations.localeOf(context).languageCode;
-    // Use loadFont function to load the appropriate font for the language
-    final font = await loadFont(languageCode);
 
     // Load the logo from the saved path
     Uint8List? logoBytes = await loadLogo(companyLogoPath);
@@ -240,23 +206,20 @@ class _CashMemoEditState extends State<CashMemoEdit> {
           switch (selectedTemplate) {
             case 1:
               templateWidget = buildTemplate1(
-                  logoBytes, currentDate, localizations,font); // Classic template
+                  logoBytes, currentDate); // Classic template
               break;
             case 2:
               templateWidget = buildTemplate2(
-                  logoBytes, currentDate, localizations,font); // Modern template
+                  logoBytes, currentDate); // Modern template
               break;
             case 3:
-              templateWidget = buildTemplate3(
-                  logoBytes, currentDate, localizations,font); // Minimal template
+              templateWidget = buildTemplate3(logoBytes, currentDate); // Minimal template
               break;
             case 4:
-              templateWidget = buildTemplate4(logoBytes, currentDate,
-                  localizations,font); // Borderless product template
+              templateWidget = buildTemplate4(logoBytes, currentDate); // Borderless product template
               break;
             default:
-              templateWidget = buildTemplate1(logoBytes, currentDate,
-                  localizations,font); // Default to template 1
+              templateWidget = buildTemplate1(logoBytes, currentDate); // Default to template 1
           }
 
           // Use a Stack to overlay the watermark and content
@@ -331,8 +294,7 @@ class _CashMemoEditState extends State<CashMemoEdit> {
     );
   }
 
-  pw.Widget waterMarkWidget(int selectedWatermarkOption, String? watermarkText,
-      String? watermarkImagePath) {
+  pw.Widget waterMarkWidget(int selectedWatermarkOption, String? watermarkText,String? watermarkImagePath) {
     // Watermark in the middle of the page
     return pw.Positioned.fill(
       child: pw.Opacity(
@@ -395,8 +357,7 @@ class _CashMemoEditState extends State<CashMemoEdit> {
   }
 
 // Template 4: Borderless Product Template
-  pw.Widget buildTemplate4(
-      Uint8List? logoBytes, String currentDate, localizations,font) {
+  pw.Widget buildTemplate4(Uint8List? logoBytes, String currentDate) {
     return pw.Stack(
       children: [
         // Content over the watermark
@@ -409,11 +370,11 @@ class _CashMemoEditState extends State<CashMemoEdit> {
             pw.SizedBox(height: 10),
             pw.Text('Date: $currentDate', style: pw.TextStyle(fontSize: 12)),
             pw.SizedBox(height: 10),
-            buildCustomerDetails(localizations,font),
+            buildCustomerDetails(),
             pw.SizedBox(height: 20),
             buildBorderlessProductTable(),
-            pw.SizedBox(height: 10),
-            buildPricingDetails(localizations,font),
+            pw.SizedBox(height: 30),
+            buildPricingDetails(),
           ],
         ),
       ],
@@ -482,27 +443,26 @@ class _CashMemoEditState extends State<CashMemoEdit> {
   }
 
 // Template 1: Classic Template
-  pw.Widget buildTemplate1(
-      Uint8List? logoBytes, String currentDate, localizations , font) {
+  pw.Widget buildTemplate1( Uint8List? logoBytes, String currentDate) {
     return pw.Stack(
       children: [
         pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.center,
           children: [
             pw.Text('Cash Memo',
-                style: pw.TextStyle(fontSize: 24,font: font),
+                style: const pw.TextStyle(fontSize: 24),
                 textAlign: pw.TextAlign.center),
             pw.SizedBox(height: 20),
             buildCompanyDetails(logoBytes),
             pw.SizedBox(height: 10),
             pw.Text('Date: $currentDate',
-                style: pw.TextStyle(fontSize: 12,font: font),
+                style: pw.TextStyle(fontSize: 12),
                 textAlign: pw.TextAlign.right),
             pw.SizedBox(height: 10),
-            buildCustomerDetails(localizations,font),
+            buildCustomerDetails(),
             pw.SizedBox(height: 10),
-            buildProductTable(localizations,font),
-            buildPricingDetails(localizations,font),
+            buildProductTable(),
+            buildPricingDetails(),
           ],
         ),
       ],
@@ -510,8 +470,7 @@ class _CashMemoEditState extends State<CashMemoEdit> {
   }
 
 // Template 2: Modern Template
-  pw.Widget buildTemplate2(
-      Uint8List? logoBytes, String currentDate, localizations,font) {
+  pw.Widget buildTemplate2( Uint8List? logoBytes, String currentDate) {
     return pw.Stack(
       children: [
         // Content over the watermark
@@ -533,15 +492,15 @@ class _CashMemoEditState extends State<CashMemoEdit> {
                     pw.Text('Date: $currentDate',
                         style: const pw.TextStyle(fontSize: 12)),
                     pw.SizedBox(height: 5),
-                    buildCustomerDetails(localizations,font),
+                    buildCustomerDetails(),
                   ],
                 ),
               ],
             ),
             pw.SizedBox(height: 20),
-            buildProductTable(localizations,font),
+            buildProductTable(),
             pw.Divider(),
-            buildPricingDetails(localizations,font),
+            buildPricingDetails(),
           ],
         ),
       ],
@@ -549,8 +508,7 @@ class _CashMemoEditState extends State<CashMemoEdit> {
   }
 
 // Template 3: Minimal Template
-  pw.Widget buildTemplate3(
-      Uint8List? logoBytes, String currentDate, localizations,font) {
+  pw.Widget buildTemplate3(Uint8List? logoBytes, String currentDate) {
     return pw.Stack(
       children: [
         // Watermark in the middle of the page
@@ -582,11 +540,11 @@ class _CashMemoEditState extends State<CashMemoEdit> {
             pw.SizedBox(height: 10),
             pw.Text('Date: $currentDate', style: pw.TextStyle(fontSize: 12)),
             pw.SizedBox(height: 10),
-            buildCustomerDetails(localizations,font),
+            buildCustomerDetails(),
             pw.SizedBox(height: 20),
-            buildProductTable(localizations,font),
+            buildProductTable(),
             pw.SizedBox(height: 10),
-            buildPricingDetails(localizations,font),
+            buildPricingDetails(),
           ],
         ),
       ],
@@ -613,28 +571,28 @@ class _CashMemoEditState extends State<CashMemoEdit> {
   }
 
 // Helper to build customer details (used across templates)
-  pw.Widget buildCustomerDetails(localizations,font) {
+  pw.Widget buildCustomerDetails() {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         pw.Text(
-            '${localizations.customer_name}: ${customerNameController.text}',style: pw.TextStyle(font:font)),
+            'Customer name: ${customerNameController.text}'),
         pw.Text(
-            '${localizations.customer_address}: ${customerAddressController.text}',style: pw.TextStyle(font:font)),
+            'Customer address: ${customerAddressController.text}'),
         pw.Text(
-            '${localizations.customer_phone_number}: ${customerPhoneNumberController.text}',style: pw.TextStyle(font:font)),
+            'Phone number: ${customerPhoneNumberController.text}'),
       ],
     );
   }
 
 // Helper to build product table (used across templates)
-  pw.Widget buildProductTable(localizations,font) {
+  pw.Widget buildProductTable() {
     return pw.Table.fromTextArray(
       headers: [
-        '${localizations.product_name}',
-        '${localizations.product_price}',
-        '${localizations.product_quantity}',
-        '${localizations.total}'
+        'Product name',
+        'Price',
+        'Quantity',
+        'Total'
       ],
       data: products.map((product) {
         return [
@@ -644,7 +602,7 @@ class _CashMemoEditState extends State<CashMemoEdit> {
           (product.price * product.quantity).toString()
         ];
       }).toList(),
-      headerStyle: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold,font: font),
+      headerStyle: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
       headerDecoration: pw.BoxDecoration(color: PdfColors.grey),
       cellStyle: pw.TextStyle(fontSize: 10),
       cellAlignment: pw.Alignment.centerLeft,
@@ -652,35 +610,32 @@ class _CashMemoEditState extends State<CashMemoEdit> {
   }
 
 // Helper to build pricing details (used across templates)
-  pw.Widget buildPricingDetails(localizations,font) {
+  pw.Widget buildPricingDetails() {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.end,
       children: [
-        buildPricingRow('${localizations.product_subtotal}',
-            calculateSubtotal().toStringAsFixed(2),font),
-        buildPricingRow(
-            '${localizations.discount_label}', '${discountController.text}%',font),
-        buildPricingRow('${localizations.tax_label}', '${vatController.text}%',font),
+        buildPricingRow('Subtotal',
+            calculateSubtotal().toStringAsFixed(2)),
+        buildPricingRow('Discount', '${discountController.text}%'),
+        buildPricingRow('Vat/Tax', '${vatController.text}%'),
         pw.Divider(),
-        buildPricingRow('${localizations.product_total}',
-            calculateTotal().toStringAsFixed(2),font,
-            isBold: true),
+        buildPricingRow('Total',calculateTotal().toStringAsFixed(2)),
         // Total with bold styling
       ],
     );
   }
 
-  pw.Widget buildPricingRow(String label, String value,font, {bool isBold = false}) {
+  pw.Widget buildPricingRow(String label, String value) {
     return pw.Row(
       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
       children: [
         pw.Text(
           '$label: ',
-          style: pw.TextStyle(fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal,font:font),
+          style: pw.TextStyle(fontWeight:  pw.FontWeight.bold ),
         ),
         pw.Text(
           value,
-          style: pw.TextStyle(fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal,font:font),
+          style: pw.TextStyle(fontWeight:  pw.FontWeight.bold ),
         ),
       ],
     );
@@ -726,101 +681,6 @@ class _CashMemoEditState extends State<CashMemoEdit> {
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    var localizations = AppLocalizations.of(context)!; // Get localization
-
-    return WillPopScope(
-      onWillPop: _onWillPop,
-      child: Scaffold(
-        appBar: AppBar(
-          title:
-          Text(widget.memo != null ? 'Edit Cash Memo' : 'Create Cash Memo'),
-          backgroundColor: Colors.teal,
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back),
-            onPressed: () {
-              Memo memo = saveMemo();
-              Navigator.pop(context, memo);
-            },
-          ),
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: SingleChildScrollView(
-            controller: _scrollController,
-            child: Column(
-              children: [
-                isLoadingCompanyInfo
-                    ? CircularProgressIndicator()
-                    : Text(companyName ?? 'Company Name',
-                    style: TextStyle(
-                        fontSize: 24, fontWeight: FontWeight.bold)),
-                SizedBox(height: 20),
-                _buildCustomerDetails(localizations),
-                SizedBox(height: 20),
-                _buildProductList(localizations),
-                SizedBox(height: 20),
-                Center(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      addProduct();
-                      // Scroll to the bottom after adding a product
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        _scrollController.animateTo(
-                          _scrollController.position.maxScrollExtent,
-                          duration: Duration(milliseconds: 300),
-                          curve: Curves.easeOut,
-                        );
-                      });
-                    },
-                    icon: Icon(Icons.add),
-                    label: Text(localizations.add_product_button_label),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.teal,
-                      foregroundColor: Colors.white,
-                      padding:
-                      EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 20),
-                _buildDiscountAndVatFields(localizations),
-                SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () {
-                    Memo memo = saveMemo();
-                    _showTemplateSelectionDialog(context, localizations);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  ),
-                  child: Text(localizations.create_cash_memo_label),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-// Helper method to build section headers
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10.0),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: Colors.teal,
-        ),
-      ),
-    );
-  }
 
   void _showTemplateSelectionDialog(BuildContext context, localizations) {
     showDialog(
@@ -834,6 +694,7 @@ class _CashMemoEditState extends State<CashMemoEdit> {
               ListTile(
                 title: Text(localizations.template_name_1),
                 onTap: () {
+
                   Navigator.of(context).pop(); // Close the dialog
                   generateCashMemo(
                       localizations,
@@ -894,83 +755,344 @@ class _CashMemoEditState extends State<CashMemoEdit> {
     );
   }
 
+  Widget build(BuildContext context) {
+    var localizations = AppLocalizations.of(context)!; // Get localization
+
+    return WillPopScope(
+      onWillPop: () async {
+        Memo memo = saveMemo();
+        Navigator.pop(context, memo);
+        return false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          elevation: 10,
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.teal.shade400, Colors.teal.shade700],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
+          title: Text(
+            widget.memo != null ? 'Edit Cash Memo' : 'Create Cash Memo',
+            style: const TextStyle(
+              fontFamily: 'Roboto',
+              fontWeight: FontWeight.bold,
+              fontSize: 24,
+              color: Colors.white,
+            ),
+          ),
+          centerTitle: true,
+          leading: IconButton(
+            icon: const Icon(
+              Icons.arrow_back_ios_new,
+              color: Colors.white,
+              size: 28,
+            ),
+            onPressed: () {
+              Memo memo = saveMemo();
+              Navigator.pop(context, memo);
+            },
+          ),
+        ),
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.teal.shade100, Colors.white],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          padding: const EdgeInsets.all(16.0),
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch, // Stretch children
+              children: [
+                isLoadingCompanyInfo
+                    ? const Center(child: CircularProgressIndicator())
+                    : Text(
+                  companyName ?? 'Company Name',
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.teal,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                _buildCustomerDetails(localizations),
+                const SizedBox(height: 20),
+                _buildProductList(localizations),
+                const SizedBox(height: 20),
+                Center(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      addProduct();
+                      // Scroll to the bottom after adding a product
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        _scrollController.animateTo(
+                          _scrollController.position.maxScrollExtent,
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOut,
+                        );
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(localizations.product_added)),
+                      );
+                    },
+                    icon: const Icon(Icons.add),
+                    label: Text(localizations.add_product_button_label),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                _buildDiscountAndVatFields(localizations),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    Memo memo = saveMemo();
+                    _showTemplateSelectionDialog(context, localizations);
+
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text(localizations.create_cash_memo_label),
+                ),
+                const SizedBox(height: 20),
+
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildCustomerDetails(localizations) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         TextField(
           controller: customerNameController,
           decoration: InputDecoration(
-              labelText: localizations.customer_name,
-              border: OutlineInputBorder()),
+            labelText: localizations.customer_name,
+            border: const OutlineInputBorder(),
+            prefixIcon: const Icon(Icons.person),
+          ),
         ),
-        SizedBox(height: 10),
+        const SizedBox(height: 10),
         TextField(
           controller: customerAddressController,
           decoration: InputDecoration(
-              labelText: localizations.customer_address,
-              border: OutlineInputBorder()),
+            labelText: localizations.customer_address,
+            border: const OutlineInputBorder(),
+            prefixIcon: const Icon(Icons.location_on),
+          ),
         ),
-        SizedBox(height: 10),
+        const SizedBox(height: 10),
         TextField(
           controller: customerPhoneNumberController,
           decoration: InputDecoration(
-              labelText: localizations.customer_phone_number,
-              border: OutlineInputBorder()),
+            labelText: localizations.customer_phone_number,
+            border: const OutlineInputBorder(),
+            prefixIcon: const Icon(Icons.phone),
+          ),
           keyboardType: TextInputType.phone,
         ),
       ],
     );
   }
 
-  Widget _buildProductList(localizations) {
+  void _showInputDialog(int index, String label, TextEditingController controller, Function(String) onSubmitted) {
+    FocusNode focusNode = FocusNode();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        // Request focus when the dialog is built
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          FocusScope.of(context).requestFocus(focusNode);
+        });
+
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15.0), // Rounded corners for the dialog
+          ),
+          title: Text(
+            label,
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold), // Bold title
+          ),
+          content: Container(
+            width: double.maxFinite, // Full width for the dialog content
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: controller,
+                  focusNode: focusNode, // Assign the FocusNode to the TextField
+                  keyboardType: (label == "Product Quantity" || label == "Product Price") // Set keyboard type based on the label
+                      ? TextInputType.number // Number keyboard for price and quantity
+                      : TextInputType.text, // Default text keyboard for other fields
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10), // Rounded corners for the TextField
+                    ),
+                    labelText: label,
+                    prefixIcon: Icon(Icons.edit, color: Colors.blue), // Icon for the TextField
+                  ),
+                  onSubmitted: (value) {
+                    onSubmitted(value);
+                    Navigator.of(context).pop(); // Close the dialog
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(), // Close the dialog without action
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white, backgroundColor: Colors.red, // Button background color
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10), // Rounded corners for the button
+                ),
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10), // Button padding
+              ),
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                onSubmitted(controller.text);
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white, backgroundColor: Colors.green, // Button background color
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10), // Rounded corners for the button
+                ),
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10), // Button padding
+              ),
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildProductList(localization) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: List.generate(products.length, (index) {
         return Card(
           margin: const EdgeInsets.only(bottom: 10),
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
           child: Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(10.0),
             child: Row(
               children: [
                 Expanded(
-                  child: TextField(
-                    onChanged: (value) => setState(() {
-                      products[index].name = value;
-                    }),
-                    controller: _nameControllers[index],
-                    decoration: InputDecoration(
-                        labelText: localizations.product_name,
-                        border: const OutlineInputBorder()),
-                  ),
-                ),
-                SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    onChanged: (value) => setState(() {
-                      products[index].price = double.tryParse(value) ?? 0;
-                    }),
-                    controller: _priceControllers[index],
-                    decoration: InputDecoration(
-                        labelText: localizations.product_price,
-                        border: OutlineInputBorder()),
-                    keyboardType: TextInputType.number,
+                  child: GestureDetector(
+                    onTap: () => _showInputDialog(
+                      index,
+                      'Product Name',
+                      _nameControllers[index],
+                          (value) => setState(() {
+                        products[index].name = value;
+                      }),
+                    ),
+                    child: AbsorbPointer(
+                      child: TextField(
+                        controller: _nameControllers[index],
+                        decoration: InputDecoration(
+                          labelText: 'Product Name',
+                          border: const OutlineInputBorder(),
+                          prefixIcon: const Icon(Icons.article),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: TextField(
-                    onChanged: (value) => setState(() {
-                      products[index].quantity = int.tryParse(value) ?? 1;
-                    }),
-                    controller: _quantityControllers[index],
-                    decoration: InputDecoration(
-                        labelText: localizations.product_quantity,
-                        border: OutlineInputBorder()),
-                    keyboardType: TextInputType.number,
+                  child: GestureDetector(
+                    onTap: () => _showInputDialog(
+                      index,
+                      'Product Price',
+                      _priceControllers[index],
+                          (value) => setState(() {
+                        products[index].price = double.tryParse(value) ?? 0;
+                      }),
+                    ),
+                    child: AbsorbPointer(
+                      child: TextField(
+                        controller: _priceControllers[index],
+                        decoration: InputDecoration(
+                          labelText: 'Product Price',
+                          border: const OutlineInputBorder(),
+                          prefixIcon: const Icon(Icons.attach_money),
+                        ),
+                        keyboardType: TextInputType.number,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => _showInputDialog(
+                      index,
+                      'Product Quantity',
+                      _quantityControllers[index],
+                          (value) => setState(() {
+                        products[index].quantity = int.tryParse(value) ?? 1;
+                      }),
+                    ),
+                    child: AbsorbPointer(
+                      child: TextField(
+                        controller: _quantityControllers[index],
+                        decoration: InputDecoration(
+                          labelText: 'Product Quantity',
+                          border: const OutlineInputBorder(),
+                          prefixIcon: const Icon(Icons.format_list_numbered),
+                        ),
+                        keyboardType: TextInputType.number,
+                      ),
+                    ),
                   ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.remove_circle, color: Colors.red),
-                  onPressed: () => removeProduct(index),
+                  onPressed: () {
+                    setState(() {
+                      products.removeAt(index);
+                      _nameControllers.removeAt(index);
+                      _priceControllers.removeAt(index);
+                      _quantityControllers.removeAt(index);
+                    });
+                  },
                 ),
               ],
             ),
@@ -982,6 +1104,7 @@ class _CashMemoEditState extends State<CashMemoEdit> {
 
   Widget _buildDiscountAndVatFields(localizations) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -991,11 +1114,12 @@ class _CashMemoEditState extends State<CashMemoEdit> {
                 controller: discountController,
                 focusNode: discountFocusNode,
                 decoration: InputDecoration(
-                    labelText: localizations.discount_label,
-                    border: OutlineInputBorder()),
+                  labelText: localizations.discount_label,
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.money_off),
+                ),
                 keyboardType: TextInputType.number,
                 onTap: () {
-                  // Clear the discount field on tap if the current value is 0.0
                   if (discountController.text == '0.0') {
                     discountController.clear();
                   }
@@ -1008,11 +1132,12 @@ class _CashMemoEditState extends State<CashMemoEdit> {
                 controller: vatController,
                 focusNode: vatFocusNode,
                 decoration: InputDecoration(
-                    labelText: localizations.tax_label,
-                    border: OutlineInputBorder()),
+                  labelText: localizations.tax_label,
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.percent),
+                ),
                 keyboardType: TextInputType.number,
                 onTap: () {
-                  // Clear the VAT field on tap if the current value is 0.0
                   if (vatController.text == '0.0') {
                     vatController.clear();
                   }
@@ -1037,4 +1162,5 @@ class _CashMemoEditState extends State<CashMemoEdit> {
       ],
     );
   }
+
 }

@@ -39,5 +39,39 @@
   "date_pdf_label": "Date:",
 
   "product_total": "Total",
-  "product_subtotal": "Subtotal"
+  "product_subtotal": "Subtotal",
+
+  "settings_label" : "Settings",
+  "company_info_tab_label" : "Company info",
+  "watermark_tab_label" : "Watermark",
+  "nb_tab_label" : "N.B.",
+  "language_tab_label" : "Language",
+  "customize_company_info": "Customize Your Company Info",
+  "customize_company_logo": "Company Logo",
+  "no_logo": "No logo selected",
+  "select_logo": "Select Logo",
+  "company_address": "Company address",
+
+  "company_logo": "Company Logo",
+  "watermark_settings_label": "Watermark Settings",
+  "watermark_text_label": "Watermark Text",
+  "watermark_image_label": "Watermark Image",
+  "no_watermark_image_label": "No watermark image selected",
+  "select_watermark_image_label": "Select Watermark Image",
+  "select_watermark_type_label": "Select Watermark Type",
+
+  "watermark_type_text_label": "Text",
+  "watermark_type_image_label": "Image",
+  "watermark_type_both_label": "Both",
+  "watermark_type_none_label": "None",
+
+  "nb_label": "N.B. (Note Well)",
+  "special_message_title": "Special Message",
+  "select_language_title": "Select Language",
+  "language_english_title": "English",
+  "language_bengali_title": "Bengali",
+
+  "save_settings_label": "Save Settings",
+  "cash_memo_created": "Cash memo created successfully!",
+  "product_added": "Product added successfully!"
 }

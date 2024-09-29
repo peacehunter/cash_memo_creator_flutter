@@ -39,7 +39,40 @@
 
   "cash_memo_pdf_label": "ক্যাশ মেমো",
 
-  "date_pdf_label": "তারিখ:"
+  "date_pdf_label": "তারিখ:",
 
 
+  "settings_label" : "সেটিংস",
+  "company_info_tab_label" : "কোম্পানীর তথ্য",
+  "watermark_tab_label" : "জলছাপ",
+  "nb_tab_label" : "বিদ্রঃ মেসেজ",
+  "language_tab_label" : "ভাষা",
+  "customize_company_info": "প্রতিষ্ঠানের তথ্য পরিবর্তন",
+  "customize_company_logo": "প্রতিষ্ঠানের লোগো",
+  "no_logo": "কোন লোগো পছন্দ করা হয়নি ",
+  "select_logo": "লোগো পছন্দ করুন",
+  "company_address": "প্রতিষ্ঠানের ঠিকানা",
+
+  "company_logo": "প্রতিষ্ঠানের লোগো",
+  "watermark_settings_label": "জলছাপ সম্পর্কিত সেটিংস",
+  "watermark_text_label": "জলছাপ হিসেবে ব্যবহৃত লিখা",
+  "watermark_image_label": "জলছাপ হিসেবে ব্যবহৃত ছবি",
+  "no_watermark_image_label": "জলছাপের জন্য কোন ছবি পছন্দ করা হয়নি",
+  "select_watermark_image_label": "জলছাপের জন্য ছবি পছন্দ করুন",
+  "select_watermark_type_label": "জলছাপের ধরন পছন্দ করুন",
+
+  "watermark_type_text_label": "লিখা",
+  "watermark_type_image_label": "ছবি",
+  "watermark_type_both_label": "সবগুলি",
+  "watermark_type_none_label": "কোনটিই না (কোন জলছাপ থাকবে না)  ",
+
+  "nb_label": "বিদ্রঃ (বিশেষ দ্রষ্টব্য লিখা বার্তা) ",
+  "special_message_title": "কাস্টমারদের উদ্দেশ্যে বিশেষ বার্তা",
+  "select_language_title": "ভাষা পরিবর্তন করুন",
+  "language_english_title": "ইংরেজী",
+  "language_bengali_title": "বাংলা",
+
+  "save_settings_label": "সেটিংস সেভ করুন",
+  "cash_memo_created": "ক্যাশ মেমো সফলভাবে তৈরি হয়েছে!",
+  "product_added": "পণ্য সফলভাবে যুক্ত হয়েছে!"
 }

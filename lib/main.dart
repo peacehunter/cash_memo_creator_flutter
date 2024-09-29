@@ -1,49 +1,68 @@
 import 'package:flutter/material.dart';
-import 'CheckRouteObserver.dart';
-import 'memo_list.dart';
-import 'cash_memo.dart';
-import 'SettingsPage.dart'; // Import the settings page
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:intl/intl.dart';
-import 'package:cash_memo_creator/l10n/gen_l10n/app_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'CheckRouteObserver.dart';
+import 'SettingsPage.dart';
+import 'cash_memo.dart';
+import 'l10n/gen_l10n/app_localizations.dart';
+import 'memo_list.dart';
 
 void main() {
   runApp(CashMemoApp());
 }
 
-class CashMemoApp extends StatelessWidget {
-  final MyRouteObserver myRouteObserver = MyRouteObserver();
+class CashMemoApp extends StatefulWidget {
+  @override
+  _CashMemoAppState createState() => _CashMemoAppState();
+}
 
-  CashMemoApp({super.key});
+class _CashMemoAppState extends State<CashMemoApp> {
+  String ?selectedLanguage;
+  Locale ?_locale;
+  Future<void> loadLanguagePreference() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    selectedLanguage = prefs.getString('appLanguage') ?? 'en'; // Default to English
+    _locale =  Locale(selectedLanguage ??'bn', ''); // Default locale is Bengali
+
+    setState(() {});
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    loadLanguagePreference();
+
+  }
+  void _updateLocale(String languageCode) {
+    setState(() {
+      _locale = Locale(languageCode, '');
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       localizationsDelegates: const [
-        AppLocalizations.delegate, // Your generated localization delegate
-
+        AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,  // Adds Cupertino localization support
+        GlobalCupertinoLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
-
       ],
       supportedLocales: const [
-        Locale('en', ''), // English
-        Locale('bn', ''), // Bengali
+        Locale('en', ''),
+        Locale('bn', ''),
       ],
-
-      locale: const Locale('bn', ''), // Set the locale to Bengali
-
+      locale: _locale, // Use the current locale
       title: 'Cash Memo Generator',
-      navigatorObservers: [myRouteObserver],
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
+      navigatorObservers: [MyRouteObserver()],
+      theme: ThemeData(primarySwatch: Colors.blue),
       initialRoute: '/',
       routes: {
         '/': (context) => const MemoListScreen(),
         '/edit': (context) => CashMemo(),
-        '/settings': (context) => SettingsPage(), // Add the settings route
+        '/settings': (context) => SettingsPage(updateLocale: _updateLocale), // Pass the callback
       },
     );
   }

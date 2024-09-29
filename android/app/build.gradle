@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.cash_memo_creator"
+    namespace = "com.tuhin.cash_memo_creator"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.cash_memo_creator"
+        applicationId = "com.tuhin.cash_memo_creator"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -42,3 +42,14 @@ android {
 flutter {
     source = "../.."
 }
+
+// Add dependencies block here
+dependencies {
+    // Add iText dependency for PDF generation
+    implementation 'com.itextpdf:itext7-core:7.2.2' // or the latest version
+    implementation 'com.itextpdf:kernel:7.2.2' // Explicitly add the kernel library
+    implementation 'com.itextpdf:layout:7.2.2' // If you are using layout
+
+
+}
+

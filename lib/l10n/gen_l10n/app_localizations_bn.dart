@@ -101,4 +101,91 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get product_subtotal => 'মোট';
+
+  @override
+  String get settings_label => 'সেটিংস';
+
+  @override
+  String get company_info_tab_label => 'কোম্পানীর তথ্য';
+
+  @override
+  String get watermark_tab_label => 'জলছাপ';
+
+  @override
+  String get nb_tab_label => 'বিদ্রঃ মেসেজ';
+
+  @override
+  String get language_tab_label => 'ভাষা';
+
+  @override
+  String get customize_company_info => 'প্রতিষ্ঠানের তথ্য পরিবর্তন';
+
+  @override
+  String get customize_company_logo => 'প্রতিষ্ঠানের লোগো';
+
+  @override
+  String get no_logo => 'কোন লোগো পছন্দ করা হয়নি ';
+
+  @override
+  String get select_logo => 'লোগো পছন্দ করুন';
+
+  @override
+  String get company_address => 'প্রতিষ্ঠানের ঠিকানা';
+
+  @override
+  String get company_logo => 'প্রতিষ্ঠানের লোগো';
+
+  @override
+  String get watermark_settings_label => 'জলছাপ সম্পর্কিত সেটিংস';
+
+  @override
+  String get watermark_text_label => 'জলছাপ হিসেবে ব্যবহৃত লিখা';
+
+  @override
+  String get watermark_image_label => 'জলছাপ হিসেবে ব্যবহৃত ছবি';
+
+  @override
+  String get no_watermark_image_label => 'জলছাপের জন্য কোন ছবি পছন্দ করা হয়নি';
+
+  @override
+  String get select_watermark_image_label => 'জলছাপের জন্য ছবি পছন্দ করুন';
+
+  @override
+  String get select_watermark_type_label => 'জলছাপের ধরন পছন্দ করুন';
+
+  @override
+  String get watermark_type_text_label => 'লিখা';
+
+  @override
+  String get watermark_type_image_label => 'ছবি';
+
+  @override
+  String get watermark_type_both_label => 'সবগুলি';
+
+  @override
+  String get watermark_type_none_label => 'কোনটিই না (কোন জলছাপ থাকবে না)  ';
+
+  @override
+  String get nb_label => 'বিদ্রঃ (বিশেষ দ্রষ্টব্য লিখা বার্তা) ';
+
+  @override
+  String get special_message_title => 'কাস্টমারদের উদ্দেশ্যে বিশেষ বার্তা';
+
+  @override
+  String get select_language_title => 'ভাষা পরিবর্তন করুন';
+
+  @override
+  String get language_english_title => 'ইংরেজী';
+
+  @override
+  String get language_bengali_title => 'বাংলা';
+
+  @override
+  String get save_settings_label => 'সেটিংস সেভ করুন';
+
+  @override
+  String get cash_memo_created => 'ক্যাশ মেমো সফলভাবে তৈরি হয়েছে!';
+
+  @override
+  String get product_added => 'পণ্য সফলভাবে যুক্ত হয়েছে!';
 }
