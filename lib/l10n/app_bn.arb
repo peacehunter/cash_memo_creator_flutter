@@ -1,0 +1,45 @@
+{
+  "savedMemos": "সংরক্ষিত মেমো",
+  "total": "মোট",
+  "date": "তারিখ",
+  "dateNotAvailable": "তারিখ: পাওয়া যায়নি",
+  "deleteMemo": "মেমো মুছুন",
+  "confirmDelete": "আপনি কি নিশ্চিত যে আপনি এই মেমোটি মুছতে চান?",
+  "cancel": "বাতিল",
+  "delete": "মুছুন",
+  "generateCashMemo": "ক্যাশ মেমো তৈরি করুন",
+  "noSavedMemos": "কোন সংরক্ষিত মেমো নেই",
+  "customer_name" : "ক্রেতার নাম",
+  "customer_address" : "ক্রেতার ঠিকানা",
+  "customer_phone_number" : "ক্রেতার ফোন নাম্বার",
+
+  "product_name": "পণ্যের নাম",
+  "product_price": "দাম",
+  "product_quantity": "সংখ্যা",
+  "product_subtotal": "মোট",
+  "product_total": "সর্বমোট",
+  "add_product_button_label":"পণ্য যোগ করুন",
+
+  "discount_label": "ছাড়",
+  "tax_label": "ভ্যাট/ট্যাক্স %",
+
+  "create_cash_memo_label": "ক্যাশ মেমো তৈরী করুন",
+  "percent_discount_label":"শতকরা হিসেবে ডিসকাউন্ট",
+  "select_template_label": "টেমপ্লেট পছন্দ করুন",
+
+
+  "template_name_1": "টেমপ্লেট ১ঃ ক্ল্যাসিক",
+  "template_name_2": "টেমপ্লেট ২ঃ মর্ডার্ন",
+  "template_name_3": "টেমপ্লেট ১ঃ মিনিমাল",
+  "template_name_4": "টেমপ্লেট ১ঃ বর্ডারলেস (বর্ডার ছাড়া)",
+
+  "dialog_cancel_label": "বাতিল করুন",
+
+  "pdf_company_name": "প্রতিষ্ঠানের নাম",
+
+  "cash_memo_pdf_label": "ক্যাশ মেমো",
+
+  "date_pdf_label": "তারিখ:"
+
+
+}

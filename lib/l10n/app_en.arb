@@ -1,0 +1,43 @@
+{
+  "savedMemos": "Saved Memos",
+  "total": "Total",
+  "date": "Date",
+  "dateNotAvailable": "Date: Not available",
+  "deleteMemo": "Delete Memo",
+  "confirmDelete": "Are you sure you want to delete this memo?",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "generateCashMemo": "Generate Cash Memo",
+  "noSavedMemos": "No saved memos",
+  "customer_name" : "Customer name",
+  "customer_address" : "Customer address",
+  "customer_phone_number" : "Customer phone number",
+
+  "product_name": "Product name",
+  "product_price": "Price",
+  "product_quantity": "Quantity",
+
+  "add_product_button_label":"Add Product",
+
+  "discount_label": "Discount",
+  "tax_label": "Vat/Tax",
+
+  "create_cash_memo_label": "Create Cash Memo",
+  "percent_discount_label":"Percentage Discount",
+
+  "select_template_label":"Select a Template",
+
+  "template_name_1": "Template 1 - Classic",
+  "template_name_2": "Template 2 - Modern",
+  "template_name_3": "Template 3 - Minimal",
+  "template_name_4": "Template 4 - Borderless",
+  "dialog_cancel_label": "Cancel",
+
+  "pdf_company_name": "Company Name",
+
+  "cash_memo_pdf_label": "Cash Memo",
+  "date_pdf_label": "Date:",
+
+  "product_total": "Total",
+  "product_subtotal": "Subtotal"
+}
