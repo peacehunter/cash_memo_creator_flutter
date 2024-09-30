@@ -18,6 +18,8 @@
   "product_quantity": "Quantity",
 
   "add_product_button_label":"Add Product",
+  "remove_product_button_label":"Remove the product",
+
 
   "discount_label": "Discount",
   "tax_label": "Vat/Tax",

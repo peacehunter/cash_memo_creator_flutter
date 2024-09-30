@@ -58,6 +58,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get add_product_button_label => 'Add Product';
 
   @override
+  String get remove_product_button_label => 'Remove the product';
+
+  @override
   String get discount_label => 'Discount';
 
   @override

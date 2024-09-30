@@ -197,6 +197,12 @@ abstract class AppLocalizations {
   /// **'Add Product'**
   String get add_product_button_label;
 
+  /// No description provided for @remove_product_button_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove the product'**
+  String get remove_product_button_label;
+
   /// No description provided for @discount_label.
   ///
   /// In en, this message translates to:

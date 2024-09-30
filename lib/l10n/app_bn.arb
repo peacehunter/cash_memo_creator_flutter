@@ -19,6 +19,7 @@
   "product_subtotal": "মোট",
   "product_total": "সর্বমোট",
   "add_product_button_label":"পণ্য যোগ করুন",
+  "remove_product_button_label":"পন্যটি মুছে ফেলুন",
 
   "discount_label": "ছাড়",
   "tax_label": "ভ্যাট/ট্যাক্স %",

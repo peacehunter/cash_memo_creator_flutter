@@ -72,29 +72,34 @@ class Product {
   String name;
   double price;
   int quantity;
+  bool isExpanded; // Added isExpanded property
 
-  Product({required this.name, required this.price, required this.quantity});
+  Product({
+    required this.name,
+    required this.price,
+    required this.quantity,
+    this.isExpanded = false, // Initialize to false by default
+  });
 
   Map<String, dynamic> toJson() {
     return {
       'name': name,
       'price': price,
       'quantity': quantity,
+      'isExpanded': isExpanded, // Include isExpanded in toJson
     };
   }
 
   static Product fromJson(Map<String, dynamic> json) {
     return Product(
       name: json['name'],
-      // Ensure price is parsed as a double, regardless of whether it's a String, int, or double
       price: (json['price'] is String)
           ? double.tryParse(json['price']) ?? 0.0
           : json['price'].toDouble(),
-      // Ensure quantity is parsed as an int, regardless of whether it's a String or int
       quantity: (json['quantity'] is String)
           ? int.tryParse(json['quantity']) ?? 0
           : json['quantity'],
+      isExpanded: json['isExpanded'] ?? false, // Parse isExpanded from JSON, default to false
     );
   }
-
 }

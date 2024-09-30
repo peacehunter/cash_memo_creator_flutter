@@ -58,6 +58,9 @@ class AppLocalizationsBn extends AppLocalizations {
   String get add_product_button_label => 'পণ্য যোগ করুন';
 
   @override
+  String get remove_product_button_label => 'পন্যটি মুছে ফেলুন';
+
+  @override
   String get discount_label => 'ছাড়';
 
   @override

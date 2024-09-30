@@ -132,10 +132,6 @@ class _CashMemoEditState extends State<CashMemoEdit> {
     // Load company info
     loadCompanyInfo(localizations);
   }
-
-
-
-
   Future<void> loadCompanyInfo(localizations) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -575,12 +571,9 @@ class _CashMemoEditState extends State<CashMemoEdit> {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Text(
-            'Customer name: ${customerNameController.text}'),
-        pw.Text(
-            'Customer address: ${customerAddressController.text}'),
-        pw.Text(
-            'Phone number: ${customerPhoneNumberController.text}'),
+        pw.Text('Customer name: ${customerNameController.text}'),
+        pw.Text('Customer address: ${customerAddressController.text}'),
+        pw.Text('Phone number: ${customerPhoneNumberController.text}'),
       ],
     );
   }
@@ -755,6 +748,7 @@ class _CashMemoEditState extends State<CashMemoEdit> {
     );
   }
 
+  @override
   Widget build(BuildContext context) {
     var localizations = AppLocalizations.of(context)!; // Get localization
 
@@ -922,183 +916,156 @@ class _CashMemoEditState extends State<CashMemoEdit> {
     );
   }
 
-  void _showInputDialog(int index, String label, TextEditingController controller, Function(String) onSubmitted) {
-    FocusNode focusNode = FocusNode();
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        // Request focus when the dialog is built
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          FocusScope.of(context).requestFocus(focusNode);
-        });
-
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15.0), // Rounded corners for the dialog
-          ),
-          title: Text(
-            label,
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold), // Bold title
-          ),
-          content: Container(
-            width: double.maxFinite, // Full width for the dialog content
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+  Widget _buildProductList(AppLocalizations localizations) {
+    return SingleChildScrollView(
+      child: Column(
+        children: List.generate(products.length, (index) {
+          return Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10), // Rounded edges
+            ),
+            color: Colors.teal,
+            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 0), // Margin between cards
+            elevation: 2, // Elevation for shadow effect
+            child: ExpansionPanelList(
+              elevation: 0, // No elevation for the list inside the card
+              expandedHeaderPadding: EdgeInsets.zero,
               children: [
-                TextField(
-                  controller: controller,
-                  focusNode: focusNode, // Assign the FocusNode to the TextField
-                  keyboardType: (label == "Product Quantity" || label == "Product Price") // Set keyboard type based on the label
-                      ? TextInputType.number // Number keyboard for price and quantity
-                      : TextInputType.text, // Default text keyboard for other fields
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10), // Rounded corners for the TextField
-                    ),
-                    labelText: label,
-                    prefixIcon: Icon(Icons.edit, color: Colors.blue), // Icon for the TextField
-                  ),
-                  onSubmitted: (value) {
-                    onSubmitted(value);
-                    Navigator.of(context).pop(); // Close the dialog
+                ExpansionPanel(
+                  headerBuilder: (BuildContext context, bool isExpanded) {
+                    return ListTile(
+                      title: Text(
+                        products[index].name.isNotEmpty ? products[index].name : '${localizations.product_name} ${index + 1}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.teal,
+                        ),
+                      ),
+                    );
                   },
+                  body: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Product Name (Full Width)
+                        TextField(
+                          controller: _nameControllers[index],
+                          onChanged: (value) {
+                            setState(() {
+                              products[index].name = value;
+                            });
+                          },
+                          decoration: InputDecoration(
+                            labelText: localizations.product_name,
+                            labelStyle: const TextStyle(color: Colors.teal),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(color: Colors.teal.shade300, width: 1.5), // Lighter border
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(color: Colors.teal.shade700, width: 2), // Darker border on focus
+                            ),
+                            prefixIcon: const Icon(Icons.article, color: Colors.teal),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 15), // Better vertical alignment
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        // Row with Product Price and Quantity
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _priceControllers[index],
+                                onChanged: (value) {
+                                  setState(() {
+                                    products[index].price = double.tryParse(value) ?? 0;
+                                  });
+                                },
+                                decoration: InputDecoration(
+                                  labelText: localizations.product_price,
+                                  labelStyle: const TextStyle(color: Colors.teal),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(color: Colors.teal.shade300, width: 1.5), // Lighter border
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(color: Colors.teal.shade700, width: 2), // Darker border on focus
+                                  ),
+                                  prefixIcon: const Icon(Icons.attach_money, color: Colors.teal),
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 15), // Better vertical alignment
+                                ),
+                                keyboardType: TextInputType.number,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: TextField(
+                                controller: _quantityControllers[index],
+                                onChanged: (value) {
+                                  setState(() {
+                                    products[index].quantity = int.tryParse(value) ?? 1;
+                                  });
+                                },
+                                decoration: InputDecoration(
+                                  labelText: localizations.product_quantity,
+                                  labelStyle: const TextStyle(color: Colors.teal),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(color: Colors.teal.shade300, width: 1.5), // Lighter border
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(color: Colors.teal.shade700, width: 2), // Darker border on focus
+                                  ),
+                                  prefixIcon: const Icon(Icons.format_list_numbered, color: Colors.teal),
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 15), // Better vertical alignment
+                                ),
+                                keyboardType: TextInputType.number,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        // Remove Product Button with Teal color scheme
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              products.removeAt(index);
+                              _nameControllers.removeAt(index);
+                              _priceControllers.removeAt(index);
+                              _quantityControllers.removeAt(index);
+                            });
+                          },
+                          icon: const Icon(Icons.delete, color: Colors.white),
+                          label: Text(localizations.remove_product_button_label), // Updated to localized text
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal, // Matches the teal theme
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  isExpanded: products[index].isExpanded ? false : true,
                 ),
               ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(), // Close the dialog without action
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.white, backgroundColor: Colors.red, // Button background color
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10), // Rounded corners for the button
-                ),
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10), // Button padding
-              ),
-              child: Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                onSubmitted(controller.text);
-                Navigator.of(context).pop(); // Close the dialog
+              // Expansion callback to toggle the state of the panel
+              expansionCallback: (int index, bool isExpanded) {
+                setState(() {
+                  products[index].isExpanded = !isExpanded; // Toggle the expanded state
+                });
               },
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.white, backgroundColor: Colors.green, // Button background color
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10), // Rounded corners for the button
-                ),
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10), // Button padding
-              ),
-              child: Text('OK'),
             ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildProductList(localization) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: List.generate(products.length, (index) {
-        return Card(
-          margin: const EdgeInsets.only(bottom: 10),
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => _showInputDialog(
-                      index,
-                      'Product Name',
-                      _nameControllers[index],
-                          (value) => setState(() {
-                        products[index].name = value;
-                      }),
-                    ),
-                    child: AbsorbPointer(
-                      child: TextField(
-                        controller: _nameControllers[index],
-                        decoration: InputDecoration(
-                          labelText: 'Product Name',
-                          border: const OutlineInputBorder(),
-                          prefixIcon: const Icon(Icons.article),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => _showInputDialog(
-                      index,
-                      'Product Price',
-                      _priceControllers[index],
-                          (value) => setState(() {
-                        products[index].price = double.tryParse(value) ?? 0;
-                      }),
-                    ),
-                    child: AbsorbPointer(
-                      child: TextField(
-                        controller: _priceControllers[index],
-                        decoration: InputDecoration(
-                          labelText: 'Product Price',
-                          border: const OutlineInputBorder(),
-                          prefixIcon: const Icon(Icons.attach_money),
-                        ),
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => _showInputDialog(
-                      index,
-                      'Product Quantity',
-                      _quantityControllers[index],
-                          (value) => setState(() {
-                        products[index].quantity = int.tryParse(value) ?? 1;
-                      }),
-                    ),
-                    child: AbsorbPointer(
-                      child: TextField(
-                        controller: _quantityControllers[index],
-                        decoration: InputDecoration(
-                          labelText: 'Product Quantity',
-                          border: const OutlineInputBorder(),
-                          prefixIcon: const Icon(Icons.format_list_numbered),
-                        ),
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.remove_circle, color: Colors.red),
-                  onPressed: () {
-                    setState(() {
-                      products.removeAt(index);
-                      _nameControllers.removeAt(index);
-                      _priceControllers.removeAt(index);
-                      _quantityControllers.removeAt(index);
-                    });
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      }),
+          );
+        }),
+      ),
     );
   }
 
