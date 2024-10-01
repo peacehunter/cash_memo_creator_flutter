@@ -24,6 +24,7 @@
   "discount_label": "Discount",
   "tax_label": "Vat/Tax",
 
+
   "create_cash_memo_label": "Create Cash Memo",
   "percent_discount_label":"Percentage Discount",
 
@@ -75,5 +76,12 @@
 
   "save_settings_label": "Save Settings",
   "cash_memo_created": "Cash memo created successfully!",
-  "product_added": "Product added successfully!"
+  "product_added": "Product added successfully!",
+
+  "memosTab": "Cash Memo",
+  "pdfTab": "Saved Cash Memos",
+  "viewMemo": "View Cash Memo",
+  "noMemosAvailable": "No cash memo available",
+  "noPdfsAvailable": "No saved cash memo available",
+  "deletePdf": "Delete cash memo"
 }

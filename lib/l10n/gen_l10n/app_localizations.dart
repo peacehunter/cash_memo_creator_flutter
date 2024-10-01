@@ -466,6 +466,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Product added successfully!'**
   String get product_added;
+
+  /// No description provided for @memosTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash Memo'**
+  String get memosTab;
+
+  /// No description provided for @pdfTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved Cash Memos'**
+  String get pdfTab;
+
+  /// No description provided for @viewMemo.
+  ///
+  /// In en, this message translates to:
+  /// **'View Cash Memo'**
+  String get viewMemo;
+
+  /// No description provided for @noMemosAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No cash memo available'**
+  String get noMemosAvailable;
+
+  /// No description provided for @noPdfsAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved cash memo available'**
+  String get noPdfsAvailable;
+
+  /// No description provided for @deletePdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete cash memo'**
+  String get deletePdf;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

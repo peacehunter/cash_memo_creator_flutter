@@ -75,5 +75,13 @@
 
   "save_settings_label": "সেটিংস সেভ করুন",
   "cash_memo_created": "ক্যাশ মেমো সফলভাবে তৈরি হয়েছে!",
-  "product_added": "পণ্য সফলভাবে যুক্ত হয়েছে!"
+  "product_added": "পণ্য সফলভাবে যুক্ত হয়েছে!",
+
+  "memosTab": "ক্যাশ মেমো",
+  "pdfTab": "সংরক্ষিত ক্যাশ মেমো ",
+  "viewMemo": "ক্যাশ মেমো দেখুন",
+  "noMemosAvailable": "কোন ক্যাশ মেমো নেই",
+  "noPdfsAvailable": "কোন সংরক্ষিত ক্যাশ মেমো নেই",
+  "deletePdf": "ক্যাশ মেমো মুছে ফেলুন"
+
 }

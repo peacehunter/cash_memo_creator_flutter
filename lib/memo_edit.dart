@@ -1,12 +1,16 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_pdfview/flutter_pdfview.dart';
+import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:printing/printing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'PdfSaver.dart';
+import 'PdfViewerScreen.dart';
 import 'PreviewPage.dart';
 import 'Memo.dart';
 import 'dart:typed_data' as typed_data;
@@ -85,6 +89,7 @@ class _CashMemoEditState extends State<CashMemoEdit> {
 
     print("Water mark option :$selectedWatermarkOption");
 
+  //  savePdf();
     // Initialize products with existing memo data or create a new one
     products = widget.memo?.products.isNotEmpty == true
         ? List.from(widget.memo!.products)
@@ -179,60 +184,59 @@ class _CashMemoEditState extends State<CashMemoEdit> {
     return null;
   }
 
-// Update the generateCashMemo method to handle the new template
-  Future<void> generateCashMemo(localizations,int selectedTemplate,int selectedWatermarkOption,String? watermarkText,String? watermarkImagePath) async {
-    final pdf = pw.Document();
 
+
+  Future<void> requestPermissions() async {
+    if (await Permission.storage.isDenied) {
+      await Permission.storage.request();
+    }
+
+    if (await Permission.manageExternalStorage.isDenied) {
+      await Permission.manageExternalStorage.request();
+    }
+  }
+
+  Future<void> generateCashMemo(localizations,int selectedTemplate,int selectedWatermarkOption,String? watermarkText,String? watermarkImagePath,) async {
+    final pdf = pw.Document();
 
     // Load the logo from the saved path
     Uint8List? logoBytes = await loadLogo(companyLogoPath);
 
     // Get the current date
-    String currentDate =
-    DateTime.now().toLocal().toString().split(' ')[0]; // Format: YYYY-MM-DD
+    String currentDate = DateTime.now().toLocal().toString().split(' ')[0]; // Format: YYYY-MM-DD
 
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
         build: (pw.Context context) {
-          // Declare a variable to hold the template widget
           pw.Widget templateWidget;
 
-          // Use a switch case to determine the template widget
           switch (selectedTemplate) {
             case 1:
-              templateWidget = buildTemplate1(
-                  logoBytes, currentDate); // Classic template
+              templateWidget = buildTemplate1(logoBytes, currentDate);
               break;
             case 2:
-              templateWidget = buildTemplate2(
-                  logoBytes, currentDate); // Modern template
+              templateWidget = buildTemplate2(logoBytes, currentDate);
               break;
             case 3:
-              templateWidget = buildTemplate3(logoBytes, currentDate); // Minimal template
+              templateWidget = buildTemplate3(logoBytes, currentDate);
               break;
             case 4:
-              templateWidget = buildTemplate4(logoBytes, currentDate); // Borderless product template
+              templateWidget = buildTemplate4(logoBytes, currentDate);
               break;
             default:
-              templateWidget = buildTemplate1(logoBytes, currentDate); // Default to template 1
+              templateWidget = buildTemplate1(logoBytes, currentDate);
           }
 
-          // Use a Stack to overlay the watermark and content
           return pw.Stack(
             children: [
-              // Watermark widget based on user selection
-              waterMarkWidget(
-                  selectedWatermarkOption, watermarkText, watermarkImagePath),
-
-              // Main page content on top of the watermark
+              waterMarkWidget(selectedWatermarkOption, watermarkText, watermarkImagePath),
               pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
                   templateWidget,
-                  pw.Expanded(child: pw.Container()), // Take up available space
+                  pw.Expanded(child: pw.Container()),
 
-                  // Signature section
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.start,
                     children: [
@@ -242,16 +246,15 @@ class _CashMemoEditState extends State<CashMemoEdit> {
                         height: 50,
                         decoration: const pw.BoxDecoration(
                           border: pw.Border(
-                              bottom: pw.BorderSide(
-                                  width: 1, color: PdfColors.black)),
+                            bottom: pw.BorderSide(width: 1, color: PdfColors.black),
+                          ),
                         ),
                       ),
                     ],
                   ),
 
-                  // Add N.B. message if available
                   if (nbMessage != null && nbMessage!.isNotEmpty) ...[
-                    pw.SizedBox(height: 20), // Space before N.B. message
+                    pw.SizedBox(height: 20),
                     buildNBMessage(),
                   ],
                 ],
@@ -261,15 +264,34 @@ class _CashMemoEditState extends State<CashMemoEdit> {
         },
       ),
     );
+    final pdfData = await pdf.save();  // Save PDF as byte array
 
-    // Call the callback function to notify the list screen
+
+    String fileName = generateFileName(customerNameController.text);
+
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PdfPreviewScreen(pdfData: pdfData,fileName: fileName)
+      ),
+    );
+
+
+    /*  // Allow printing or save dialog to open
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdf.save(),
+    );*/
+
     if (widget.onMemoSaved != null) {
       widget.onMemoSaved!();
     }
+  }
 
-    Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdf.save(),
-    );
+  String generateFileName(String customerName) {
+
+    String formattedDate = DateFormat('_yyyyMMdd_HHmmss').format(DateTime.now());
+    return '${customerName}_$formattedDate.pdf'; // e.g., document_20231001_120101.pdf
   }
 
 // N.B. message widget

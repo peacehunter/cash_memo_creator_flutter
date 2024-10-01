@@ -191,4 +191,22 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get product_added => 'পণ্য সফলভাবে যুক্ত হয়েছে!';
+
+  @override
+  String get memosTab => 'ক্যাশ মেমো';
+
+  @override
+  String get pdfTab => 'সংরক্ষিত ক্যাশ মেমো ';
+
+  @override
+  String get viewMemo => 'ক্যাশ মেমো দেখুন';
+
+  @override
+  String get noMemosAvailable => 'কোন ক্যাশ মেমো নেই';
+
+  @override
+  String get noPdfsAvailable => 'কোন সংরক্ষিত ক্যাশ মেমো নেই';
+
+  @override
+  String get deletePdf => 'ক্যাশ মেমো মুছে ফেলুন';
 }

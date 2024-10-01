@@ -191,4 +191,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get product_added => 'Product added successfully!';
+
+  @override
+  String get memosTab => 'Cash Memo';
+
+  @override
+  String get pdfTab => 'Saved Cash Memos';
+
+  @override
+  String get viewMemo => 'View Cash Memo';
+
+  @override
+  String get noMemosAvailable => 'No cash memo available';
+
+  @override
+  String get noPdfsAvailable => 'No saved cash memo available';
+
+  @override
+  String get deletePdf => 'Delete cash memo';
 }
