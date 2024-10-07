@@ -8,6 +8,7 @@
   "cancel": "বাতিল",
   "delete": "মুছুন",
   "generateCashMemo": "ক্যাশ মেমো তৈরি করুন",
+  "printCashMemo": "ক্যাশ মেমো প্রিন্ট করুন",
   "noSavedMemos": "কোন সংরক্ষিত মেমো নেই",
   "customer_name" : "ক্রেতার নাম",
   "customer_address" : "ক্রেতার ঠিকানা",

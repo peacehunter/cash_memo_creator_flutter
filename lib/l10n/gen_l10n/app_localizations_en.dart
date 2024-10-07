@@ -31,7 +31,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get delete => 'Delete';
 
   @override
-  String get generateCashMemo => 'Generate Cash Memo';
+  String get generateCashMemo => 'Create Cash Memo';
+
+  @override
+  String get printCashMemo => 'Print Cash Memo';
 
   @override
   String get noSavedMemos => 'No saved memos';

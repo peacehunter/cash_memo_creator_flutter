@@ -146,8 +146,14 @@ abstract class AppLocalizations {
   /// No description provided for @generateCashMemo.
   ///
   /// In en, this message translates to:
-  /// **'Generate Cash Memo'**
+  /// **'Create Cash Memo'**
   String get generateCashMemo;
+
+  /// No description provided for @printCashMemo.
+  ///
+  /// In en, this message translates to:
+  /// **'Print Cash Memo'**
+  String get printCashMemo;
 
   /// No description provided for @noSavedMemos.
   ///

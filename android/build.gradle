@@ -1,3 +1,17 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        // Add classpath for Firebase Crashlytics
+        classpath 'com.google.firebase:firebase-crashlytics-gradle:3.0.2'
+
+        // Classpath for Google services plugin (already added)
+        classpath 'com.google.gms:google-services:4.4.2'
+    }
+}
+
 allprojects {
     repositories {
         google()
@@ -5,12 +19,11 @@ allprojects {
     }
 }
 
+// Other configurations
 rootProject.buildDir = "../build"
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
-}
-subprojects {
-    project.evaluationDependsOn(":app")
+    evaluationDependsOn(":app")
 }
 
 tasks.register("clean", Delete) {

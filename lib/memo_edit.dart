@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'package:cash_memo_creator/admob_ads/AdHelper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -14,8 +16,11 @@ import 'PdfViewerScreen.dart';
 import 'PreviewPage.dart';
 import 'Memo.dart';
 import 'dart:typed_data' as typed_data;
+import 'admob_ads/BannerAdWidget.dart';
+import 'admob_ads/InterstitialAdManager.dart';
 import 'l10n/gen_l10n/app_localizations.dart';
 import 'CashMemoPdfPrintService.dart';
+
 class CashMemoEdit extends StatefulWidget {
   final Memo? memo;
   final int? memoIndex;
@@ -24,15 +29,16 @@ class CashMemoEdit extends StatefulWidget {
 
   CashMemoEdit(
       {this.memo,
-        this.memoIndex,
-        this.onMemoSaved,
-        required this.autoGenerate});
+      this.memoIndex,
+      this.onMemoSaved,
+      required this.autoGenerate});
 
   @override
   _CashMemoEditState createState() => _CashMemoEditState();
 }
 
-class _CashMemoEditState extends State<CashMemoEdit> {
+class _CashMemoEditState extends State<CashMemoEdit>
+    with WidgetsBindingObserver {
   late List<Product> products;
   late TextEditingController discountController;
   late TextEditingController vatController;
@@ -41,6 +47,7 @@ class _CashMemoEditState extends State<CashMemoEdit> {
   late TextEditingController customerPhoneNumberController;
   late ScrollController _scrollController;
 
+  late InterstitialAd? _interstitialAd;
   FocusNode discountFocusNode = FocusNode();
   FocusNode vatFocusNode = FocusNode();
 
@@ -61,6 +68,8 @@ class _CashMemoEditState extends State<CashMemoEdit> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // Remove the observer
+
     _scrollController.dispose(); // Dispose of the scroll controller
 
     // Dispose of the controllers when the widget is removed from the widget tree
@@ -73,23 +82,35 @@ class _CashMemoEditState extends State<CashMemoEdit> {
     for (var controller in _quantityControllers) {
       controller.dispose();
     }
+    WidgetsBinding.instance.removeObserver(this); // Remove the observer
+
     super.dispose();
   }
 
-
+  // This is where you handle lifecycle changes like onResume
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Load the ad when the app is resumed
+      loadInterstitialAD();
+      print("app state: app is resumed");
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    _scrollController = ScrollController();
+    WidgetsBinding.instance.addObserver(this); // Add the observer here
 
+    _scrollController = ScrollController();
+    loadInterstitialAD();
     print("widget.autoGenerate value : ${widget.autoGenerate}");
     print("widget.memo value : ${widget.memo}");
     // Check if we need to automatically generate the memo
 
     print("Water mark option :$selectedWatermarkOption");
 
-  //  savePdf();
+    //  savePdf();
     // Initialize products with existing memo data or create a new one
     products = widget.memo?.products.isNotEmpty == true
         ? List.from(widget.memo!.products)
@@ -137,10 +158,12 @@ class _CashMemoEditState extends State<CashMemoEdit> {
     // Load company info
     loadCompanyInfo(localizations);
   }
+
   Future<void> loadCompanyInfo(localizations) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      companyName = prefs.getString('companyName') ?? localizations.pdf_company_name;
+      companyName =
+          prefs.getString('companyName') ?? localizations.pdf_company_name;
       companyAddress = prefs.getString('companyAddress') ?? '';
       companyLogoPath = prefs.getString('companyLogo') ?? '';
       watermarkText = prefs.getString('watermarkText') ?? '';
@@ -184,8 +207,6 @@ class _CashMemoEditState extends State<CashMemoEdit> {
     return null;
   }
 
-
-
   Future<void> requestPermissions() async {
     if (await Permission.storage.isDenied) {
       await Permission.storage.request();
@@ -196,15 +217,113 @@ class _CashMemoEditState extends State<CashMemoEdit> {
     }
   }
 
-  Future<void> generateCashMemo(localizations,int selectedTemplate,int selectedWatermarkOption,String? watermarkText,String? watermarkImagePath,) async {
+  void loadInterstitialAD() {
+    InterstitialAd.load(
+        adUnitId: AdHelper.interstitialAdUnitId,
+        request: const AdRequest(),
+        adLoadCallback: InterstitialAdLoadCallback(
+          onAdLoaded: (InterstitialAd ad) {
+            // Keep a reference to the ad so you can show it later.
+            _interstitialAd = ad;
+          },
+          onAdFailedToLoad: (LoadAdError error) {
+            _interstitialAd = null;
+            print('InterstitialAd failed to load: $error');
+          },
+        ));
+  }
+
+  void generateCashMemoAndShowAd(Uint8List pdfData, String fileName) {
+    if (_interstitialAd == null) {
+      print("add error: interstitial null");
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PdfPreviewScreen(
+            pdfData: pdfData,
+            fileName: fileName,
+          ),
+        ),
+      );
+    } else {
+      _interstitialAd?.show();
+
+      _interstitialAd?.fullScreenContentCallback = FullScreenContentCallback(
+          // Called when the ad showed the full screen content.
+          onAdShowedFullScreenContent: (ad) {
+            SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
+
+          },
+          // Called when an impression occurs on the ad.
+          onAdImpression: (ad) {},
+          // Called when the ad failed to show full screen content.
+          onAdFailedToShowFullScreenContent: (ad, err) {
+            print('Ad failed to show. Navigating to PdfPreviewScreen.');
+            // Navigate to PdfPreviewScreen after ad is closed
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PdfPreviewScreen(
+                  pdfData: pdfData,
+                  fileName: fileName,
+                ),
+              ),
+            );
+          },
+          // Called when the ad dismissed full screen content.
+          onAdDismissedFullScreenContent: (ad) {
+            ad.dispose();
+            _interstitialAd = null;
+            loadInterstitialAD(); // Load a new ad for the next time
+            SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
+            print('Ad closed. Navigating to PdfPreviewScreen.');
+            // Navigate to PdfPreviewScreen after ad is closed
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PdfPreviewScreen(
+                  pdfData: pdfData,
+                  fileName: fileName,
+                ),
+              ),
+            );
+          },
+          // Called when a click is recorded for an ad.
+          onAdClicked: (ad) {
+            print('Ad clicked. Navigating to PdfPreviewScreen.');
+            // Navigate to PdfPreviewScreen after ad is closed
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PdfPreviewScreen(
+                  pdfData: pdfData,
+                  fileName: fileName,
+                ),
+              ),
+            );
+          });
+    }
+  }
+
+// Call this function when you want to generate the PDF and show the ad
+  void generateCashMemo(
+      localizations,
+      int selectedTemplate,
+      int selectedWatermarkOption,
+      String? watermarkText,
+      String? watermarkImagePath) async {
     final pdf = pw.Document();
 
     // Load the logo from the saved path
     Uint8List? logoBytes = await loadLogo(companyLogoPath);
 
     // Get the current date
-    String currentDate = DateTime.now().toLocal().toString().split(' ')[0]; // Format: YYYY-MM-DD
+    String currentDate =
+        DateTime.now().toLocal().toString().split(' ')[0]; // Format: YYYY-MM-DD
 
+    // Add pages to the PDF
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
@@ -230,13 +349,13 @@ class _CashMemoEditState extends State<CashMemoEdit> {
 
           return pw.Stack(
             children: [
-              waterMarkWidget(selectedWatermarkOption, watermarkText, watermarkImagePath),
+              waterMarkWidget(
+                  selectedWatermarkOption, watermarkText, watermarkImagePath),
               pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
                   templateWidget,
                   pw.Expanded(child: pw.Container()),
-
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.start,
                     children: [
@@ -246,13 +365,13 @@ class _CashMemoEditState extends State<CashMemoEdit> {
                         height: 50,
                         decoration: const pw.BoxDecoration(
                           border: pw.Border(
-                            bottom: pw.BorderSide(width: 1, color: PdfColors.black),
+                            bottom:
+                                pw.BorderSide(width: 1, color: PdfColors.black),
                           ),
                         ),
                       ),
                     ],
                   ),
-
                   if (nbMessage != null && nbMessage!.isNotEmpty) ...[
                     pw.SizedBox(height: 20),
                     buildNBMessage(),
@@ -264,33 +383,17 @@ class _CashMemoEditState extends State<CashMemoEdit> {
         },
       ),
     );
-    final pdfData = await pdf.save();  // Save PDF as byte array
 
-
+    final pdfData = await pdf.save(); // Save PDF as byte array
     String fileName = generateFileName(customerNameController.text);
 
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => PdfPreviewScreen(pdfData: pdfData,fileName: fileName)
-      ),
-    );
-
-
-    /*  // Allow printing or save dialog to open
-    await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdf.save(),
-    );*/
-
-    if (widget.onMemoSaved != null) {
-      widget.onMemoSaved!();
-    }
+    // Show the ad and navigate to PdfPreviewScreen based on callbacks
+    generateCashMemoAndShowAd(pdfData, fileName);
   }
 
   String generateFileName(String customerName) {
-
-    String formattedDate = DateFormat('_yyyyMMdd_HHmmss').format(DateTime.now());
+    String formattedDate =
+        DateFormat('_yyyyMMdd_HHmmss').format(DateTime.now());
     return '${customerName}_$formattedDate.pdf'; // e.g., document_20231001_120101.pdf
   }
 
@@ -312,7 +415,8 @@ class _CashMemoEditState extends State<CashMemoEdit> {
     );
   }
 
-  pw.Widget waterMarkWidget(int selectedWatermarkOption, String? watermarkText,String? watermarkImagePath) {
+  pw.Widget waterMarkWidget(int selectedWatermarkOption, String? watermarkText,
+      String? watermarkImagePath) {
     // Watermark in the middle of the page
     return pw.Positioned.fill(
       child: pw.Opacity(
@@ -408,7 +512,7 @@ class _CashMemoEditState extends State<CashMemoEdit> {
         pw.TableRow(
           decoration: pw.BoxDecoration(
             color:
-            PdfColors.grey300, // Optional: Add background color to header
+                PdfColors.grey300, // Optional: Add background color to header
           ),
           children: [
             pw.Padding(
@@ -461,7 +565,7 @@ class _CashMemoEditState extends State<CashMemoEdit> {
   }
 
 // Template 1: Classic Template
-  pw.Widget buildTemplate1( Uint8List? logoBytes, String currentDate) {
+  pw.Widget buildTemplate1(Uint8List? logoBytes, String currentDate) {
     return pw.Stack(
       children: [
         pw.Column(
@@ -488,7 +592,7 @@ class _CashMemoEditState extends State<CashMemoEdit> {
   }
 
 // Template 2: Modern Template
-  pw.Widget buildTemplate2( Uint8List? logoBytes, String currentDate) {
+  pw.Widget buildTemplate2(Uint8List? logoBytes, String currentDate) {
     return pw.Stack(
       children: [
         // Content over the watermark
@@ -603,12 +707,7 @@ class _CashMemoEditState extends State<CashMemoEdit> {
 // Helper to build product table (used across templates)
   pw.Widget buildProductTable() {
     return pw.Table.fromTextArray(
-      headers: [
-        'Product name',
-        'Price',
-        'Quantity',
-        'Total'
-      ],
+      headers: ['Product name', 'Price', 'Quantity', 'Total'],
       data: products.map((product) {
         return [
           product.name,
@@ -629,12 +728,11 @@ class _CashMemoEditState extends State<CashMemoEdit> {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.end,
       children: [
-        buildPricingRow('Subtotal',
-            calculateSubtotal().toStringAsFixed(2)),
+        buildPricingRow('Subtotal', calculateSubtotal().toStringAsFixed(2)),
         buildPricingRow('Discount', '${discountController.text}%'),
         buildPricingRow('Vat/Tax', '${vatController.text}%'),
         pw.Divider(),
-        buildPricingRow('Total',calculateTotal().toStringAsFixed(2)),
+        buildPricingRow('Total', calculateTotal().toStringAsFixed(2)),
         // Total with bold styling
       ],
     );
@@ -646,11 +744,11 @@ class _CashMemoEditState extends State<CashMemoEdit> {
       children: [
         pw.Text(
           '$label: ',
-          style: pw.TextStyle(fontWeight:  pw.FontWeight.bold ),
+          style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
         ),
         pw.Text(
           value,
-          style: pw.TextStyle(fontWeight:  pw.FontWeight.bold ),
+          style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
         ),
       ],
     );
@@ -696,7 +794,6 @@ class _CashMemoEditState extends State<CashMemoEdit> {
     });
   }
 
-
   void _showTemplateSelectionDialog(BuildContext context, localizations) {
     showDialog(
       context: context,
@@ -709,8 +806,8 @@ class _CashMemoEditState extends State<CashMemoEdit> {
               ListTile(
                 title: Text(localizations.template_name_1),
                 onTap: () {
-
                   Navigator.of(context).pop(); // Close the dialog
+
                   generateCashMemo(
                       localizations,
                       1,
@@ -823,80 +920,87 @@ class _CashMemoEditState extends State<CashMemoEdit> {
             ),
           ),
           padding: const EdgeInsets.all(16.0),
-          child: SingleChildScrollView(
-            controller: _scrollController,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch, // Stretch children
-              children: [
-                isLoadingCompanyInfo
-                    ? const Center(child: CircularProgressIndicator())
-                    : Text(
-                  companyName ?? 'Company Name',
-                  style: const TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.teal,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20),
-                _buildCustomerDetails(localizations),
-                const SizedBox(height: 20),
-                _buildProductList(localizations),
-                const SizedBox(height: 20),
-                Center(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      addProduct();
-                      // Scroll to the bottom after adding a product
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        _scrollController.animateTo(
-                          _scrollController.position.maxScrollExtent,
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeOut,
-                        );
-                      });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(localizations.product_added)),
-                      );
-                    },
-                    icon: const Icon(Icons.add),
-                    label: Text(localizations.add_product_button_label),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.teal,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      isLoadingCompanyInfo
+                          ? const Center(child: CircularProgressIndicator())
+                          : Text(
+                              companyName ?? 'Company Name',
+                              style: const TextStyle(
+                                fontSize: 26,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.teal,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                      const SizedBox(height: 20),
+                      _buildCustomerDetails(localizations),
+                      const SizedBox(height: 20),
+                      _buildProductList(localizations),
+                      const SizedBox(height: 20),
+                      Center(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            addProduct();
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              _scrollController.animateTo(
+                                _scrollController.position.maxScrollExtent,
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeOut,
+                              );
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content: Text(localizations.product_added)),
+                            );
+                          },
+                          icon: const Icon(Icons.add),
+                          label: Text(localizations.add_product_button_label),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 20),
+                      _buildDiscountAndVatFields(localizations),
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: () {
+                          Memo memo = saveMemo();
+                          _showTemplateSelectionDialog(context, localizations);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.teal,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: Text(localizations.create_cash_memo_label),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 20),
-                _buildDiscountAndVatFields(localizations),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () {
-                    Memo memo = saveMemo();
-                    _showTemplateSelectionDialog(context, localizations);
-
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: Text(localizations.create_cash_memo_label),
-                ),
-                const SizedBox(height: 20),
-
-              ],
-            ),
+              ),
+              const SizedBox(height: 10), // Add some space before the banner
+              MyBannerAdWidget(), // Banner ad widget at the bottom
+            ],
           ),
         ),
       ),
@@ -947,8 +1051,10 @@ class _CashMemoEditState extends State<CashMemoEdit> {
               borderRadius: BorderRadius.circular(10), // Rounded edges
             ),
             color: Colors.teal,
-            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 0), // Margin between cards
-            elevation: 2, // Elevation for shadow effect
+            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
+            // Margin between cards
+            elevation: 2,
+            // Elevation for shadow effect
             child: ExpansionPanelList(
               elevation: 0, // No elevation for the list inside the card
               expandedHeaderPadding: EdgeInsets.zero,
@@ -957,7 +1063,9 @@ class _CashMemoEditState extends State<CashMemoEdit> {
                   headerBuilder: (BuildContext context, bool isExpanded) {
                     return ListTile(
                       title: Text(
-                        products[index].name.isNotEmpty ? products[index].name : '${localizations.product_name} ${index + 1}',
+                        products[index].name.isNotEmpty
+                            ? products[index].name
+                            : '${localizations.product_name} ${index + 1}',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Colors.teal,
@@ -983,14 +1091,20 @@ class _CashMemoEditState extends State<CashMemoEdit> {
                             labelStyle: const TextStyle(color: Colors.teal),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: Colors.teal.shade300, width: 1.5), // Lighter border
+                              borderSide: BorderSide(
+                                  color: Colors.teal.shade300,
+                                  width: 1.5), // Lighter border
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: Colors.teal.shade700, width: 2), // Darker border on focus
+                              borderSide: BorderSide(
+                                  color: Colors.teal.shade700,
+                                  width: 2), // Darker border on focus
                             ),
-                            prefixIcon: const Icon(Icons.article, color: Colors.teal),
-                            contentPadding: const EdgeInsets.symmetric(vertical: 15), // Better vertical alignment
+                            prefixIcon:
+                                const Icon(Icons.article, color: Colors.teal),
+                            contentPadding: const EdgeInsets.symmetric(
+                                vertical: 15), // Better vertical alignment
                           ),
                         ),
                         const SizedBox(height: 10),
@@ -1002,22 +1116,31 @@ class _CashMemoEditState extends State<CashMemoEdit> {
                                 controller: _priceControllers[index],
                                 onChanged: (value) {
                                   setState(() {
-                                    products[index].price = double.tryParse(value) ?? 0;
+                                    products[index].price =
+                                        double.tryParse(value) ?? 0;
                                   });
                                 },
                                 decoration: InputDecoration(
                                   labelText: localizations.product_price,
-                                  labelStyle: const TextStyle(color: Colors.teal),
+                                  labelStyle:
+                                      const TextStyle(color: Colors.teal),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(10),
-                                    borderSide: BorderSide(color: Colors.teal.shade300, width: 1.5), // Lighter border
+                                    borderSide: BorderSide(
+                                        color: Colors.teal.shade300,
+                                        width: 1.5), // Lighter border
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(10),
-                                    borderSide: BorderSide(color: Colors.teal.shade700, width: 2), // Darker border on focus
+                                    borderSide: BorderSide(
+                                        color: Colors.teal.shade700,
+                                        width: 2), // Darker border on focus
                                   ),
-                                  prefixIcon: const Icon(Icons.attach_money, color: Colors.teal),
-                                  contentPadding: const EdgeInsets.symmetric(vertical: 15), // Better vertical alignment
+                                  prefixIcon: const Icon(Icons.attach_money,
+                                      color: Colors.teal),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      vertical:
+                                          15), // Better vertical alignment
                                 ),
                                 keyboardType: TextInputType.number,
                               ),
@@ -1028,22 +1151,32 @@ class _CashMemoEditState extends State<CashMemoEdit> {
                                 controller: _quantityControllers[index],
                                 onChanged: (value) {
                                   setState(() {
-                                    products[index].quantity = int.tryParse(value) ?? 1;
+                                    products[index].quantity =
+                                        int.tryParse(value) ?? 1;
                                   });
                                 },
                                 decoration: InputDecoration(
                                   labelText: localizations.product_quantity,
-                                  labelStyle: const TextStyle(color: Colors.teal),
+                                  labelStyle:
+                                      const TextStyle(color: Colors.teal),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(10),
-                                    borderSide: BorderSide(color: Colors.teal.shade300, width: 1.5), // Lighter border
+                                    borderSide: BorderSide(
+                                        color: Colors.teal.shade300,
+                                        width: 1.5), // Lighter border
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(10),
-                                    borderSide: BorderSide(color: Colors.teal.shade700, width: 2), // Darker border on focus
+                                    borderSide: BorderSide(
+                                        color: Colors.teal.shade700,
+                                        width: 2), // Darker border on focus
                                   ),
-                                  prefixIcon: const Icon(Icons.format_list_numbered, color: Colors.teal),
-                                  contentPadding: const EdgeInsets.symmetric(vertical: 15), // Better vertical alignment
+                                  prefixIcon: const Icon(
+                                      Icons.format_list_numbered,
+                                      color: Colors.teal),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      vertical:
+                                          15), // Better vertical alignment
                                 ),
                                 keyboardType: TextInputType.number,
                               ),
@@ -1062,11 +1195,15 @@ class _CashMemoEditState extends State<CashMemoEdit> {
                             });
                           },
                           icon: const Icon(Icons.delete, color: Colors.white),
-                          label: Text(localizations.remove_product_button_label), // Updated to localized text
+                          label:
+                              Text(localizations.remove_product_button_label),
+                          // Updated to localized text
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.teal, // Matches the teal theme
+                            backgroundColor: Colors.teal,
+                            // Matches the teal theme
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
@@ -1081,7 +1218,8 @@ class _CashMemoEditState extends State<CashMemoEdit> {
               // Expansion callback to toggle the state of the panel
               expansionCallback: (int index, bool isExpanded) {
                 setState(() {
-                  products[index].isExpanded = !isExpanded; // Toggle the expanded state
+                  products[index].isExpanded =
+                      !isExpanded; // Toggle the expanded state
                 });
               },
             ),
@@ -1151,5 +1289,4 @@ class _CashMemoEditState extends State<CashMemoEdit> {
       ],
     );
   }
-
 }

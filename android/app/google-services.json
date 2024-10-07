@@ -1,0 +1,463 @@
+{
+  "project_info": {
+    "project_number": "1080350293673",
+    "firebase_url": "https://admob-app-id-7000610218.firebaseio.com",
+    "project_id": "admob-app-id-7000610218",
+    "storage_bucket": "admob-app-id-7000610218.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1080350293673:android:0d9837302b57368aed33b8",
+        "android_client_info": {
+          "package_name": "com.tuhin.blsoundrecord"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1080350293673-d35iplg6plrj9ij6an6qqs3kbsta31s8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC2Vc-mwnH3ZsSB4zHfVh5bsINjyTR4YFE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1080350293673-d35iplg6plrj9ij6an6qqs3kbsta31s8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1080350293673-1cd0u1h7971hlcp5t6k3h0blr78ppdrb.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.tuhin.cashMemoCreator"
+              }
+            }
+          ]
+        }
+      },
+      "admob_app_id": "ca-app-pub-7069979473754845~7191571601"
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1080350293673:android:744448d39f691f71",
+        "android_client_info": {
+          "package_name": "com.tuhin.bluetoothspy"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1080350293673-5m3jk5jd7cafkh1lfnat0gbt3je3miv8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tuhin.bluetoothspy",
+            "certificate_hash": "620783731862ac68ac1a7ed706dde373e69515c4"
+          }
+        },
+        {
+          "client_id": "1080350293673-d35iplg6plrj9ij6an6qqs3kbsta31s8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC2Vc-mwnH3ZsSB4zHfVh5bsINjyTR4YFE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1080350293673-d35iplg6plrj9ij6an6qqs3kbsta31s8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1080350293673-1cd0u1h7971hlcp5t6k3h0blr78ppdrb.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.tuhin.cashMemoCreator"
+              }
+            }
+          ]
+        }
+      },
+      "admob_app_id": "ca-app-pub-7069979473754845~7000610218"
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1080350293673:android:3b309b3f23228856",
+        "android_client_info": {
+          "package_name": "com.tuhin.bluetoothspy2"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1080350293673-d35iplg6plrj9ij6an6qqs3kbsta31s8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC2Vc-mwnH3ZsSB4zHfVh5bsINjyTR4YFE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1080350293673-d35iplg6plrj9ij6an6qqs3kbsta31s8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1080350293673-1cd0u1h7971hlcp5t6k3h0blr78ppdrb.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.tuhin.cashMemoCreator"
+              }
+            }
+          ]
+        }
+      },
+      "admob_app_id": "ca-app-pub-7069979473754845~5527069482"
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1080350293673:android:50851f6f4b5943d1ed33b8",
+        "android_client_info": {
+          "package_name": "com.tuhin.cameramotion_detect"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1080350293673-d35iplg6plrj9ij6an6qqs3kbsta31s8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC2Vc-mwnH3ZsSB4zHfVh5bsINjyTR4YFE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1080350293673-d35iplg6plrj9ij6an6qqs3kbsta31s8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1080350293673-1cd0u1h7971hlcp5t6k3h0blr78ppdrb.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.tuhin.cashMemoCreator"
+              }
+            }
+          ]
+        }
+      },
+      "admob_app_id": "ca-app-pub-7069979473754845~7217900765"
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1080350293673:android:09b5d5bb94af12d4ed33b8",
+        "android_client_info": {
+          "package_name": "com.tuhin.cash_memo_creator"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1080350293673-d35iplg6plrj9ij6an6qqs3kbsta31s8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC2Vc-mwnH3ZsSB4zHfVh5bsINjyTR4YFE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1080350293673-d35iplg6plrj9ij6an6qqs3kbsta31s8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1080350293673-1cd0u1h7971hlcp5t6k3h0blr78ppdrb.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.tuhin.cashMemoCreator"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1080350293673:android:9a85cbfdf08a7bd8",
+        "android_client_info": {
+          "package_name": "com.tuhin.headsetbutton"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1080350293673-ff1ess5naf0rlvng96smuemc1bqe1ke5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tuhin.headsetbutton",
+            "certificate_hash": "7842c112e7f8a8b8cad8fcd7c291d9a896d655aa"
+          }
+        },
+        {
+          "client_id": "1080350293673-d35iplg6plrj9ij6an6qqs3kbsta31s8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC2Vc-mwnH3ZsSB4zHfVh5bsINjyTR4YFE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1080350293673-d35iplg6plrj9ij6an6qqs3kbsta31s8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1080350293673-1cd0u1h7971hlcp5t6k3h0blr78ppdrb.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.tuhin.cashMemoCreator"
+              }
+            }
+          ]
+        }
+      },
+      "admob_app_id": "ca-app-pub-7069979473754845~6164599017"
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1080350293673:android:39c5e202d9dc8ec1ed33b8",
+        "android_client_info": {
+          "package_name": "com.tuhin.remote_audio"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1080350293673-d35iplg6plrj9ij6an6qqs3kbsta31s8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC2Vc-mwnH3ZsSB4zHfVh5bsINjyTR4YFE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1080350293673-d35iplg6plrj9ij6an6qqs3kbsta31s8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1080350293673-1cd0u1h7971hlcp5t6k3h0blr78ppdrb.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.tuhin.cashMemoCreator"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1080350293673:android:ac83aefa59e4f801",
+        "android_client_info": {
+          "package_name": "com.tuhin.smart_security"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1080350293673-2b7gdkgkqc8bp6ekibtp4p21hr8rcaqk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tuhin.smart_security",
+            "certificate_hash": "28dbf6bcece2bfde0c1dc50afad975c7a37f0830"
+          }
+        },
+        {
+          "client_id": "1080350293673-d35iplg6plrj9ij6an6qqs3kbsta31s8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC2Vc-mwnH3ZsSB4zHfVh5bsINjyTR4YFE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1080350293673-d35iplg6plrj9ij6an6qqs3kbsta31s8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1080350293673-1cd0u1h7971hlcp5t6k3h0blr78ppdrb.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.tuhin.cashMemoCreator"
+              }
+            }
+          ]
+        }
+      },
+      "admob_app_id": "ca-app-pub-7069979473754845~9923897818"
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1080350293673:android:ac73afc40901a131",
+        "android_client_info": {
+          "package_name": "easy_hearing.tuhin.com.easyhearing"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1080350293673-97cukd3eqjv4tinr41776h8f754kfl7i.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "easy_hearing.tuhin.com.easyhearing",
+            "certificate_hash": "7842c112e7f8a8b8cad8fcd7c291d9a896d655aa"
+          }
+        },
+        {
+          "client_id": "1080350293673-d35iplg6plrj9ij6an6qqs3kbsta31s8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC2Vc-mwnH3ZsSB4zHfVh5bsINjyTR4YFE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1080350293673-d35iplg6plrj9ij6an6qqs3kbsta31s8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1080350293673-1cd0u1h7971hlcp5t6k3h0blr78ppdrb.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.tuhin.cashMemoCreator"
+              }
+            }
+          ]
+        }
+      },
+      "admob_app_id": "ca-app-pub-7069979473754845~5087027816"
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1080350293673:android:6039bbb42944aeaa",
+        "android_client_info": {
+          "package_name": "easy_hearing.tuhin.com.easyhearing_adfree"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1080350293673-d35iplg6plrj9ij6an6qqs3kbsta31s8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC2Vc-mwnH3ZsSB4zHfVh5bsINjyTR4YFE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1080350293673-d35iplg6plrj9ij6an6qqs3kbsta31s8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1080350293673-1cd0u1h7971hlcp5t6k3h0blr78ppdrb.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.tuhin.cashMemoCreator"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1080350293673:android:b110b926f3940b85",
+        "android_client_info": {
+          "package_name": "tuhin.com.easyfilelocker"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1080350293673-02286ielujcje7ght01pd0ejnmoqufnl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "tuhin.com.easyfilelocker",
+            "certificate_hash": "b696ea1b0667b5e53c53db99536082b60530f426"
+          }
+        },
+        {
+          "client_id": "1080350293673-96781csqgmjp41b0bspghu63o0rhc058.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "tuhin.com.easyfilelocker",
+            "certificate_hash": "bbf42b6aef18233d5cc2ee9c1a4d1e147378b125"
+          }
+        },
+        {
+          "client_id": "1080350293673-d35iplg6plrj9ij6an6qqs3kbsta31s8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC2Vc-mwnH3ZsSB4zHfVh5bsINjyTR4YFE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1080350293673-d35iplg6plrj9ij6an6qqs3kbsta31s8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1080350293673-1cd0u1h7971hlcp5t6k3h0blr78ppdrb.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.tuhin.cashMemoCreator"
+              }
+            }
+          ]
+        }
+      },
+      "admob_app_id": "ca-app-pub-7069979473754845~8123936830"
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -7,7 +7,8 @@
   "confirmDelete": "Are you sure you want to delete this memo?",
   "cancel": "Cancel",
   "delete": "Delete",
-  "generateCashMemo": "Generate Cash Memo",
+  "generateCashMemo": "Create Cash Memo",
+  "printCashMemo": "Print Cash Memo",
   "noSavedMemos": "No saved memos",
   "customer_name" : "Customer name",
   "customer_address" : "Customer address",
@@ -84,4 +85,6 @@
   "noMemosAvailable": "No cash memo available",
   "noPdfsAvailable": "No saved cash memo available",
   "deletePdf": "Delete cash memo"
+
+
 }

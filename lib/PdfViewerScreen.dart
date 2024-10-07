@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
-
 import 'PdfSaver.dart';
+import 'admob_ads/BannerAdWidget.dart';
 
 class PdfPreviewScreen extends StatefulWidget {
   final Uint8List pdfData;
@@ -21,8 +21,6 @@ class PdfPreviewScreenState extends State<PdfPreviewScreen> {
   void initState() {
     super.initState();
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -69,59 +67,69 @@ class PdfPreviewScreenState extends State<PdfPreviewScreen> {
         ),
         constraints: BoxConstraints.expand(), // Ensures full-screen coverage
         padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Text(
-                  'Preview of ${widget.fileName}',
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.teal,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                height: 500, // Adjust this height according to your needs
-                child: PDFView(
-                  pdfData: widget.pdfData,
-                  autoSpacing: false,
-                  enableSwipe: true,
-                  pageSnap: true,
-                  onError: (error) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text('Error loading PDF: $error'),
-                    ));
-                  },
-                ),
-              ),
-              const SizedBox(height: 20),
-              Center(
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    PdfService().savePdf(widget.pdfData,"Invoice Generator",widget.fileName);
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text('PDF saved '),
-                    ));
-                  },
-                  icon: const Icon(Icons.save),
-                  label: const Text('Save PDF'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: Text(
+                        'Preview of ${widget.fileName}',
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.teal,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      height: 500, // Adjust this height according to your needs
+                      child: PDFView(
+                        pdfData: widget.pdfData,
+                        autoSpacing: false,
+                        enableSwipe: true,
+                        pageSnap: true,
+                        onError: (error) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text('Error loading PDF: $error'),
+                          ));
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Center(
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          PdfService().savePdf(widget.pdfData,"Invoice Generator",widget.fileName);
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text('PDF saved '),
+                          ));
+                        },
+                        icon: const Icon(Icons.save),
+                        label: const Text('Save PDF'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.teal,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+            // Add the Banner Ad widget here, stuck at the bottom
+            MyBannerAdWidget(), // Replace with your actual banner ad widget
+          ],
         ),
       ),
     );

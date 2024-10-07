@@ -34,6 +34,9 @@ class AppLocalizationsBn extends AppLocalizations {
   String get generateCashMemo => 'ক্যাশ মেমো তৈরি করুন';
 
   @override
+  String get printCashMemo => 'ক্যাশ মেমো প্রিন্ট করুন';
+
+  @override
   String get noSavedMemos => 'কোন সংরক্ষিত মেমো নেই';
 
   @override
