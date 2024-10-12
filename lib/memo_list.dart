@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:cash_memo_creator/AndroidAPILevel.dart';
 import 'package:flutter/material.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';

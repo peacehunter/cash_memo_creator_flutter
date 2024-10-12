@@ -47,7 +47,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
   late TextEditingController customerPhoneNumberController;
   late ScrollController _scrollController;
 
-  late InterstitialAd? _interstitialAd;
+  InterstitialAd? _interstitialAd;
   FocusNode discountFocusNode = FocusNode();
   FocusNode vatFocusNode = FocusNode();
 
