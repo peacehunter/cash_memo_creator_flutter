@@ -29,6 +29,13 @@ void main() async {
   FlutterError.onError = (errorDetails) {
     FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
   };
+  MobileAds.instance.initialize()
+      .then((initializationStatus) {
+    initializationStatus.adapterStatuses.forEach((key, value) {
+      debugPrint('Adapter status for $key: ${value.description}');
+    });
+  });
+
   // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
   PlatformDispatcher.instance.onError = (error, stack) {
     FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);

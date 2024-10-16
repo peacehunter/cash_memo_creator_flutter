@@ -10,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'Memo.dart';
+import 'NativeAdContainer.dart';
 import 'admob_ads/BannerAdWidget.dart';
 import 'memo_edit.dart'; // Import your CashMemoEdit page
 import 'package:cash_memo_creator/l10n/gen_l10n/app_localizations.dart'; // Import localization
@@ -398,7 +399,8 @@ class MemoListScreenState extends State<MemoListScreen>
               width: double.infinity,
               child: ElevatedButton.icon(
                 icon: const Icon(Icons.add, color: Colors.white, size: 24),
-                label:  Text(localizations.generateCashMemo,
+                label: Text(
+                  localizations.generateCashMemo,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -429,160 +431,166 @@ class MemoListScreenState extends State<MemoListScreen>
               ),
             ),
           ),
-          Expanded(
-            child: _memos.isNotEmpty
-                ? ListView.builder(
-              itemCount: _memos.length,
-              itemBuilder: (context, index) {
-                final memo = _memos[index];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12.0, vertical: 8.0),
-                  child: Card(
-                    elevation: 8,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    color: Colors.white,
-                    child: Column(
-                      children: [
-                        ListTile(
-                          contentPadding: const EdgeInsets.all(16),
-                          leading: const CircleAvatar(
-                            backgroundColor: Colors.blueAccent,
-                            child: Icon(Icons.business,
-                                color: Colors.white, size: 32),
-                          ),
-                          title: Text(
-                            memo.customerName,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 20,
-                              color: Colors.teal,
+
+          // If the list is empty, show only the ad
+          if (_memos.isEmpty)
+            NativeAdContainer(),
+
+          // Otherwise, show the list with the ad after the first item
+          if (_memos.isNotEmpty)
+            Expanded(
+              child: ListView.builder(
+                itemCount: _memos.length + 1, // Add 1 for the ad after the first item
+                itemBuilder: (context, index) {
+                  if (index == 1) {
+                    // Show the ad after the first item
+                    return NativeAdContainer();
+                  }
+
+                  // Adjust index to get the correct memo when the ad is shown
+                  final adjustedIndex = index > 1 ? index - 1 : index;
+                  final memo = _memos[adjustedIndex];
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                    child: Card(
+                      elevation: 8,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      color: Colors.white,
+                      child: Column(
+                        children: [
+                          ListTile(
+                            contentPadding: const EdgeInsets.all(16),
+                            leading: const CircleAvatar(
+                              backgroundColor: Colors.blueAccent,
+                              child: Icon(Icons.business, color: Colors.white, size: 32),
+                            ),
+                            title: Text(
+                              memo.customerName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                                color: Colors.teal,
+                              ),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${localizations.total}: ${memo.total}',
+                                  style: const TextStyle(
+                                    color: Colors.green,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  memo.date != null && memo.date!.isNotEmpty
+                                      ? '${localizations.date}: ${formatDate(memo.date!)}'
+                                      : localizations.dateNotAvailable,
+                                  style: const TextStyle(color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit, color: Colors.teal),
+                                  onPressed: () async {
+                                    Memo? updatedMemo = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => CashMemoEdit(
+                                          memo: memo,
+                                          memoIndex: adjustedIndex,
+                                          autoGenerate: false,
+                                        ),
+                                      ),
+                                    );
+                                    if (updatedMemo != null) {
+                                      setState(() {
+                                        _memos[adjustedIndex] = updatedMemo;
+                                      });
+                                      saveMemos();
+                                    }
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.redAccent),
+                                  onPressed: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (BuildContext context) {
+                                        return AlertDialog(
+                                          title: Text(localizations.deleteMemo),
+                                          content: Text(localizations.confirmDelete),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.of(context).pop();
+                                              },
+                                              child: Text(localizations.cancel),
+                                            ),
+                                            TextButton(
+                                              onPressed: () {
+                                                removeMemo(adjustedIndex);
+                                                Navigator.of(context).pop();
+                                              },
+                                              child: Text(localizations.delete),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15),
                             ),
                           ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 4),
-                              Text(
-                                '${localizations.total}: ${memo.total}',
-                                style: const TextStyle(
-                                  color: Colors.green,
-                                  fontSize: 16,
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.teal,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                memo.date != null && memo.date!.isNotEmpty
-                                    ? '${localizations.date}: ${formatDate(memo.date!)}'
-                                    : localizations.dateNotAvailable,
-                                style: const TextStyle(color: Colors.grey),
-                              ),
-                            ],
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit,
-                                    color: Colors.teal),
                                 onPressed: () async {
-                                  Memo? updatedMemo = await Navigator.push(
+                                  await Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => CashMemoEdit(
                                         memo: memo,
-                                        memoIndex: index,
-                                        autoGenerate: false,
+                                        memoIndex: adjustedIndex,
+                                        autoGenerate: true,
                                       ),
                                     ),
                                   );
-                                  if (updatedMemo != null) {
-                                    setState(() {
-                                      _memos[index] = updatedMemo;
-                                    });
-                                    saveMemos();
-                                  }
                                 },
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete,
-                                    color: Colors.redAccent),
-                                onPressed: () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (BuildContext context) {
-                                      return AlertDialog(
-                                        title: Text(localizations.deleteMemo),
-                                        content: Text(localizations.confirmDelete),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () {
-                                              Navigator.of(context).pop();
-                                            },
-                                            child: Text(localizations.cancel),
-                                          ),
-                                          TextButton(
-                                            onPressed: () {
-                                              removeMemo(index);
-                                              Navigator.of(context).pop();
-                                            },
-                                            child: Text(localizations.delete),
-                                          ),
-                                        ],
-                                      );
-                                    },
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16.0, vertical: 8.0),
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.teal,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
+                                child: Text(
+                                  localizations.printCashMemo,
+                                  style: const TextStyle(color: Colors.white),
                                 ),
-                              ),
-                              onPressed: () async {
-                                await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => CashMemoEdit(
-                                      memo: memo,
-                                      memoIndex: index,
-                                      autoGenerate: true,
-                                    ),
-                                  ),
-                                );
-                              },
-                              child: Text(
-                                localizations.printCashMemo,
-                                style: const TextStyle(color: Colors.white),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              },
-            )
-                : Center(
-              child: Text(localizations.noSavedMemos),
+                  );
+                },
+              ),
             ),
-          ),
         ],
       ),
     );

@@ -2,7 +2,7 @@ name: cash_memo_creator
 description: "Create a cash memo with few clicks"
 publish_to: 'none'
 
-version: 1.0.5+2.4
+version: 1.0.6+25
 
 environment:
   sdk: ^3.5.3
