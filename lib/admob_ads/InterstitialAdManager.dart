@@ -1,4 +1,5 @@
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'AdHelper.dart';
 
 class InterstitialAdManager {
   InterstitialAd? _interstitialAd;
@@ -6,7 +7,7 @@ class InterstitialAdManager {
   // Method to load interstitial ad
   void loadInterstitialAd() {
     InterstitialAd.load(
-      adUnitId: 'ca-app-pub-3940256099942544/1033173712', // Replace with your ad unit ID
+      adUnitId: AdHelper.interstitialAdUnitId, // Use AdHelper to get the correct ad unit ID
       request: AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (InterstitialAd ad) {

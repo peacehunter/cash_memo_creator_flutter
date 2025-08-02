@@ -196,7 +196,7 @@ class MemoListScreenState extends State<MemoListScreen>
               ),
             ),
             const SizedBox(height: 10), // Add some space before the banner
-            MyBannerAdWidget(), // Display the banner ad at the bottom
+         //   MyBannerAdWidget(), // Display the banner ad at the bottom
           ],
         ),
       ),

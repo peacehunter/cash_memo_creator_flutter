@@ -205,9 +205,10 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 10),
-          logoPath == null
-              ? Text('${localizations.no_logo}', style: TextStyle(color: Colors.grey))
+          logoPath == null || logoPath!.isEmpty
+              ? Text('${localizations.no_logo}', style: const TextStyle(color: Colors.grey))
               : Image.file(File(logoPath!), height: 100),
+
           SizedBox(height: 20),
           Center(
             child: ElevatedButton.icon(
@@ -251,9 +252,10 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 10),
-          watermarkImagePath == null
-              ?  Text('${localizations.no_watermark_image_label}', style: TextStyle(color: Colors.grey))
+          watermarkImagePath == null || watermarkImagePath!.isEmpty
+              ? Text('${localizations.no_watermark_image_label}', style: const TextStyle(color: Colors.grey))
               : Image.file(File(watermarkImagePath!), height: 100),
+
           const SizedBox(height: 20),
           Center(
             child: ElevatedButton.icon(

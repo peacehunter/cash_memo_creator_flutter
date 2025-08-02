@@ -72,12 +72,14 @@ class Product {
   String name;
   double price;
   int quantity;
+  double discount; // New field for discount
   bool isExpanded; // Added isExpanded property
 
   Product({
     required this.name,
     required this.price,
     required this.quantity,
+    this.discount = 0.0, // Initialize discount to 0.0 by default
     this.isExpanded = false, // Initialize to false by default
   });
 
@@ -86,6 +88,7 @@ class Product {
       'name': name,
       'price': price,
       'quantity': quantity,
+      'discount': discount, // Include discount in toJson
       'isExpanded': isExpanded, // Include isExpanded in toJson
     };
   }
@@ -99,6 +102,9 @@ class Product {
       quantity: (json['quantity'] is String)
           ? int.tryParse(json['quantity']) ?? 0
           : json['quantity'],
+      discount: (json['discount'] is String)
+          ? double.tryParse(json['discount']) ?? 0.0
+          : (json['discount'] ?? 0.0).toDouble(),
       isExpanded: json['isExpanded'] ?? false, // Parse isExpanded from JSON, default to false
     );
   }

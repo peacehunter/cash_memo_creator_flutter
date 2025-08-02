@@ -54,6 +54,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
   final List<TextEditingController> _nameControllers = [];
   final List<TextEditingController> _priceControllers = [];
   final List<TextEditingController> _quantityControllers = [];
+  final List<TextEditingController> _discountController = [];
 
   int selectedWatermarkOption = 2; // Example default value
   String? watermarkImagePath; // Path to the watermark image
@@ -80,6 +81,9 @@ class _CashMemoEditState extends State<CashMemoEdit>
       controller.dispose();
     }
     for (var controller in _quantityControllers) {
+      controller.dispose();
+    }
+    for (var controller in _discountController) {
       controller.dispose();
     }
     WidgetsBinding.instance.removeObserver(this); // Remove the observer
@@ -114,7 +118,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
     // Initialize products with existing memo data or create a new one
     products = widget.memo?.products.isNotEmpty == true
         ? List.from(widget.memo!.products)
-        : [Product(name: '', price: 0, quantity: 1)];
+        : [Product(name: '', price: 0, quantity: 0, discount: 0)];
 
     // Initialize controllers with existing memo data
     discountController =
@@ -132,10 +136,18 @@ class _CashMemoEditState extends State<CashMemoEdit>
 
     for (var product in products) {
       _nameControllers.add(TextEditingController(text: product.name));
-      _priceControllers
-          .add(TextEditingController(text: product.price.toString()));
-      _quantityControllers
-          .add(TextEditingController(text: product.quantity.toString()));
+      // Initialize price, quantity, and discount fields as empty by default for new products
+      if (widget.memo?.products.isNotEmpty == true) {
+        // For existing memos, use the stored values
+        _priceControllers.add(TextEditingController(text: product.price.toString()));
+        _quantityControllers.add(TextEditingController(text: product.quantity.toString()));
+        _discountController.add(TextEditingController(text: product.discount.toString()));
+      } else {
+        // For new memos, use empty strings
+        _priceControllers.add(TextEditingController(text: ''));
+        _quantityControllers.add(TextEditingController(text: ''));
+        _discountController.add(TextEditingController(text: ''));
+      }
     }
   }
 
@@ -175,14 +187,13 @@ class _CashMemoEditState extends State<CashMemoEdit>
   }
 
   Memo saveMemo() {
-    double total = products.fold(
-        0.0, (sum, product) => sum + (product.price * product.quantity));
+    double subtotal = calculateSubtotal(); // This now includes individual product discounts
     double discount = double.tryParse(discountController.text) ?? 0;
     double vat = double.tryParse(vatController.text) ?? 0;
 
     double discountedTotal = isPercentDiscount
-        ? total - (total * (discount / 100))
-        : total - discount;
+        ? subtotal - (subtotal * (discount / 100))
+        : subtotal - discount;
 
     double finalTotal = discountedTotal + (discountedTotal * (vat / 100));
     String currentDate = DateTime.now().toLocal().toString().split(' ')[0];
@@ -289,21 +300,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                 ),
               ),
             );
-          },
-          // Called when a click is recorded for an ad.
-          onAdClicked: (ad) {
-            print('Ad clicked. Navigating to PdfPreviewScreen.');
-            // Navigate to PdfPreviewScreen after ad is closed
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => PdfPreviewScreen(
-                  pdfData: pdfData,
-                  fileName: fileName,
-                ),
-              ),
-            );
           });
+          // Removed onAdClicked handler to comply with AdMob policy
     }
   }
 
@@ -415,8 +413,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
     );
   }
 
-  pw.Widget waterMarkWidget(int selectedWatermarkOption, String? watermarkText,
-      String? watermarkImagePath) {
+  pw.Widget waterMarkWidget(int selectedWatermarkOption, String? watermarkText, String? watermarkImagePath) {
     // Watermark in the middle of the page
     return pw.Positioned.fill(
       child: pw.Opacity(
@@ -424,7 +421,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
         child: pw.Stack(
           children: [
             // If both text and image are selected
-            if (selectedWatermarkOption == 2 && watermarkImagePath != null) ...[
+            if (selectedWatermarkOption == 2 && watermarkImagePath != null && File(watermarkImagePath).existsSync()) ...[
               // Display the watermark image
               pw.Center(
                 child: pw.Image(
@@ -460,7 +457,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
               ),
             ],
             // If only the watermark image is selected
-            if (selectedWatermarkOption == 1 && watermarkImagePath != null) ...[
+            if (selectedWatermarkOption == 1 && watermarkImagePath != null && File(watermarkImagePath).existsSync()) ...[
               pw.Center(
                 child: pw.Image(
                   pw.MemoryImage(File(watermarkImagePath).readAsBytesSync()),
@@ -707,13 +704,18 @@ class _CashMemoEditState extends State<CashMemoEdit>
 // Helper to build product table (used across templates)
   pw.Widget buildProductTable() {
     return pw.Table.fromTextArray(
-      headers: ['Product name', 'Price', 'Quantity', 'Total'],
+      headers: ['Product name', 'Price', 'Quantity', 'Discount(%)', 'Total'],
       data: products.map((product) {
+        double productTotal = product.price * product.quantity;
+        double discountAmount = productTotal * (product.discount / 100);
+        double discountedTotal = productTotal - discountAmount;
+        
         return [
           product.name,
           product.price.toString(),
           product.quantity.toString(),
-          (product.price * product.quantity).toString()
+          product.discount.toString(),
+          discountedTotal.toStringAsFixed(2)
         ];
       }).toList(),
       headerStyle: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
@@ -755,8 +757,17 @@ class _CashMemoEditState extends State<CashMemoEdit>
   }
 
   double calculateSubtotal() {
-    return products.fold(
-        0.0, (total, product) => total + (product.price * product.quantity));
+    return products.fold(0.0, (total, product) {
+      // Handle empty or invalid price and quantity fields
+      double price = product.price;
+      int quantity = product.quantity;
+      double discount = product.discount;
+      
+      // Calculate product total after applying individual discount
+      double productTotal = price * quantity;
+      double discountedProductTotal = productTotal - (productTotal * (discount / 100));
+      return total + discountedProductTotal;
+    });
   }
 
   double calculateTotal() {
@@ -772,19 +783,17 @@ class _CashMemoEditState extends State<CashMemoEdit>
     return finalTotal;
   }
 
-  Future<bool> _onWillPop() async {
-    Memo memo = saveMemo();
-    Navigator.pop(context, memo);
-    return true;
-  }
 
   void addProduct() {
     setState(() {
-      products.add(Product(name: '', price: 0, quantity: 1));
+      // Initialize new product with empty fields
+      products.add(Product(name: '', price: 0, quantity: 0, discount: 0));
 
+      // Initialize controllers with empty text
       _nameControllers.add(TextEditingController());
-      _priceControllers.add(TextEditingController());
-      _quantityControllers.add(TextEditingController());
+      _priceControllers.add(TextEditingController(text: ''));
+      _quantityControllers.add(TextEditingController(text: ''));
+      _discountController.add(TextEditingController(text: ''));
     });
   }
 
@@ -1102,13 +1111,13 @@ class _CashMemoEditState extends State<CashMemoEdit>
                                   width: 2), // Darker border on focus
                             ),
                             prefixIcon:
-                                const Icon(Icons.article, color: Colors.teal),
+                            const Icon(Icons.article, color: Colors.teal),
                             contentPadding: const EdgeInsets.symmetric(
                                 vertical: 15), // Better vertical alignment
                           ),
                         ),
                         const SizedBox(height: 10),
-                        // Row with Product Price and Quantity
+                        // Row with Product Price, Quantity, and Discount
                         Row(
                           children: [
                             Expanded(
@@ -1116,14 +1125,14 @@ class _CashMemoEditState extends State<CashMemoEdit>
                                 controller: _priceControllers[index],
                                 onChanged: (value) {
                                   setState(() {
-                                    products[index].price =
-                                        double.tryParse(value) ?? 0;
+                                    products[index].price = value.isEmpty ? 
+                                        0 : double.tryParse(value) ?? 0;
                                   });
                                 },
                                 decoration: InputDecoration(
                                   labelText: localizations.product_price,
                                   labelStyle:
-                                      const TextStyle(color: Colors.teal),
+                                  const TextStyle(color: Colors.teal),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(10),
                                     borderSide: BorderSide(
@@ -1139,8 +1148,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
                                   prefixIcon: const Icon(Icons.attach_money,
                                       color: Colors.teal),
                                   contentPadding: const EdgeInsets.symmetric(
-                                      vertical:
-                                          15), // Better vertical alignment
+                                      vertical: 15), // Better vertical alignment
                                 ),
                                 keyboardType: TextInputType.number,
                               ),
@@ -1151,14 +1159,14 @@ class _CashMemoEditState extends State<CashMemoEdit>
                                 controller: _quantityControllers[index],
                                 onChanged: (value) {
                                   setState(() {
-                                    products[index].quantity =
-                                        int.tryParse(value) ?? 1;
+                                    products[index].quantity = value.isEmpty ? 
+                                        0 : int.tryParse(value) ?? 0;
                                   });
                                 },
                                 decoration: InputDecoration(
                                   labelText: localizations.product_quantity,
                                   labelStyle:
-                                      const TextStyle(color: Colors.teal),
+                                  const TextStyle(color: Colors.teal),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(10),
                                     borderSide: BorderSide(
@@ -1175,8 +1183,41 @@ class _CashMemoEditState extends State<CashMemoEdit>
                                       Icons.format_list_numbered,
                                       color: Colors.teal),
                                   contentPadding: const EdgeInsets.symmetric(
-                                      vertical:
-                                          15), // Better vertical alignment
+                                      vertical: 15), // Better vertical alignment
+                                ),
+                                keyboardType: TextInputType.number,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: TextField(
+                                controller: _discountController[index],
+                                onChanged: (value) {
+                                  setState(() {
+                                    products[index].discount = value.isEmpty ? 
+                                        0 : double.tryParse(value) ?? 0;
+                                  });
+                                },
+                                decoration: InputDecoration(
+                                  labelText: "Discount",
+                                  labelStyle:
+                                  const TextStyle(color: Colors.teal),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(
+                                        color: Colors.teal.shade300,
+                                        width: 1.5), // Lighter border
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(
+                                        color: Colors.teal.shade700,
+                                        width: 2), // Darker border on focus
+                                  ),
+                                  prefixIcon: const Icon(Icons.percent,
+                                      color: Colors.teal),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      vertical: 15), // Better vertical alignment
                                 ),
                                 keyboardType: TextInputType.number,
                               ),
@@ -1192,11 +1233,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
                               _nameControllers.removeAt(index);
                               _priceControllers.removeAt(index);
                               _quantityControllers.removeAt(index);
+                              _discountController.removeAt(index);
                             });
                           },
                           icon: const Icon(Icons.delete, color: Colors.white),
                           label:
-                              Text(localizations.remove_product_button_label),
+                          Text(localizations.remove_product_button_label),
                           // Updated to localized text
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.teal,
@@ -1219,7 +1261,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
               expansionCallback: (int index, bool isExpanded) {
                 setState(() {
                   products[index].isExpanded =
-                      !isExpanded; // Toggle the expanded state
+                  !isExpanded; // Toggle the expanded state
                 });
               },
             ),
