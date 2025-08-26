@@ -43,6 +43,8 @@ class Memo {
       'discount': discount, // Save discount
       'vat': vat, // Save VAT
       'isPercentDiscount': isPercentDiscount, // Save discount type
+      'companyAddress': companyAddress, // Save company address
+      'companyLogo': companyLogo, // Save company logo
     };
   }
 

@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:cash_memo_creator/AndroidAPILevel.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -9,11 +8,12 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'Memo.dart';
-import 'NativeAdContainer.dart';
-import 'admob_ads/BannerAdWidget.dart';
-import 'memo_edit.dart'; // Import your CashMemoEdit page
-import 'package:cash_memo_creator/l10n/gen_l10n/app_localizations.dart'; // Import localization
+// import 'NativeAdContainer.dart'; // Removed
+import 'admob_ads/BannerAdWidget.dart'; // still imported, not used
+import 'memo_edit.dart';
+import 'package:cash_memo_creator/l10n/gen_l10n/app_localizations.dart';
 
 class MemoListScreen extends StatefulWidget {
   const MemoListScreen({super.key});
@@ -23,87 +23,75 @@ class MemoListScreen extends StatefulWidget {
 }
 
 class MemoListScreenState extends State<MemoListScreen>
-    with SingleTickerProviderStateMixin,WidgetsBindingObserver {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   List<Memo> _memos = [];
   late TabController _tabController;
   List<FileSystemEntity> _pdfFiles = [];
+  // Cache for formatted last-modified timestamps to avoid expensive I/O in every build
+  Map<String, String> _pdfModifiedDates = {};
+
+  // Performance optimization: Cache expensive computations
+  late final DateFormat _dateFormatter = DateFormat('yyyy-MM-dd HH:mm');
+
+  // Memoized theme and localization to avoid repeated lookups
+  ThemeData? _cachedTheme;
+  AppLocalizations? _cachedLocalizations;
+
+  // PDF file caching
+  List<FileSystemEntity>? _cachedPdfFiles;
+  DateTime? _lastPdfCacheTime;
 
   @override
   void initState() {
     super.initState();
     loadMemos();
-    _requestStoragePermission(); // Request permission before loading PDFs
-    WidgetsBinding.instance.addObserver(this);  // Add the observer here
+    _requestStoragePermission();
+    WidgetsBinding.instance.addObserver(this);
+    _tabController = TabController(length: 2, vsync: this);
 
-    _tabController = TabController(
-        length: 2, vsync: this); // Use 'this' as the TickerProvider
-  //  print("Saved PDF length: ${_tabController.indexIsChanging}");
-
-    // Add a listener to the TabController
     _tabController.addListener(() {
-      print("Saved PDF : listener started");
-
-        print("Saved PDF : ${_tabController.index}");
-
-        // This is called when the user swipes to a new tab
-        if (_tabController.index == 1) {
-          // "Saved PDF Cash Memo" tab is in focus
-          print("Saved PDF Cash Memo tab is in focus");
-          print("Saved PDF : ${_tabController.index}");
-          // You can add any logic here, like refreshing data or showing an alert
-          // load saved pdf from storage when the respective tab is in focus
-          _loadSavedPdfs(); // Load PDFs from storage when the screen initializes
-
-        }
-
+      if (_tabController.index == 1) {
+        _loadSavedPdfs();
+      }
     });
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);  // Remove the observer
-
+    WidgetsBinding.instance.removeObserver(this);
     _tabController.dispose();
-    print("Saved PDF test: disposed");
-
     super.dispose();
   }
 
-  // This is where you handle lifecycle changes like onResume
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    print("page status : $state");
     if (state == AppLifecycleState.resumed) {
-      // Load the ad when the app is resumed
-      print("page status : page resumed");
       _loadSavedPdfs();
     }
   }
 
+  Future<List<Memo>> _parseMemos(String jsonStr) async {
+    return (jsonDecode(jsonStr) as List<dynamic>)
+        .map((item) {
+          try {
+            return Memo.fromJson(item);
+          } catch (_) {
+            return null;
+          }
+        })
+        .whereType<Memo>()
+        .toList();
+  }
 
   void loadMemos() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? memosJson = prefs.getString('memos');
+    final memosJson = prefs.getString('memos');
+
     if (memosJson != null) {
-      try {
-        List<dynamic> memosData = jsonDecode(memosJson);
-        setState(() {
-          _memos = memosData
-              .map((item) {
-            try {
-              return Memo.fromJson(item);
-            } catch (e) {
-              print('Error parsing memo: $item\nError: $e');
-              return null; // Return null if there's an error
-            }
-          })
-              .where((memo) => memo != null)
-              .cast<Memo>()
-              .toList(); // Filter out nulls
-        });
-      } catch (e) {
-        print('Error loading memos: $e');
-      }
+      final List<dynamic> memosList = jsonDecode(memosJson);
+      setState(() {
+        _memos = memosList.map((json) => Memo.fromJson(json)).toList();
+      });
     }
   }
 
@@ -113,12 +101,11 @@ class MemoListScreenState extends State<MemoListScreen>
     await prefs.setString('memos', memosJson);
   }
 
-  // Method to remove a memo
   void removeMemo(int index) {
     setState(() {
       _memos.removeAt(index);
     });
-    saveMemos(); // Save the updated list
+    saveMemos();
   }
 
   String formatDate(String date) {
@@ -128,82 +115,184 @@ class MemoListScreenState extends State<MemoListScreen>
 
   @override
   Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context)!;
+    // Cache theme and localizations to avoid repeated lookups
+    _cachedTheme ??= Theme.of(context);
+    _cachedLocalizations ??= AppLocalizations.of(context)!;
+    final localizations = _cachedLocalizations!;
+    final theme = _cachedTheme!;
 
     return Scaffold(
       appBar: AppBar(
-        elevation: 10,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.teal.shade400, Colors.teal.shade700],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+        backgroundColor: Colors.blue.shade700,
+        elevation: 4,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.receipt_long,
+                color: Colors.white,
+                size: 24,
+              ),
             ),
-          ),
-        ),
-        title: Text(
-          localizations.savedMemos,
-          style: const TextStyle(
-            fontFamily: 'Roboto',
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
-            color: Colors.white,
-          ),
+            const SizedBox(width: 12),
+            Text(
+              localizations.savedMemos,
+              style: theme.textTheme.headlineMedium?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.settings_outlined,
-              color: Colors.white,
-              size: 28,
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
             ),
-            tooltip: 'settings',
-            onPressed: () {
-              Navigator.pushNamed(context, '/settings');
-            },
+            child: IconButton(
+              icon: const Icon(Icons.settings_rounded,
+                  color: Colors.white, size: 24),
+              tooltip: 'Settings',
+              onPressed: () {
+                Navigator.pushNamed(context, '/settings');
+              },
+            ),
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: Colors.white,
-          indicatorColor: Colors.white,
-          tabs: [
-            Tab(text: localizations.memosTab),
-            Tab(text: localizations.pdfTab),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(60),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: TabBar(
+              controller: _tabController,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white.withOpacity(0.7),
+              indicatorColor: Colors.white,
+              indicatorWeight: 3,
+              labelStyle: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
+              tabs: [
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.receipt_long_rounded,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          localizations.memosTab,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.picture_as_pdf_rounded,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          localizations.pdfTab,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.teal.shade100, Colors.white],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        padding: const EdgeInsets.all(16.0),
+        color: Colors.grey.shade50,
         child: Column(
           children: [
             Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildSavedMemosTab(),
-                  _buildShowPdfTab(),
-                ],
+              child: Builder(
+                builder: (context) {
+                  try {
+                    return TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildSavedMemosTab(),
+                        _buildShowPdfTab(),
+                      ],
+                    );
+                  } catch (e) {
+                    // Fallback UI in case of layout errors
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.error_outline,
+                              size: 48, color: Colors.grey),
+                          const SizedBox(height: 16),
+                          const Text('Layout Error',
+                              style:
+                                  TextStyle(fontSize: 16, color: Colors.grey)),
+                          const SizedBox(height: 8),
+                          ElevatedButton(
+                            onPressed: () => setState(() {}),
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                },
               ),
             ),
-            const SizedBox(height: 10), // Add some space before the banner
-         //   MyBannerAdWidget(), // Display the banner ad at the bottom
+            // Banner ad at bottom
+            SafeArea(
+              child: MyBannerAdWidget(),
+            ),
           ],
         ),
       ),
     );
   }
-  /// Loads a banner ad.
-  // Request storage permissions
+
   void _requestStoragePermission() async {
     if (Platform.isAndroid) {
       if (await Permission.storage.request().isGranted) {
@@ -214,121 +303,157 @@ class MemoListScreenState extends State<MemoListScreen>
     }
   }
 
-  // Load saved PDFs
-  void _loadSavedPdfs() async {
+  Future<List<FileSystemEntity>> _getCachedPdfFiles() async {
+    final now = DateTime.now();
+
+    // Return cached files if they're less than 30 seconds old
+    if (_cachedPdfFiles != null &&
+        _lastPdfCacheTime != null &&
+        now.difference(_lastPdfCacheTime!).inSeconds < 30) {
+      return _cachedPdfFiles!;
+    }
+
+    // Refresh cache
+    await _loadSavedPdfs();
+    _cachedPdfFiles = List.from(_pdfFiles); // Create a copy
+    _lastPdfCacheTime = now;
+
+    return _cachedPdfFiles!;
+  }
+
+  void _refreshPdfCache() {
+    _cachedPdfFiles = null;
+    _lastPdfCacheTime = null;
+  }
+
+  Future<void> _loadSavedPdfs() async {
     Directory? pdfDirectory;
     if (Platform.isAndroid) {
-      if(await AndroidAPILevel.getApiLevel() <= 29) {
+      if (await AndroidAPILevel.getApiLevel() <= 29) {
         if (await Permission.storage.isGranted) {
-          const String pdfDirectoryPath = "/storage/emulated/0/Documents/Invoice Generator";
-          pdfDirectory = Directory(pdfDirectoryPath);
+          pdfDirectory =
+              Directory("/storage/emulated/0/Documents/Invoice Generator");
         }
-      }else{
-        const String pdfDirectoryPath = "/storage/emulated/0/Documents/Invoice Generator";
-         pdfDirectory = Directory(pdfDirectoryPath);
-
-        if (await pdfDirectory.exists()) {
-          setState(() {
-            _pdfFiles = pdfDirectory!.listSync().where((file) => file.path.endsWith(".pdf")).toList();
-          });
-        }
+      } else {
+        pdfDirectory =
+            Directory("/storage/emulated/0/Documents/Invoice Generator");
       }
     } else {
-      pdfDirectory = await getApplicationDocumentsDirectory(); // For non-Android
+      pdfDirectory = await getApplicationDocumentsDirectory();
     }
 
     if (pdfDirectory != null && await pdfDirectory.exists()) {
+      final files = await pdfDirectory
+          .list()
+          .where((file) => file.path.endsWith('.pdf'))
+          .toList();
+      // build cache of formatted last-modified times once per load
+      final modDates = <String, String>{};
+      for (final file in files) {
+        final last = File(file.path).lastModifiedSync();
+        modDates[file.path] = _dateFormatter.format(last);
+      }
       setState(() {
-        _pdfFiles = pdfDirectory!.listSync().where((file) => file.path.endsWith(".pdf")).toList();
+        _pdfFiles = files;
+        _pdfModifiedDates = modDates;
       });
     }
   }
 
-  // Method to format the last modified date
   String _getLastModifiedDate(FileSystemEntity file) {
-    final lastModified = File(file.path).lastModifiedSync();
-    return DateFormat('yyyy-MM-dd HH:mm').format(lastModified);
+    return _pdfModifiedDates[file.path] ?? '';
   }
 
   Widget _buildShowPdfTab() {
-    return Container(
-      padding: const EdgeInsets.all(12.0),
-      child: _pdfFiles.isNotEmpty
-          ? ListView.builder(
-        itemCount: _pdfFiles.length,
-        itemBuilder: (context, index) {
-          final pdfFile = _pdfFiles[index];
-          return Card(
-            elevation: 4,
-            margin: const EdgeInsets.symmetric(vertical: 8.0),
-            child: ListTile(
-              leading: const Icon(
-                Icons.picture_as_pdf,
-                color: Colors.redAccent,
-                size: 36.0, // PDF icon on the left
-              ),
-              title: Text(
-                pdfFile.path.split('/').last, // Display the file name
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    pdfFile.path, // Display the file path
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 4), // Add space between file path and date
-                  Text(
-                    'Last modified: ${_getLastModifiedDate(pdfFile)}', // Display the last modified date
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                ],
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.share, color: Colors.blue),
-                    onPressed: () {
-                      _sharePdf(pdfFile.path); // Share the PDF file
-                    },
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () {
-                      _showDeleteConfirmationDialog(pdfFile); // Show confirmation dialog before deleting
-                    },
-                  ),
-                ],
-              ),
-              onTap: () {
-                _openPdf(pdfFile.path); // Open PDF on tap
-              },
-            ),
-          );
-        },
-      )
-          : const Center(
-        child: Text("No PDF files found in the specified directory."),
-      ),
+    return FutureBuilder<List<FileSystemEntity>>(
+      future: _getCachedPdfFiles(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final pdfFiles = snapshot.data ?? [];
+
+        return Container(
+          padding: const EdgeInsets.all(12.0),
+          child: pdfFiles.isNotEmpty
+              ? ListView.builder(
+                  itemCount: pdfFiles.length,
+                  // Performance optimizations
+                  // Removed fixed itemExtent to avoid vertical overflow with wrapped text
+                  cacheExtent: 500, // Cache more items for smoother scrolling
+                  physics: const BouncingScrollPhysics(), // Better scroll feel
+                  itemBuilder: (context, index) {
+                    final pdfFile = pdfFiles[index];
+                    return Card(
+                      elevation: 4,
+                      margin: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        isThreeLine: true,
+                        leading: const Icon(Icons.picture_as_pdf,
+                            color: Colors.redAccent, size: 36),
+                        title: Text(
+                          pdfFile.path.split(Platform.pathSeparator).last,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              pdfFile.path,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontSize: 12, color: Colors.grey),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Last modified: ${_getLastModifiedDate(pdfFile)}',
+                              style: const TextStyle(
+                                  fontSize: 12, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.share, color: Colors.blue),
+                              onPressed: () => _sharePdf(pdfFile.path),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () =>
+                                  _showDeleteConfirmationDialog(pdfFile),
+                            ),
+                          ],
+                        ),
+                        onTap: () => _openPdf(pdfFile.path),
+                      ),
+                    );
+                  },
+                )
+              : const Center(
+                  child: Text("No PDF files found in the specified directory."),
+                ),
+        );
+      },
     );
   }
 
-  // Method to open the PDF using the 'open_file' package
   void _openPdf(String filePath) async {
-    final result = await OpenFile.open(filePath,type:"application/pdf");
-
+    final result = await OpenFile.open(filePath, type: "application/pdf");
     if (result.type != ResultType.done) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error opening PDF: ${result.message}'),
-        ),
+        SnackBar(content: Text('Error opening PDF: ${result.message}')),
       );
     }
   }
 
-  // Method to show a confirmation dialog for deleting the PDF
   void _showDeleteConfirmationDialog(FileSystemEntity file) {
     showDialog(
       context: context,
@@ -336,19 +461,80 @@ class MemoListScreenState extends State<MemoListScreen>
         return AlertDialog(
           title: const Text("Delete PDF"),
           content: const Text("Are you sure you want to delete this PDF file?"),
-          actions: <Widget>[
-            TextButton(
-              child: const Text("Cancel"),
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-              },
+          actions: [
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Theme.of(context).colorScheme.surface,
+                    Theme.of(context).colorScheme.surface.withOpacity(0.8),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                ),
+              ),
+              child: TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: TextButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.onSurface,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                ),
+                child: Text(
+                  "Cancel",
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withOpacity(0.8),
+                  ),
+                ),
+              ),
             ),
-            TextButton(
-              child: const Text("Delete"),
-              onPressed: () {
-                _deletePdfFile(file);
-                Navigator.of(context).pop(); // Close the dialog
-              },
+            const SizedBox(width: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFdc2626), // Professional red
+                borderRadius: BorderRadius.circular(6),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFdc2626).withOpacity(0.2),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: TextButton(
+                onPressed: () {
+                  _deletePdfFile(file);
+                  Navigator.of(context).pop();
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  "Delete",
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
             ),
           ],
         );
@@ -356,12 +542,13 @@ class MemoListScreenState extends State<MemoListScreen>
     );
   }
 
-  // Method to delete the PDF file
   void _deletePdfFile(FileSystemEntity file) async {
     try {
-      await file.delete(); // Delete the file
+      await file.delete();
+      _refreshPdfCache();
       setState(() {
-        _pdfFiles.remove(file); // Remove the file from the list
+        _pdfFiles.remove(file);
+        _pdfModifiedDates.remove(file.path);
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('PDF file deleted successfully.')),
@@ -373,225 +560,522 @@ class MemoListScreenState extends State<MemoListScreen>
     }
   }
 
-  // Method to share the PDF file
   void _sharePdf(String filePath) {
     Share.shareXFiles([XFile(filePath)], text: 'Check out this PDF file!');
   }
 
-
   Widget _buildSavedMemosTab() {
-    final localizations = AppLocalizations.of(context)!; // Get localization
+    final localizations = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
 
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.teal.shade100, Colors.white],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Column(
-        children: [
-          // Add "Create Cash Memo" button at the top
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.add, color: Colors.white, size: 24),
-                label: Text(
-                  localizations.generateCashMemo,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
-                  padding: const EdgeInsets.symmetric(vertical: 12.0),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                onPressed: () async {
-                  Memo? newMemo = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CashMemoEdit(autoGenerate: true),
-                    ),
-                  );
-                  if (newMemo != null) {
-                    setState(() {
-                      _memos.add(newMemo);
-                    });
-                    saveMemos(); // Save the new memo
-                  }
-                },
-              ),
+    return Column(
+      children: [
+        // Hero Create Button
+        Container(
+          margin: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                theme.colorScheme.primary,
+                Color.lerp(theme.colorScheme.primary, Colors.black, 0.08)!,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: theme.colorScheme.primary.withOpacity(0.15),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+                spreadRadius: 0,
+              ),
+            ],
           ),
-
-          // If the list is empty, show only the ad
-          if (_memos.isEmpty)
-            NativeAdContainer(),
-
-          // Otherwise, show the list with the ad after the first item
-          if (_memos.isNotEmpty)
-            Expanded(
-              child: ListView.builder(
-                itemCount: _memos.length + 1, // Add 1 for the ad after the first item
-                itemBuilder: (context, index) {
-                  if (index == 1) {
-                    // Show the ad after the first item
-                    return NativeAdContainer();
-                  }
-
-                  // Adjust index to get the correct memo when the ad is shown
-                  final adjustedIndex = index > 1 ? index - 1 : index;
-                  final memo = _memos[adjustedIndex];
-
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-                    child: Card(
-                      elevation: 8,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () async {
+                Memo? newMemo = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        const CashMemoEdit(autoGenerate: true),
+                  ),
+                );
+                if (newMemo != null) {
+                  setState(() => _memos.add(newMemo));
+                  saveMemos();
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.onPrimary.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: theme.colorScheme.onPrimary.withOpacity(0.2),
+                          width: 1,
+                        ),
                       ),
-                      color: Colors.white,
+                      child: Icon(
+                        Icons.receipt_long_outlined,
+                        color: theme.colorScheme.onPrimary,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 20),
+                    Expanded(
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          ListTile(
-                            contentPadding: const EdgeInsets.all(16),
-                            leading: const CircleAvatar(
-                              backgroundColor: Colors.blueAccent,
-                              child: Icon(Icons.business, color: Colors.white, size: 32),
-                            ),
-                            title: Text(
-                              memo.customerName,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 20,
-                                color: Colors.teal,
-                              ),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(height: 4),
-                                Text(
-                                  '${localizations.total}: ${memo.total}',
-                                  style: const TextStyle(
-                                    color: Colors.green,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  memo.date != null && memo.date!.isNotEmpty
-                                      ? '${localizations.date}: ${formatDate(memo.date!)}'
-                                      : localizations.dateNotAvailable,
-                                  style: const TextStyle(color: Colors.grey),
-                                ),
-                              ],
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit, color: Colors.teal),
-                                  onPressed: () async {
-                                    Memo? updatedMemo = await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => CashMemoEdit(
-                                          memo: memo,
-                                          memoIndex: adjustedIndex,
-                                          autoGenerate: false,
-                                        ),
-                                      ),
-                                    );
-                                    if (updatedMemo != null) {
-                                      setState(() {
-                                        _memos[adjustedIndex] = updatedMemo;
-                                      });
-                                      saveMemos();
-                                    }
-                                  },
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete, color: Colors.redAccent),
-                                  onPressed: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (BuildContext context) {
-                                        return AlertDialog(
-                                          title: Text(localizations.deleteMemo),
-                                          content: Text(localizations.confirmDelete),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () {
-                                                Navigator.of(context).pop();
-                                              },
-                                              child: Text(localizations.cancel),
-                                            ),
-                                            TextButton(
-                                              onPressed: () {
-                                                removeMemo(adjustedIndex);
-                                                Navigator.of(context).pop();
-                                              },
-                                              child: Text(localizations.delete),
-                                            ),
-                                          ],
-                                        );
-                                      },
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15),
+                          Text(
+                            localizations.generateCashMemo,
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              color: theme.colorScheme.onPrimary,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 18,
                             ),
                           ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.teal,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                                onPressed: () async {
-                                  await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => CashMemoEdit(
-                                        memo: memo,
-                                        memoIndex: adjustedIndex,
-                                        autoGenerate: true,
-                                      ),
-                                    ),
-                                  );
-                                },
-                                child: Text(
-                                  localizations.printCashMemo,
-                                  style: const TextStyle(color: Colors.white),
-                                ),
-                              ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Create professional cash memos',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color:
+                                  theme.colorScheme.onPrimary.withOpacity(0.85),
+                              fontSize: 14,
                             ),
                           ),
                         ],
                       ),
                     ),
-                  );
-                },
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      color: theme.colorScheme.onPrimary.withOpacity(0.8),
+                      size: 16,
+                    ),
+                  ],
+                ),
               ),
             ),
+          ),
+        ),
+
+        ..._memos.isNotEmpty
+            ? [
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: _memos.length,
+                    // Performance optimizations
+                    cacheExtent:
+                        1000, // Cache more items for smoother scrolling
+                    physics:
+                        const BouncingScrollPhysics(), // Better scroll feel
+                    itemBuilder: (context, index) {
+                      final memo = _memos[index];
+                      return MemoItem(
+                        memo: memo,
+                        index: index,
+                        onEdit: _editMemo,
+                        onDelete: _deleteMemo,
+                        onPrint: _printMemo,
+                        theme: theme,
+                        localizations: localizations,
+                      );
+                    },
+                  ),
+                ),
+              ]
+            : [
+                const Expanded(
+                  child: Center(
+                    child: Text("No memos available. Create your first memo!"),
+                  ),
+                ),
+              ],
+      ],
+    );
+  }
+
+  Future<void> _editMemo(int index) async {
+    final memo = _memos[index];
+    Memo? updatedMemo = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CashMemoEdit(
+          memo: memo,
+          memoIndex: index,
+          autoGenerate: false,
+        ),
+      ),
+    );
+    if (updatedMemo != null) {
+      setState(() => _memos[index] = updatedMemo);
+      saveMemos();
+    }
+  }
+
+  void _deleteMemo(int index) {
+    final localizations = _cachedLocalizations!;
+    final theme = _cachedTheme!;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Text(
+          localizations.deleteMemo,
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF0f172a),
+          ),
+        ),
+        content: Text(
+          localizations.confirmDelete,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: const Color(0xFF64748b),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF64748b),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 12,
+              ),
+            ),
+            child: Text(
+              localizations.cancel,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFef4444),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 12,
+              ),
+            ),
+            onPressed: () {
+              removeMemo(index);
+              Navigator.of(context).pop();
+            },
+            child: Text(
+              localizations.delete,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _printMemo(int index) async {
+    final memo = _memos[index];
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CashMemoEdit(
+          memo: memo,
+          memoIndex: index,
+          autoGenerate: true,
+        ),
+      ),
+    );
+  }
+}
+
+// Separate widget for memo items to improve performance
+class MemoItem extends StatelessWidget {
+  final Memo memo;
+  final int index;
+  final Function(int) onEdit;
+  final Function(int) onDelete;
+  final Function(int) onPrint;
+  final ThemeData theme;
+  final AppLocalizations localizations;
+
+  const MemoItem({
+    super.key,
+    required this.memo,
+    required this.index,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onPrint,
+    required this.theme,
+    required this.localizations,
+  });
+
+  String formatDate(String date) {
+    DateTime parsedDate = DateTime.parse(date);
+    return "${parsedDate.day}/${parsedDate.month}/${parsedDate.year}";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFe2e8f0),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0f172a).withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+            spreadRadius: 0,
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: Column(
+          children: [
+            // Header with customer info
+            Container(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0f172a).withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.person_outline,
+                      color: Color(0xFF0f172a),
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          memo.customerName,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF0f172a),
+                            fontSize: 18,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF059669), Color(0xFF047857)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF059669).withOpacity(0.2),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.currency_exchange,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  '৳${memo.total.toStringAsFixed(2)}',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 16,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Date and actions section
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                color: Color(0xFFf8fafc),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(16),
+                  bottomRight: Radius.circular(16),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.schedule_outlined,
+                        size: 16,
+                        color: Color(0xFF64748b),
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          memo.date != null && memo.date!.isNotEmpty
+                              ? formatDate(memo.date!)
+                              : localizations.dateNotAvailable,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: const Color(0xFF64748b),
+                            fontWeight: FontWeight.w500,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0f172a).withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'MEMO',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: const Color(0xFF0f172a),
+                            fontWeight: FontWeight.w700,
+                            fontSize: 10,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      // Edit button
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => onEdit(index),
+                          icon: const Icon(
+                            Icons.edit_outlined,
+                            size: 18,
+                          ),
+                          label: const Text('Edit'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF0f172a),
+                            side: const BorderSide(
+                              color: Color(0xFFe2e8f0),
+                              width: 1.5,
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Delete button
+                      OutlinedButton(
+                        onPressed: () => onDelete(index),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFFef4444),
+                          side: const BorderSide(
+                            color: Color(0xFFef4444),
+                            width: 1.5,
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.delete_outline,
+                          size: 18,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            // Print button section
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: theme.colorScheme.onPrimary,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
+                ),
+                onPressed: () => onPrint(index),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.print_outlined,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      localizations.printCashMemo,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: theme.colorScheme.onPrimary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                        letterSpacing: 0.25,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

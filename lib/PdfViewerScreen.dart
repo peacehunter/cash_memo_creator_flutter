@@ -10,7 +10,8 @@ class PdfPreviewScreen extends StatefulWidget {
   final Uint8List pdfData;
   final String fileName;
 
-  const PdfPreviewScreen({super.key, required this.pdfData, required this.fileName});
+  const PdfPreviewScreen(
+      {super.key, required this.pdfData, required this.fileName});
 
   @override
   PdfPreviewScreenState createState() => PdfPreviewScreenState();
@@ -26,16 +27,8 @@ class PdfPreviewScreenState extends State<PdfPreviewScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        elevation: 10,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.teal.shade400, Colors.teal.shade700],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
+        elevation: 2,
+        backgroundColor: const Color(0xFF1e40af),
         title: Text(
           'PDF Preview',
           style: const TextStyle(
@@ -60,7 +53,10 @@ class PdfPreviewScreenState extends State<PdfPreviewScreen> {
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.teal.shade100, Colors.white],
+            colors: [
+              Theme.of(context).colorScheme.surface,
+              Theme.of(context).colorScheme.background,
+            ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -78,10 +74,10 @@ class PdfPreviewScreenState extends State<PdfPreviewScreen> {
                     Center(
                       child: Text(
                         'Preview of ${widget.fileName}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
-                          color: Colors.teal,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -103,21 +99,66 @@ class PdfPreviewScreenState extends State<PdfPreviewScreen> {
                     ),
                     const SizedBox(height: 20),
                     Center(
-                      child: ElevatedButton.icon(
-                        onPressed: () async {
-                          PdfService().savePdf(widget.pdfData,"Invoice Generator",widget.fileName);
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            content: Text('PDF saved '),
-                          ));
-                        },
-                        icon: const Icon(Icons.save),
-                        label: const Text('Save PDF'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.teal,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        width: 200,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Theme.of(context).colorScheme.primary,
+                              Theme.of(context).colorScheme.secondary,
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                              spreadRadius: 1,
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: ElevatedButton.icon(
+                          onPressed: () async {
+                            PdfService().savePdf(widget.pdfData,
+                                "Invoice Generator", widget.fileName);
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Row(
+                                children: [
+                                  Icon(Icons.check_circle, color: Colors.white),
+                                  const SizedBox(width: 8),
+                                  Text('PDF saved successfully!'),
+                                ],
+                              ),
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ));
+                          },
+                          icon: const Icon(
+                            Icons.save_alt,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                          label: const Text(
+                            'Save PDF',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
                           ),
                         ),
                       ),
