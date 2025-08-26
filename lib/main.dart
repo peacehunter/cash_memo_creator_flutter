@@ -50,10 +50,10 @@ class CashMemoApp extends StatefulWidget {
   const CashMemoApp({super.key});
 
   @override
-  _CashMemoAppState createState() => _CashMemoAppState();
+  CashMemoAppState createState() => CashMemoAppState();
 }
 
-class _CashMemoAppState extends State<CashMemoApp> with WidgetsBindingObserver {
+class CashMemoAppState extends State<CashMemoApp> with WidgetsBindingObserver {
   String? selectedLanguage;
   Locale? _locale;
   late FirebaseAnalytics analytics;
@@ -113,36 +113,6 @@ class _CashMemoAppState extends State<CashMemoApp> with WidgetsBindingObserver {
       locale: _locale, // Use the current locale
       title: 'Cash Memo Generator',
       navigatorObservers: [MyRouteObserver()],
-      builder: (context, widget) {
-        // Global error boundary for layout issues
-        ErrorWidget.builder = (FlutterErrorDetails errorDetails) {
-          return Material(
-            child: Container(
-              color: Colors.white,
-              child: const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.error_outline, size: 48, color: Colors.red),
-                    SizedBox(height: 16),
-                    Text(
-                      'Something went wrong',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Please restart the app',
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        };
-        return widget ?? Container();
-      },
       theme: ThemeData(
         useMaterial3: true,
         fontFamily: 'Inter',
@@ -190,7 +160,7 @@ class _CashMemoAppState extends State<CashMemoApp> with WidgetsBindingObserver {
             ),
           ),
           color: Colors.white,
-          margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
@@ -247,7 +217,7 @@ class _CashMemoAppState extends State<CashMemoApp> with WidgetsBindingObserver {
             borderRadius: BorderRadius.all(Radius.circular(8)),
             borderSide: BorderSide(color: Color(0xFFef4444), width: 1.5),
           ),
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           labelStyle: TextStyle(
             color: Color(0xFF64748b),
             fontSize: 16,

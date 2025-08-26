@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:isolate';
 import 'package:cash_memo_creator/AndroidAPILevel.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -44,6 +45,8 @@ class MemoListScreenState extends State<MemoListScreen>
   @override
   void initState() {
     super.initState();
+    // Clear memoization caches on initialization
+    _MemoizationCache.clearCache();
     loadMemos();
     _requestStoragePermission();
     WidgetsBinding.instance.addObserver(this);
@@ -60,6 +63,8 @@ class MemoListScreenState extends State<MemoListScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _tabController.dispose();
+    // Clear memoization caches on disposal
+    _MemoizationCache.clearCache();
     super.dispose();
   }
 
@@ -131,7 +136,7 @@ class MemoListScreenState extends State<MemoListScreen>
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: const Color(0x33FFFFFF), // Colors.white.withOpacity(0.2)
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(
@@ -155,7 +160,7 @@ class MemoListScreenState extends State<MemoListScreen>
           Container(
             margin: const EdgeInsets.only(right: 16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: const Color(0x33FFFFFF), // Colors.white.withOpacity(0.2)
               borderRadius: BorderRadius.circular(12),
             ),
             child: IconButton(
@@ -173,17 +178,18 @@ class MemoListScreenState extends State<MemoListScreen>
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
+              color: const Color(0x26FFFFFF), // Colors.white.withOpacity(0.15)
               borderRadius: BorderRadius.circular(30),
               border: Border.all(
-                color: Colors.white.withOpacity(0.3),
+                color: const Color(0x4DFFFFFF), // Colors.white.withOpacity(0.3)
                 width: 1,
               ),
             ),
             child: TabBar(
               controller: _tabController,
               labelColor: Colors.white,
-              unselectedLabelColor: Colors.white.withOpacity(0.7),
+              unselectedLabelColor:
+                  const Color(0xB3FFFFFF), // Colors.white.withOpacity(0.7)
               indicatorColor: Colors.white,
               indicatorWeight: 3,
               labelStyle: const TextStyle(
@@ -326,6 +332,32 @@ class MemoListScreenState extends State<MemoListScreen>
     _lastPdfCacheTime = null;
   }
 
+  static Future<Map<String, dynamic>> _loadPdfsInIsolate(
+      String directoryPath) async {
+    final pdfDirectory = Directory(directoryPath);
+    final dateFormatter = DateFormat('yyyy-MM-dd HH:mm');
+
+    if (await pdfDirectory.exists()) {
+      final files = await pdfDirectory
+          .list()
+          .where((file) => file.path.endsWith('.pdf'))
+          .toList();
+
+      final modDates = <String, String>{};
+      for (final file in files) {
+        final last = File(file.path).lastModifiedSync();
+        modDates[file.path] = dateFormatter.format(last);
+      }
+
+      return {
+        'files': files.map((f) => f.path).toList(),
+        'modDates': modDates,
+      };
+    }
+
+    return {'files': <String>[], 'modDates': <String, String>{}};
+  }
+
   Future<void> _loadSavedPdfs() async {
     Directory? pdfDirectory;
     if (Platform.isAndroid) {
@@ -343,20 +375,32 @@ class MemoListScreenState extends State<MemoListScreen>
     }
 
     if (pdfDirectory != null && await pdfDirectory.exists()) {
-      final files = await pdfDirectory
-          .list()
-          .where((file) => file.path.endsWith('.pdf'))
-          .toList();
-      // build cache of formatted last-modified times once per load
-      final modDates = <String, String>{};
-      for (final file in files) {
-        final last = File(file.path).lastModifiedSync();
-        modDates[file.path] = _dateFormatter.format(last);
+      try {
+        final result =
+            await Isolate.run(() => _loadPdfsInIsolate(pdfDirectory!.path));
+        final filePaths = result['files'] as List<String>;
+        final modDates = result['modDates'] as Map<String, String>;
+
+        setState(() {
+          _pdfFiles = filePaths.map((path) => File(path)).toList();
+          _pdfModifiedDates = modDates;
+        });
+      } catch (e) {
+        // Fallback to main thread if isolate fails
+        final files = await pdfDirectory
+            .list()
+            .where((file) => file.path.endsWith('.pdf'))
+            .toList();
+        final modDates = <String, String>{};
+        for (final file in files) {
+          final last = File(file.path).lastModifiedSync();
+          modDates[file.path] = _dateFormatter.format(last);
+        }
+        setState(() {
+          _pdfFiles = files;
+          _pdfModifiedDates = modDates;
+        });
       }
-      setState(() {
-        _pdfFiles = files;
-        _pdfModifiedDates = modDates;
-      });
     }
   }
 
@@ -395,7 +439,7 @@ class MemoListScreenState extends State<MemoListScreen>
                         leading: const Icon(Icons.picture_as_pdf,
                             color: Colors.redAccent, size: 36),
                         title: Text(
-                          pdfFile.path.split(Platform.pathSeparator).last,
+                          _MemoizationCache.extractFileName(pdfFile.path),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(fontWeight: FontWeight.bold),
@@ -466,19 +510,25 @@ class MemoListScreenState extends State<MemoListScreen>
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    Theme.of(context).colorScheme.surface,
-                    Theme.of(context).colorScheme.surface.withOpacity(0.8),
+                    _cachedTheme!.colorScheme.surface,
+                    Color.alphaBlend(
+                        const Color(0x33000000),
+                        _cachedTheme!
+                            .colorScheme.surface), // surface.withOpacity(0.8)
                   ],
                 ),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                  color: Color.alphaBlend(
+                      const Color(0x4D000000),
+                      _cachedTheme!
+                          .colorScheme.outline), // outline.withOpacity(0.3)
                 ),
               ),
               child: TextButton(
                 onPressed: () => Navigator.of(context).pop(),
                 style: TextButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.onSurface,
+                  foregroundColor: _cachedTheme!.colorScheme.onSurface,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20,
                     vertical: 12,
@@ -491,10 +541,8 @@ class MemoListScreenState extends State<MemoListScreen>
                   "Cancel",
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withOpacity(0.8),
+                    color: _cachedTheme!.colorScheme.onSurface
+                        .withAlpha(204), // withOpacity(0.8)
                   ),
                 ),
               ),
@@ -504,11 +552,12 @@ class MemoListScreenState extends State<MemoListScreen>
               decoration: BoxDecoration(
                 color: const Color(0xFFdc2626), // Professional red
                 borderRadius: BorderRadius.circular(6),
-                boxShadow: [
+                boxShadow: const [
                   BoxShadow(
-                    color: const Color(0xFFdc2626).withOpacity(0.2),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1),
+                    color: Color(
+                        0x1Adc2626), // Simplified shadow with reduced opacity
+                    blurRadius: 2,
+                    offset: Offset(0, 1),
                   ),
                 ],
               ),
@@ -542,21 +591,50 @@ class MemoListScreenState extends State<MemoListScreen>
     );
   }
 
+  static Future<bool> _deletePdfInIsolate(String filePath) async {
+    try {
+      await File(filePath).delete();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   void _deletePdfFile(FileSystemEntity file) async {
     try {
-      await file.delete();
-      _refreshPdfCache();
-      setState(() {
-        _pdfFiles.remove(file);
-        _pdfModifiedDates.remove(file.path);
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PDF file deleted successfully.')),
-      );
+      final success = await Isolate.run(() => _deletePdfInIsolate(file.path));
+
+      if (success) {
+        _refreshPdfCache();
+        setState(() {
+          _pdfFiles.remove(file);
+          _pdfModifiedDates.remove(file.path);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('PDF file deleted successfully.')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error deleting file')),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error deleting file: $e')),
-      );
+      // Fallback to main thread if isolate fails
+      try {
+        await file.delete();
+        _refreshPdfCache();
+        setState(() {
+          _pdfFiles.remove(file);
+          _pdfModifiedDates.remove(file.path);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('PDF file deleted successfully.')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting file: $e')),
+        );
+      }
     }
   }
 
@@ -565,8 +643,8 @@ class MemoListScreenState extends State<MemoListScreen>
   }
 
   Widget _buildSavedMemosTab() {
-    final localizations = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
+    final localizations = _cachedLocalizations!;
+    final theme = _cachedTheme!;
 
     return Column(
       children: [
@@ -585,10 +663,10 @@ class MemoListScreenState extends State<MemoListScreen>
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: theme.colorScheme.primary.withOpacity(0.15),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-                spreadRadius: 0,
+                color: _cachedTheme!.colorScheme.primary
+                    .withOpacity(0.1), // Simplified shadow color
+                blurRadius: 8,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
@@ -616,10 +694,16 @@ class MemoListScreenState extends State<MemoListScreen>
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.onPrimary.withOpacity(0.15),
+                        color: Color.alphaBlend(
+                            const Color(0x26000000),
+                            theme.colorScheme
+                                .onPrimary), // onPrimary.withOpacity(0.15)
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: theme.colorScheme.onPrimary.withOpacity(0.2),
+                          color: Color.alphaBlend(
+                              const Color(0x33000000),
+                              theme.colorScheme
+                                  .onPrimary), // onPrimary.withOpacity(0.2)
                           width: 1,
                         ),
                       ),
@@ -646,17 +730,18 @@ class MemoListScreenState extends State<MemoListScreen>
                           Text(
                             'Create professional cash memos',
                             style: theme.textTheme.bodyMedium?.copyWith(
-                              color:
-                                  theme.colorScheme.onPrimary.withOpacity(0.85),
+                              color: theme.colorScheme.onPrimary.withAlpha(
+                                  217), // onPrimary.withOpacity(0.85)
                               fontSize: 14,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    Icon(
+                    const Icon(
                       Icons.arrow_forward_ios,
-                      color: theme.colorScheme.onPrimary.withOpacity(0.8),
+                      color: Colors
+                          .white70, // Using a const color instead of computed color
                       size: 16,
                     ),
                   ],
@@ -796,6 +881,30 @@ class MemoListScreenState extends State<MemoListScreen>
   }
 }
 
+// Memoization caches for performance optimization
+class _MemoizationCache {
+  static final Map<String, String> _dateFormatCache = {};
+  static final Map<String, String> _fileNameCache = {};
+
+  static String formatDate(String date) {
+    return _dateFormatCache.putIfAbsent(date, () {
+      DateTime parsedDate = DateTime.parse(date);
+      return "${parsedDate.day}/${parsedDate.month}/${parsedDate.year}";
+    });
+  }
+
+  static String extractFileName(String filePath) {
+    return _fileNameCache.putIfAbsent(filePath, () {
+      return filePath.split(Platform.pathSeparator).last;
+    });
+  }
+
+  static void clearCache() {
+    _dateFormatCache.clear();
+    _fileNameCache.clear();
+  }
+}
+
 // Separate widget for memo items to improve performance
 class MemoItem extends StatelessWidget {
   final Memo memo;
@@ -818,29 +927,20 @@ class MemoItem extends StatelessWidget {
   });
 
   String formatDate(String date) {
-    DateTime parsedDate = DateTime.parse(date);
-    return "${parsedDate.day}/${parsedDate.month}/${parsedDate.year}";
+    return _MemoizationCache.formatDate(date);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
+      elevation: 2,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFFe2e8f0),
+        side: const BorderSide(
+          color: Color(0xFFe2e8f0),
           width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0f172a).withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-            spreadRadius: 0,
-          ),
-        ],
       ),
       child: Material(
         color: Colors.transparent,
@@ -852,12 +952,9 @@ class MemoItem extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               child: Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0f172a).withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: const Color(0x140f172a),
                     child: const Icon(
                       Icons.person_outline,
                       color: Color(0xFF0f172a),
@@ -886,19 +983,8 @@ class MemoItem extends StatelessWidget {
                             vertical: 10,
                           ),
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF059669), Color(0xFF047857)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
+                            color: const Color(0xFF059669),
                             borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF059669).withOpacity(0.2),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -964,16 +1050,8 @@ class MemoItem extends StatelessWidget {
                         ),
                       ),
                       const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0f172a).withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
+                      Chip(
+                        label: Text(
                           'MEMO',
                           style: theme.textTheme.labelSmall?.copyWith(
                             color: const Color(0xFF0f172a),
@@ -982,6 +1060,9 @@ class MemoItem extends StatelessWidget {
                             letterSpacing: 0.5,
                           ),
                         ),
+                        backgroundColor: const Color(0x140f172a),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
                       ),
                     ],
                   ),

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:cash_memo_creator/admob_ads/AdHelper.dart';
 import 'package:flutter/material.dart';
@@ -19,7 +20,8 @@ class CashMemoEdit extends StatefulWidget {
   final bool autoGenerate; // Add this parameter to trigger auto-generation
 
   const CashMemoEdit(
-      {super.key, this.memo,
+      {super.key,
+      this.memo,
       this.memoIndex,
       this.onMemoSaved,
       required this.autoGenerate});
@@ -48,10 +50,28 @@ class _CashMemoEditState extends State<CashMemoEdit>
   final List<TextEditingController> _discountController = [];
   final List<bool> _isProductDiscountPercent = [];
 
+  // Debounce timers for performance optimization
+  Timer? _debounceTimer;
+  final Map<int, Timer?> _productDebounceTimers = {};
+
+  // Cached calculations to avoid recalculating on every build
+  final Map<int, double> _cachedItemTotals = {};
+
+  // Memoization for expensive calculations
+  double? _cachedSubtotal;
+  double? _cachedTotal;
+  String? _lastSubtotalHash;
+  String? _lastTotalHash;
+
+  // Flag to prevent multiple template dialog shows
+  bool _hasShownTemplateDialog = false;
+
   int selectedWatermarkOption = 2; // Example default value
   String? watermarkImagePath; // Path to the watermark image
 
   late bool isPercentDiscount;
+  double discount = 0.0;
+  double vat = 0.0;
   String? companyName;
   String? companyAddress;
   String? companyLogoPath;
@@ -78,9 +98,92 @@ class _CashMemoEditState extends State<CashMemoEdit>
     for (var controller in _discountController) {
       controller.dispose();
     }
-    WidgetsBinding.instance.removeObserver(this); // Remove the observer
+
+    // Dispose of debounce timers
+    _debounceTimer?.cancel();
+    for (var timer in _productDebounceTimers.values) {
+      timer?.cancel();
+    }
 
     super.dispose();
+  }
+
+  // Debounced update methods for better performance
+  void _debouncedUpdateProduct(int index, VoidCallback updateFunction) {
+    _productDebounceTimers[index]?.cancel();
+    _productDebounceTimers[index] =
+        Timer(const Duration(milliseconds: 300), () {
+      updateFunction();
+      _updateCachedItemTotal(index);
+      _clearMemoizationCache();
+      setState(() {});
+    });
+  }
+
+  void _updateCachedItemTotal(int index) {
+    if (index < products.length) {
+      double itemTotal = products[index].price * products[index].quantity;
+      double discountAmount = _isProductDiscountPercent[index]
+          ? itemTotal * (products[index].discount / 100)
+          : products[index].discount;
+      _cachedItemTotals[index] = itemTotal - discountAmount;
+    }
+  }
+
+  double _getCachedItemTotal(int index) {
+    if (!_cachedItemTotals.containsKey(index)) {
+      _updateCachedItemTotal(index);
+    }
+    return _cachedItemTotals[index] ?? 0.0;
+  }
+
+  // Generate hash for subtotal calculation dependencies
+  String _getSubtotalHash() {
+    return products.asMap().entries.map((entry) {
+      int index = entry.key;
+      Product product = entry.value;
+      return '${product.price}_${product.quantity}_${product.discount}_${_isProductDiscountPercent[index]}';
+    }).join('|');
+  }
+
+  // Generate hash for total calculation dependencies
+  String _getTotalHash() {
+    String subtotalHash = _getSubtotalHash();
+    String discountText = discountController.text;
+    String vatText = vatController.text;
+    return '${subtotalHash}_${discountText}_${vatText}_${isPercentDiscount}';
+  }
+
+  // Memoized subtotal calculation
+  double getMemoizedSubtotal() {
+    String currentHash = _getSubtotalHash();
+    if (_lastSubtotalHash == currentHash && _cachedSubtotal != null) {
+      return _cachedSubtotal!;
+    }
+
+    _cachedSubtotal = calculateSubtotal();
+    _lastSubtotalHash = currentHash;
+    return _cachedSubtotal!;
+  }
+
+  // Memoized total calculation
+  double getMemoizedTotal() {
+    String currentHash = _getTotalHash();
+    if (_lastTotalHash == currentHash && _cachedTotal != null) {
+      return _cachedTotal!;
+    }
+
+    _cachedTotal = calculateTotal();
+    _lastTotalHash = currentHash;
+    return _cachedTotal!;
+  }
+
+  // Clear memoization cache when data changes
+  void _clearMemoizationCache() {
+    _cachedSubtotal = null;
+    _cachedTotal = null;
+    _lastSubtotalHash = null;
+    _lastTotalHash = null;
   }
 
   // This is where you handle lifecycle changes like onResume
@@ -154,7 +257,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
     super.didChangeDependencies();
     var localizations = AppLocalizations.of(context)!; // Get localization
 
-    if (widget.autoGenerate && widget.memo != null) {
+    if (widget.autoGenerate && widget.memo != null && !_hasShownTemplateDialog) {
+      _hasShownTemplateDialog = true; // Set flag to prevent multiple shows
       Future.delayed(Duration.zero, () async {
         // Delay execution to ensure the page has loaded
         if (mounted) {
@@ -185,7 +289,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
 
   Memo saveMemo() {
     double subtotal =
-        calculateSubtotal(); // This now includes individual product discounts
+        getMemoizedSubtotal(); // This now includes individual product discounts
     double discount = double.tryParse(discountController.text) ?? 0;
     double vat = double.tryParse(vatController.text) ?? 0;
 
@@ -354,7 +458,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.start,
                     children: [
-                      pw.Text('Signature: ', style: const pw.TextStyle(fontSize: 18)),
+                      pw.Text('Signature: ',
+                          style: const pw.TextStyle(fontSize: 18)),
                       pw.Container(
                         width: 200,
                         height: 50,
@@ -489,7 +594,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
               child: buildCompanyDetails(logoBytes),
             ),
             pw.SizedBox(height: 10),
-            pw.Text('Date: $currentDate', style: const pw.TextStyle(fontSize: 12)),
+            pw.Text('Date: $currentDate',
+                style: const pw.TextStyle(fontSize: 12)),
             pw.SizedBox(height: 10),
             buildCustomerDetails(),
             pw.SizedBox(height: 20),
@@ -659,7 +765,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
               child: buildCompanyDetails(logoBytes),
             ),
             pw.SizedBox(height: 10),
-            pw.Text('Date: $currentDate', style: const pw.TextStyle(fontSize: 12)),
+            pw.Text('Date: $currentDate',
+                style: const pw.TextStyle(fontSize: 12)),
             pw.SizedBox(height: 10),
             buildCustomerDetails(),
             pw.SizedBox(height: 20),
@@ -715,7 +822,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
             ? productTotal * (product.discount / 100)
             : product.discount;
         double discountedTotal = productTotal - discountAmount;
-        
+
         String discountDisplay = _isProductDiscountPercent[index]
             ? '${product.discount}%'
             : '\$${product.discount.toStringAsFixed(2)}';
@@ -740,11 +847,11 @@ class _CashMemoEditState extends State<CashMemoEdit>
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.end,
       children: [
-        buildPricingRow('Subtotal', calculateSubtotal().toStringAsFixed(2)),
+        buildPricingRow('Subtotal', getMemoizedSubtotal().toStringAsFixed(2)),
         buildPricingRow('Discount', '${discountController.text}%'),
         buildPricingRow('Vat/Tax', '${vatController.text}%'),
         pw.Divider(),
-        buildPricingRow('Total', calculateTotal().toStringAsFixed(2)),
+        buildPricingRow('Total', getMemoizedTotal().toStringAsFixed(2)),
         // Total with bold styling
       ],
     );
@@ -770,7 +877,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
     return products.asMap().entries.fold(0.0, (total, entry) {
       int index = entry.key;
       Product product = entry.value;
-      
+
       // Handle empty or invalid price and quantity fields
       double price = product.price;
       int quantity = product.quantity;
@@ -811,6 +918,11 @@ class _CashMemoEditState extends State<CashMemoEdit>
       _discountController.add(TextEditingController(text: ''));
       // Initialize discount type as percentage by default
       _isProductDiscountPercent.add(true);
+
+      // Initialize cache for new product
+      int newIndex = products.length - 1;
+      _updateCachedItemTotal(newIndex);
+      _clearMemoizationCache();
     });
   }
 
@@ -1320,456 +1432,65 @@ class _CashMemoEditState extends State<CashMemoEdit>
             const SizedBox(height: 16),
             Column(
               children: List.generate(products.length, (index) {
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.shade200,
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                    border: Border.all(
-                      color: Colors.grey.shade100,
-                      width: 1,
-                    ),
-                  ),
-                  child: ExpansionPanelList(
-                    elevation: 0,
-                    expandedHeaderPadding: EdgeInsets.zero,
-                    dividerColor: Colors.transparent,
-                    children: [
-                      ExpansionPanel(
-                        backgroundColor: Colors.transparent,
-                        headerBuilder: (BuildContext context, bool isExpanded) {
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 12),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green.shade50,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Icon(
-                                    Icons.shopping_bag_outlined,
-                                    color: Colors.green.shade600,
-                                    size: 20,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        products[index].name.isNotEmpty
-                                            ? products[index].name
-                                            : '${localizations.product_name} ${index + 1}',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.grey.shade800,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      if (products[index].price > 0 ||
-                                          products[index].quantity > 0)
-                                        Text(
-                                          'Price: \$${products[index].price.toStringAsFixed(2)} × ${products[index].quantity}',
-                                          style: TextStyle(
-                                            color: Colors.grey.shade600,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                                Icon(
-                                  isExpanded
-                                      ? Icons.expand_less
-                                      : Icons.expand_more,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                        body: Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[50],
-                            borderRadius: const BorderRadius.only(
-                              bottomLeft: Radius.circular(16),
-                              bottomRight: Radius.circular(16),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              // Product/Item Name (Full Width)
-                              TextField(
-                                controller: _nameControllers[index],
-                                onChanged: (value) {
-                                  setState(() {
-                                    products[index].name = value;
-                                  });
-                                },
-                                decoration: InputDecoration(
-                                  labelText: "Item Name",
-                                  hintText: "Enter product or service name",
-                                  labelStyle:
-                                      TextStyle(color: Colors.green.shade600),
-                                  hintStyle: TextStyle(
-                                    color: Colors.grey.shade500,
-                                    fontSize: 14,
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.white,
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(
-                                      color: Colors.green.shade200,
-                                      width: 1,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(
-                                      color: Colors.green.shade400,
-                                      width: 2,
-                                    ),
-                                  ),
-                                  prefixIcon: Icon(
-                                    Icons.shopping_bag_outlined,
-                                    color: Colors.green.shade600,
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    vertical: 16,
-                                    horizontal: 16,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              // Price and Quantity Row (More prominent)
-                              Row(
-                                children: [
-                                  Expanded(
-                                    flex: 2,
-                                    child: TextField(
-                                      controller: _priceControllers[index],
-                                      onChanged: (value) {
-                                        setState(() {
-                                          products[index].price = value.isEmpty
-                                              ? 0
-                                              : double.tryParse(value) ?? 0;
-                                        });
-                                      },
-                                      decoration: InputDecoration(
-                                        labelText: "Unit Price",
-                                        hintText: "0.00",
-                                        labelStyle: TextStyle(
-                                            color: Colors.green.shade600),
-                                        hintStyle: TextStyle(
-                                          color: Colors.grey.shade400,
-                                          fontSize: 14,
-                                        ),
-                                        filled: true,
-                                        fillColor: Colors.white,
-                                        enabledBorder: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                          borderSide: BorderSide(
-                                            color: Colors.green.shade200,
-                                            width: 1,
-                                          ),
-                                        ),
-                                        focusedBorder: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                          borderSide: BorderSide(
-                                            color: Colors.green.shade400,
-                                            width: 2,
-                                          ),
-                                        ),
-                                        prefixIcon: Icon(
-                                          Icons.attach_money,
-                                          color: Colors.green.shade600,
-                                        ),
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                          vertical: 16,
-                                          horizontal: 16,
-                                        ),
-                                      ),
-                                      keyboardType:
-                                          const TextInputType.numberWithOptions(
-                                              decimal: true),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    flex: 1,
-                                    child: TextField(
-                                      controller: _quantityControllers[index],
-                                      onChanged: (value) {
-                                        setState(() {
-                                          products[index].quantity =
-                                              value.isEmpty
-                                                  ? 0
-                                                  : int.tryParse(value) ?? 0;
-                                        });
-                                      },
-                                      decoration: InputDecoration(
-                                        labelText: "Qty",
-                                        hintText: "1",
-                                        labelStyle: TextStyle(
-                                            color: Colors.green.shade600),
-                                        hintStyle: TextStyle(
-                                          color: Colors.grey.shade400,
-                                          fontSize: 14,
-                                        ),
-                                        filled: true,
-                                        fillColor: Colors.white,
-                                        enabledBorder: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                          borderSide: BorderSide(
-                                            color: Colors.green.shade200,
-                                            width: 1,
-                                          ),
-                                        ),
-                                        focusedBorder: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                          borderSide: BorderSide(
-                                            color: Colors.green.shade400,
-                                            width: 2,
-                                          ),
-                                        ),
-                                        prefixIcon: Icon(
-                                          Icons.numbers,
-                                          color: Colors.green.shade600,
-                                        ),
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                          vertical: 16,
-                                          horizontal: 16,
-                                        ),
-                                      ),
-                                      keyboardType: TextInputType.number,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-              // Discount Row (Optional field) with toggle
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _discountController[index],
-                          onChanged: (value) {
-                            setState(() {
-                              products[index].discount = value.isEmpty
-                                  ? 0
-                                  : double.tryParse(value) ?? 0;
-                            });
-                          },
-                          decoration: InputDecoration(
-                            labelText: "Discount (Optional)",
-                            hintText: _isProductDiscountPercent[index] 
-                                ? "Enter percentage (e.g., 10 for 10%)"
-                                : "Enter fixed amount",
-                            labelStyle:
-                                TextStyle(color: Colors.orange.shade600),
-                            hintStyle: TextStyle(
-                              color: Colors.grey.shade400,
-                              fontSize: 14,
-                            ),
-                            filled: true,
-                            fillColor: Colors.orange.shade50,
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: Colors.orange.shade200,
-                                width: 1,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: Colors.orange.shade400,
-                                width: 2,
-                              ),
-                            ),
-                            prefixIcon: Icon(
-                              _isProductDiscountPercent[index] 
-                                  ? Icons.percent
-                                  : Icons.attach_money,
-                              color: Colors.orange.shade600,
-                            ),
-                            suffixIcon: Container(
-                              margin: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: _isProductDiscountPercent[index]
-                                    ? Colors.orange.shade100
-                                    : Colors.green.shade100,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: IconButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _isProductDiscountPercent[index] = 
-                                        !_isProductDiscountPercent[index];
-                                  });
-                                },
-                                icon: Icon(
-                                  _isProductDiscountPercent[index]
-                                      ? Icons.percent
-                                      : Icons.attach_money,
-                                  color: _isProductDiscountPercent[index]
-                                      ? Colors.orange.shade700
-                                      : Colors.green.shade700,
-                                  size: 20,
-                                ),
-                                tooltip: _isProductDiscountPercent[index]
-                                    ? "Switch to fixed amount"
-                                    : "Switch to percentage",
-                              ),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 16,
-                              horizontal: 16,
-                            ),
-                          ),
-                          keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 16),
-                    child: Text(
-                      _isProductDiscountPercent[index]
-                          ? "Discount as percentage of item total"
-                          : "Discount as fixed amount",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-                              const SizedBox(height: 16),
-                              // Item Total Display
-                              Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue.shade50,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: Colors.blue.shade200,
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.calculate,
-                                          color: Colors.blue.shade600,
-                                          size: 20,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          'Item Total:',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w500,
-                                            color: Colors.blue.shade700,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    Text(
-                                      () {
-                                        double itemTotal = products[index].price * products[index].quantity;
-                                        double discountAmount = _isProductDiscountPercent[index]
-                                            ? itemTotal * (products[index].discount / 100)
-                                            : products[index].discount;
-                                        double finalTotal = itemTotal - discountAmount;
-                                        return '\$${finalTotal.toStringAsFixed(2)}';
-                                      }(),
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.blue.shade800,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              // Remove Product Button with modern design
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  onPressed: () {
-                                    setState(() {
-                                      products.removeAt(index);
-                                      _nameControllers.removeAt(index);
-                                      _priceControllers.removeAt(index);
-                                      _quantityControllers.removeAt(index);
-                                      _discountController.removeAt(index);
-                                      _isProductDiscountPercent.removeAt(index);
-                                    });
-                                  },
-                                  icon: const Icon(Icons.remove_circle_outline),
-                                  label: const Text("Remove Item"),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.red.shade50,
-                                    foregroundColor: Colors.red.shade700,
-                                    elevation: 0,
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 12, horizontal: 16),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      side: BorderSide(
-                                          color: Colors.red.shade200),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        isExpanded: products[index].isExpanded ? false : true,
-                      ),
-                    ],
-                    // Expansion callback to toggle the state of the panel
-                    expansionCallback: (int index, bool isExpanded) {
-                      setState(() {
-                        products[index].isExpanded =
-                            !isExpanded; // Toggle the expanded state
-                      });
-                    },
-                  ),
+                return ProductItemWidget(
+                  index: index,
+                  product: products[index],
+                  nameController: _nameControllers[index],
+                  priceController: _priceControllers[index],
+                  quantityController: _quantityControllers[index],
+                  discountController: _discountController[index],
+                  isProductDiscountPercent: _isProductDiscountPercent[index],
+                  onDebouncedUpdate: _debouncedUpdateProduct,
+                  onRemove: (int removeIndex) {
+                    setState(() {
+                      // Cancel any pending timer for this product
+                      _productDebounceTimers[removeIndex]?.cancel();
+                      _productDebounceTimers.remove(removeIndex);
+
+                      // Remove from cache
+                      _cachedItemTotals.remove(removeIndex);
+
+                      // Remove product and controllers
+                      products.removeAt(removeIndex);
+                      _nameControllers.removeAt(removeIndex);
+                      _priceControllers.removeAt(removeIndex);
+                      _quantityControllers.removeAt(removeIndex);
+                      _discountController.removeAt(removeIndex);
+                      _isProductDiscountPercent.removeAt(removeIndex);
+
+                      // Update cache indices for remaining products
+                      Map<int, double> newCache = {};
+                      Map<int, Timer?> newTimers = {};
+                      for (int i = 0; i < products.length; i++) {
+                        if (_cachedItemTotals
+                            .containsKey(i >= removeIndex ? i + 1 : i)) {
+                          newCache[i] =
+                              _cachedItemTotals[i >= removeIndex ? i + 1 : i]!;
+                        }
+                        if (_productDebounceTimers
+                            .containsKey(i >= removeIndex ? i + 1 : i)) {
+                          newTimers[i] = _productDebounceTimers[
+                              i >= removeIndex ? i + 1 : i];
+                        }
+                      }
+                      _cachedItemTotals.clear();
+                      _cachedItemTotals.addAll(newCache);
+                      _productDebounceTimers.clear();
+                      _productDebounceTimers.addAll(newTimers);
+
+                      // Clear memoization cache after removing product
+                      _clearMemoizationCache();
+                    });
+                  },
+                  getCachedItemTotal: _getCachedItemTotal,
+                  onDiscountTypeToggle: () {
+                    setState(() {
+                      _isProductDiscountPercent[index] =
+                          !_isProductDiscountPercent[index];
+                      _clearMemoizationCache();
+                    });
+                  },
+                  localizations: localizations,
                 );
               }),
             ),
@@ -1778,6 +1499,254 @@ class _CashMemoEditState extends State<CashMemoEdit>
   }
 
   Widget _buildDiscountAndVatFields(localizations) {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Section Header
+          Row(
+            children: [
+              Icon(
+                Icons.calculate_outlined,
+                color: Colors.blue.shade600,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Discount & Tax',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: discountController,
+                  focusNode: discountFocusNode,
+                  onChanged: (value) {
+                    setState(() {
+                      discount = double.tryParse(value) ?? 0;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    labelText: localizations.discount_label,
+                    hintText: '0.00',
+                    prefixIcon: Icon(
+                      Icons.percent,
+                      color: Colors.blue.shade600,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: Colors.blue.shade600,
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: TextField(
+                  controller: vatController,
+                  focusNode: vatFocusNode,
+                  onChanged: (value) {
+                    setState(() {
+                      vat = double.tryParse(value) ?? 0;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    labelText: localizations.tax_label,
+                    hintText: '0.00',
+                    prefixIcon: Icon(
+                      Icons.calculate,
+                      color: Colors.blue.shade600,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: Colors.blue.shade600,
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTotalSection(localizations) {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Section Header
+          Row(
+            children: [
+              Icon(
+                Icons.receipt_long,
+                color: Colors.green.shade600,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Total Summary',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          // Subtotal
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Subtotal:',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+              Text(
+                '৳${getMemoizedSubtotal().toStringAsFixed(2)}',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey.shade800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Discount
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Discount:',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+              Text(
+                isPercentDiscount
+                    ? '${discountController.text}%'
+                    : '৳${discountController.text}',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.orange.shade600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // VAT
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'VAT/Tax:',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+              Text(
+                '${vatController.text}%',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.blue.shade600,
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 24),
+          // Total
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Total:',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade800,
+                ),
+              ),
+              Text(
+                '৳${getMemoizedTotal().toStringAsFixed(2)}',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green.shade600,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildDiscountAndVatSection(localizations) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(20),
@@ -1933,6 +1902,314 @@ class _CashMemoEditState extends State<CashMemoEdit>
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+// Extracted Product Item Widget for better performance
+class ProductItemWidget extends StatefulWidget {
+  final int index;
+  final Product product;
+  final TextEditingController nameController;
+  final TextEditingController priceController;
+  final TextEditingController quantityController;
+  final TextEditingController discountController;
+  final bool isProductDiscountPercent;
+  final Function(int, VoidCallback) onDebouncedUpdate;
+  final Function(int) onRemove;
+  final Function(int) getCachedItemTotal;
+  final VoidCallback onDiscountTypeToggle;
+  final AppLocalizations localizations;
+
+  const ProductItemWidget({
+    Key? key,
+    required this.index,
+    required this.product,
+    required this.nameController,
+    required this.priceController,
+    required this.quantityController,
+    required this.discountController,
+    required this.isProductDiscountPercent,
+    required this.onDebouncedUpdate,
+    required this.onRemove,
+    required this.getCachedItemTotal,
+    required this.onDiscountTypeToggle,
+    required this.localizations,
+  }) : super(key: key);
+
+  @override
+  State<ProductItemWidget> createState() => _ProductItemWidgetState();
+}
+
+class _ProductItemWidgetState extends State<ProductItemWidget> {
+  bool isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade200,
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+        border: Border.all(
+          color: Colors.grey.shade100,
+          width: 1,
+        ),
+      ),
+      child: Column(
+        children: [
+          // Header that can be tapped to expand/collapse
+          InkWell(
+            onTap: () {
+              setState(() {
+                isExpanded = !isExpanded;
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.shopping_bag_outlined,
+                      color: Colors.green.shade600,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.product.name.isNotEmpty
+                              ? widget.product.name
+                              : '${widget.localizations.product_name} ${widget.index + 1}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade800,
+                            fontSize: 16,
+                          ),
+                        ),
+                        if (widget.product.price > 0 ||
+                            widget.product.quantity > 0)
+                          Text(
+                            'Price: \$${widget.product.price.toStringAsFixed(2)} × ${widget.product.quantity}',
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 12,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'Total',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 12,
+                        ),
+                      ),
+                      Text(
+                        '\$${widget.getCachedItemTotal(widget.index).toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green.shade700,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    isExpanded ? Icons.expand_less : Icons.expand_more,
+                    color: Colors.grey.shade600,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Expandable content
+          if (isExpanded) _buildProductForm(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProductForm() {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Product Name Field
+          _buildTextField(
+            controller: widget.nameController,
+            label: widget.localizations.product_name,
+            icon: Icons.inventory_2_outlined,
+            onChanged: (value) {
+              widget.onDebouncedUpdate(widget.index, () {
+                widget.product.name = value;
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Price and Quantity Row
+          Row(
+            children: [
+              Expanded(
+                child: _buildTextField(
+                  controller: widget.priceController,
+                  label: widget.localizations.product_price,
+                  icon: Icons.attach_money,
+                  keyboardType: TextInputType.number,
+                  onChanged: (value) {
+                    widget.onDebouncedUpdate(widget.index, () {
+                      widget.product.price = double.tryParse(value) ?? 0;
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildTextField(
+                  controller: widget.quantityController,
+                  label: widget.localizations.product_quantity,
+                  icon: Icons.numbers,
+                  keyboardType: TextInputType.number,
+                  onChanged: (value) {
+                    widget.onDebouncedUpdate(widget.index, () {
+                      widget.product.quantity = int.tryParse(value) ?? 0;
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Discount Section
+          Row(
+            children: [
+              Expanded(
+                child: _buildTextField(
+                  controller: widget.discountController,
+                  label: widget.localizations.discount_label,
+                  icon: Icons.local_offer_outlined,
+                  keyboardType: TextInputType.number,
+                  onChanged: (value) {
+                    widget.onDebouncedUpdate(widget.index, () {
+                      widget.product.discount = double.tryParse(value) ?? 0;
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(width: 16),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Checkbox(
+                      value: widget.isProductDiscountPercent,
+                      onChanged: (value) => widget.onDiscountTypeToggle(),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    Text(
+                      '%',
+                      style: TextStyle(
+                        color: Colors.grey.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Remove Button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => widget.onRemove(widget.index),
+              icon: const Icon(Icons.remove_circle_outline),
+              label: const Text("Remove Item"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade50,
+                foregroundColor: Colors.red.shade700,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType? keyboardType,
+    required Function(String) onChanged,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      onTap: () {
+        if (controller.text == '0.0' || controller.text == '0') {
+          controller.clear();
+        }
+      },
+      onChanged: onChanged,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: Colors.green.shade600),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.green.shade500, width: 2),
+        ),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }

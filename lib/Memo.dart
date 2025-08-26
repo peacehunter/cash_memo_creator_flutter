@@ -1,4 +1,3 @@
-
 class Memo {
   String companyName;
   List<Product> products;
@@ -51,22 +50,22 @@ class Memo {
   // Create a Memo from JSON data
   static Memo fromJson(Map<String, dynamic> json) {
     return Memo(
-      companyName: json['companyName'] ?? '',
-      products: (json['products'] as List<dynamic>?)
-          ?.map((item) => Product.fromJson(item))
-          .toList() ??
-          [],
-      total: json['total'] ?? 0.0,
-      date: json['date'] as String? ?? '',
-      customerName: json['customerName'] ?? '',
-      customerAddress: json['customerAddress'] ?? '',
-      customerPhoneNumber: json['customerPhoneNumber'] ?? '',
-      discount: json['discount']?.toDouble() ?? 0.0, // Handle null discount
-      vat: json['vat']?.toDouble() ?? 0.0, // Handle null VAT
-      isPercentDiscount: json['isPercentDiscount'] ?? true,
-      companyAddress: json['companyAddress']??'', // Handle null discount type
-      companyLogo: json['companyLogo']??''
-    );
+        companyName: json['companyName'] ?? '',
+        products: (json['products'] as List<dynamic>?)
+                ?.map((item) => Product.fromJson(item))
+                .toList() ??
+            [],
+        total: json['total'] ?? 0.0,
+        date: json['date'] as String? ?? '',
+        customerName: json['customerName'] ?? '',
+        customerAddress: json['customerAddress'] ?? '',
+        customerPhoneNumber: json['customerPhoneNumber'] ?? '',
+        discount: json['discount']?.toDouble() ?? 0.0, // Handle null discount
+        vat: json['vat']?.toDouble() ?? 0.0, // Handle null VAT
+        isPercentDiscount: json['isPercentDiscount'] ?? true,
+        companyAddress:
+            json['companyAddress'] ?? '', // Handle null discount type
+        companyLogo: json['companyLogo'] ?? '');
   }
 }
 
@@ -107,7 +106,8 @@ class Product {
       discount: (json['discount'] is String)
           ? double.tryParse(json['discount']) ?? 0.0
           : (json['discount'] ?? 0.0).toDouble(),
-      isExpanded: json['isExpanded'] ?? false, // Parse isExpanded from JSON, default to false
+      isExpanded: json['isExpanded'] ??
+          false, // Parse isExpanded from JSON, default to false
     );
   }
 }

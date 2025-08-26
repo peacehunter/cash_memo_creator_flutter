@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 class NativeAdContainer extends StatefulWidget {
+  const NativeAdContainer({super.key});
+
   @override
   _NativeAdContainerState createState() => _NativeAdContainerState();
 }
