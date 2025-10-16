@@ -1,5 +1,7 @@
 import 'dart:async';
-import 'dart:io';
+import 'package:flutter/foundation.dart';
+// dart:io is used only on non-web platforms
+import 'dart:io' if (dart.library.html) 'src/stub_io.dart';
 import 'package:cash_memo_creator/admob_ads/AdHelper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -257,7 +259,9 @@ class _CashMemoEditState extends State<CashMemoEdit>
     super.didChangeDependencies();
     var localizations = AppLocalizations.of(context)!; // Get localization
 
-    if (widget.autoGenerate && widget.memo != null && !_hasShownTemplateDialog) {
+    if (widget.autoGenerate &&
+        widget.memo != null &&
+        !_hasShownTemplateDialog) {
       _hasShownTemplateDialog = true; // Set flag to prevent multiple shows
       Future.delayed(Duration.zero, () async {
         // Delay execution to ensure the page has loaded
@@ -314,6 +318,10 @@ class _CashMemoEditState extends State<CashMemoEdit>
   }
 
   Future<Uint8List?> loadLogo(String? logoPath) async {
+    if (kIsWeb) {
+      // On web, no file system access; logo loading disabled
+      return null;
+    }
     if (logoPath != null && File(logoPath).existsSync()) {
       return await File(logoPath).readAsBytes();
     }
@@ -321,10 +329,13 @@ class _CashMemoEditState extends State<CashMemoEdit>
   }
 
   Future<void> requestPermissions() async {
+    if (kIsWeb) {
+      // Permissions not required on web.
+      return;
+    }
     if (await Permission.storage.isDenied) {
       await Permission.storage.request();
     }
-
     if (await Permission.manageExternalStorage.isDenied) {
       await Permission.manageExternalStorage.request();
     }
@@ -347,6 +358,19 @@ class _CashMemoEditState extends State<CashMemoEdit>
   }
 
   void generateCashMemoAndShowAd(Uint8List pdfData, String fileName) {
+    if (kIsWeb) {
+      // On web, directly navigate to PDF preview without showing ads
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PdfPreviewScreen(
+            pdfData: pdfData,
+            fileName: fileName,
+          ),
+        ),
+      );
+      return;
+    }
     if (_interstitialAd == null) {
       print("add error: interstitial null");
 
@@ -446,40 +470,42 @@ class _CashMemoEditState extends State<CashMemoEdit>
               templateWidget = buildTemplate1(logoBytes, currentDate);
           }
 
-          return pw.Stack(
-            children: [
-              waterMarkWidget(
-                  selectedWatermarkOption, watermarkText, watermarkImagePath),
-              pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
+          return pw.DefaultTextStyle.merge(
+              style: const pw.TextStyle(lineSpacing: 2),
+              child: pw.Stack(
                 children: [
-                  templateWidget,
-                  pw.Expanded(child: pw.Container()),
-                  pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.start,
+                  waterMarkWidget(selectedWatermarkOption, watermarkText,
+                      watermarkImagePath),
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      pw.Text('Signature: ',
-                          style: const pw.TextStyle(fontSize: 18)),
-                      pw.Container(
-                        width: 200,
-                        height: 50,
-                        decoration: const pw.BoxDecoration(
-                          border: pw.Border(
-                            bottom:
-                                pw.BorderSide(width: 1, color: PdfColors.black),
+                      templateWidget,
+                      pw.Expanded(child: pw.Container()),
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.start,
+                        children: [
+                          pw.Text('Signature: ',
+                              style: const pw.TextStyle(fontSize: 18)),
+                          pw.Container(
+                            width: 200,
+                            height: 50,
+                            decoration: const pw.BoxDecoration(
+                              border: pw.Border(
+                                bottom: pw.BorderSide(
+                                    width: 1, color: PdfColors.black),
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
+                      if (nbMessage != null && nbMessage!.isNotEmpty) ...[
+                        pw.SizedBox(height: 20),
+                        buildNBMessage(),
+                      ],
                     ],
                   ),
-                  if (nbMessage != null && nbMessage!.isNotEmpty) ...[
-                    pw.SizedBox(height: 20),
-                    buildNBMessage(),
-                  ],
                 ],
-              ),
-            ],
-          );
+              ));
         },
       ),
     );
@@ -517,69 +543,89 @@ class _CashMemoEditState extends State<CashMemoEdit>
 
   pw.Widget waterMarkWidget(int selectedWatermarkOption, String? watermarkText,
       String? watermarkImagePath) {
-    // Watermark in the middle of the page
-    return pw.Positioned.fill(
-      child: pw.Opacity(
-        opacity: 0.1, // Adjust opacity as needed
-        child: pw.Stack(
-          children: [
-            // If both text and image are selected
-            if (selectedWatermarkOption == 2 &&
-                watermarkImagePath != null &&
-                File(watermarkImagePath).existsSync()) ...[
-              // Display the watermark image
-              pw.Center(
-                child: pw.Image(
-                  pw.MemoryImage(File(watermarkImagePath).readAsBytesSync()),
-                  fit: pw.BoxFit.contain, // Adjust as necessary
+    // On web, watermark image is not supported due to lack of File API.
+    if (kIsWeb) {
+      // On web, only text watermark is supported. No File can be referenced here.
+      if (selectedWatermarkOption == 0 || selectedWatermarkOption == 2) {
+        return pw.Positioned.fill(
+          child: pw.Opacity(
+            opacity: 0.1,
+            child: pw.Center(
+              child: pw.Text(
+                (watermarkText ?? ''),
+                style: pw.TextStyle(
+                  fontSize: 72,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.grey,
                 ),
+                textAlign: pw.TextAlign.center,
               ),
-              // Display the watermark text
-              pw.Center(
-                child: pw.Text(
-                  (watermarkText ?? ''),
-                  style: pw.TextStyle(
-                    fontSize: 72,
-                    fontWeight: pw.FontWeight.bold,
-                    color: PdfColors.grey,
+            ),
+          ),
+        );
+      } else {
+        return pw.Container();
+      }
+    } else {
+      // Native platforms: allow file/image watermarks as before (safe to use File here)
+      return pw.Positioned.fill(
+        child: pw.Opacity(
+          opacity: 0.1,
+          child: pw.Stack(
+            children: [
+              // Both text and image
+              if (selectedWatermarkOption == 2 &&
+                  watermarkImagePath != null &&
+                  File(watermarkImagePath).existsSync()) ...[
+                pw.Center(
+                  child: pw.Image(
+                    pw.MemoryImage(Uint8List.fromList(
+                        File(watermarkImagePath).readAsBytesSync())),
+                    fit: pw.BoxFit.contain,
                   ),
-                  textAlign: pw.TextAlign.center,
                 ),
-              ),
-            ],
-            // If only the watermark text is selected
-            if (selectedWatermarkOption == 0) ...[
-              pw.Center(
-                child: pw.Text(
-                  (watermarkText ?? ''),
-                  style: pw.TextStyle(
-                    fontSize: 72,
-                    fontWeight: pw.FontWeight.bold,
-                    color: PdfColors.grey,
+                pw.Center(
+                  child: pw.Text(
+                    (watermarkText ?? ''),
+                    style: pw.TextStyle(
+                        fontSize: 72,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.grey),
+                    textAlign: pw.TextAlign.center,
                   ),
-                  textAlign: pw.TextAlign.center,
                 ),
-              ),
-            ],
-            // If only the watermark image is selected
-            if (selectedWatermarkOption == 1 &&
-                watermarkImagePath != null &&
-                File(watermarkImagePath).existsSync()) ...[
-              pw.Center(
-                child: pw.Image(
-                  pw.MemoryImage(File(watermarkImagePath).readAsBytesSync()),
-                  fit: pw.BoxFit.contain, // Adjust as necessary
+              ],
+              // Only text
+              if (selectedWatermarkOption == 0) ...[
+                pw.Center(
+                  child: pw.Text(
+                    (watermarkText ?? ''),
+                    style: pw.TextStyle(
+                        fontSize: 72,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.grey),
+                    textAlign: pw.TextAlign.center,
+                  ),
                 ),
-              ),
+              ],
+              // Only image
+              if (selectedWatermarkOption == 1 &&
+                  watermarkImagePath != null &&
+                  File(watermarkImagePath).existsSync()) ...[
+                pw.Center(
+                  child: pw.Image(
+                    pw.MemoryImage(Uint8List.fromList(
+                        File(watermarkImagePath).readAsBytesSync())),
+                    fit: pw.BoxFit.contain,
+                  ),
+                ),
+              ],
+              // Option 3: none
             ],
-            // If no watermark is selected
-            if (selectedWatermarkOption == 3) ...[
-              // Do not display any watermark
-            ],
-          ],
+          ),
         ),
-      ),
-    );
+      );
+    }
   }
 
 // Template 4: Borderless Product Template

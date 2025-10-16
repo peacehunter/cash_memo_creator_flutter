@@ -1,11 +1,15 @@
-import 'dart:io';
+import 'package:cash_memo_creator/src/stub_io.dart';
+import 'package:flutter/foundation.dart';
+import 'web/web_memo_list_screen.dart';
+// dart:io is used only on non-web platforms
+import 'dart:io' if (dart.library.html) 'src/stub_io.dart';
 import 'dart:isolate';
 import 'package:cash_memo_creator/AndroidAPILevel.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:open_file/open_file.dart';
+import 'package:open_file/open_file.dart'; // Used only on mobile, web unsupported.
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:permission_handler/permission_handler.dart'; // Not used on web.
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -27,7 +31,9 @@ class MemoListScreenState extends State<MemoListScreen>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   List<Memo> _memos = [];
   late TabController _tabController;
-  List<FileSystemEntity> _pdfFiles = [];
+  // Use correct file entity for web
+  // Use platform-specific file entity list
+  dynamic _pdfFiles = kIsWeb ? <WebFileEntity>[] : <FileSystemEntity>[];
   // Cache for formatted last-modified timestamps to avoid expensive I/O in every build
   Map<String, String> _pdfModifiedDates = {};
 
@@ -41,6 +47,33 @@ class MemoListScreenState extends State<MemoListScreen>
   // PDF file caching
   List<FileSystemEntity>? _cachedPdfFiles;
   DateTime? _lastPdfCacheTime;
+
+  Future<void> _requestStoragePermission() async {
+    if (kIsWeb) return;
+    await Permission.storage.request();
+    await Permission.manageExternalStorage.request();
+  }
+
+  void _openPdfOnPlatform(String filePath) async {
+    if (kIsWeb) {
+      // Opening native files not supported on web.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Opening PDFs is not supported on the web.')),
+      );
+      return;
+    }
+    await OpenFile.open(filePath);
+  }
+
+  void _sharePdfOnPlatform(String filePath) async {
+    if (kIsWeb) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Sharing PDFs is not supported on the web.')),
+      );
+      return;
+    }
+    await Share.shareXFiles([XFile(filePath)], text: 'PDF');
+  }
 
   @override
   void initState() {
@@ -120,12 +153,14 @@ class MemoListScreenState extends State<MemoListScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (kIsWeb) {
+      return WebMemoListScreen(memos: _memos);
+    }
     // Cache theme and localizations to avoid repeated lookups
     _cachedTheme ??= Theme.of(context);
     _cachedLocalizations ??= AppLocalizations.of(context)!;
     final localizations = _cachedLocalizations!;
     final theme = _cachedTheme!;
-
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.blue.shade700,
@@ -164,8 +199,7 @@ class MemoListScreenState extends State<MemoListScreen>
               borderRadius: BorderRadius.circular(12),
             ),
             child: IconButton(
-              icon: const Icon(Icons.settings_rounded,
-                  color: Colors.white, size: 24),
+              icon: const Icon(Icons.settings_rounded, color: Colors.white, size: 24),
               tooltip: 'Settings',
               onPressed: () {
                 Navigator.pushNamed(context, '/settings');
@@ -262,7 +296,7 @@ class MemoListScreenState extends State<MemoListScreen>
                       controller: _tabController,
                       children: [
                         _buildSavedMemosTab(),
-                        _buildShowPdfTab(),
+                        kIsWeb ? _buildPdfWebWarningTab() : _buildShowPdfTab(),
                       ],
                     );
                   } catch (e) {
@@ -289,24 +323,31 @@ class MemoListScreenState extends State<MemoListScreen>
                 },
               ),
             ),
-            // Banner ad at bottom
-            SafeArea(
-              child: MyBannerAdWidget(),
-            ),
+            // Only show ads on mobile (not web)
+            if (!kIsWeb)
+              SafeArea(
+                child: MyBannerAdWidget(),
+              ),
           ],
         ),
       ),
     );
   }
 
-  void _requestStoragePermission() async {
-    if (Platform.isAndroid) {
-      if (await Permission.storage.request().isGranted) {
-        _loadSavedPdfs();
-      }
-    } else {
-      _loadSavedPdfs();
-    }
+  // Add this widget for the web PDF tab
+  Widget _buildPdfWebWarningTab() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: const [
+          Icon(Icons.info_outline, size: 48, color: Colors.blueGrey),
+          SizedBox(height: 16),
+          Text('PDF preview and file features are not available in the web version.',
+              textAlign: TextAlign.center, style: TextStyle(fontSize: 16, color: Colors.blueGrey)),
+        ],
+      ),
+    );
   }
 
   Future<List<FileSystemEntity>> _getCachedPdfFiles() async {
@@ -371,7 +412,9 @@ class MemoListScreenState extends State<MemoListScreen>
             Directory("/storage/emulated/0/Documents/Invoice Generator");
       }
     } else {
-      pdfDirectory = await getApplicationDocumentsDirectory();
+      pdfDirectory = kIsWeb
+          ? Directory("")
+          : (await getApplicationDocumentsDirectory()) as Directory;
     }
 
     if (pdfDirectory != null && await pdfDirectory.exists()) {
@@ -382,7 +425,10 @@ class MemoListScreenState extends State<MemoListScreen>
         final modDates = result['modDates'] as Map<String, String>;
 
         setState(() {
-          _pdfFiles = filePaths.map((path) => File(path)).toList();
+          _pdfFiles = kIsWeb
+              ? List<WebFileEntity>.generate(
+                  filePaths.length, (_) => WebFileEntity())
+              : filePaths.map((path) => File(path)).toList();
           _pdfModifiedDates = modDates;
         });
       } catch (e) {

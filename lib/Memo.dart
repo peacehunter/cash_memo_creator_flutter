@@ -9,6 +9,8 @@ class Memo {
   double discount; // New field for discount
   double vat; // New field for VAT
   bool isPercentDiscount;
+  String? id; // Firestore document id
+  String? userId; // Owner uid
 
   String companyAddress; // Add this line
   String companyLogo; // Add this line (assuming it's a URL or file path)
@@ -27,6 +29,8 @@ class Memo {
     this.discount = 0.0, // Default value for discount
     this.vat = 0.0, // Default value for VAT
     this.isPercentDiscount = true, // Default value for percentage discount
+    this.id,
+    this.userId,
   });
 
   // Convert Memo to JSON format for saving
@@ -44,6 +48,8 @@ class Memo {
       'isPercentDiscount': isPercentDiscount, // Save discount type
       'companyAddress': companyAddress, // Save company address
       'companyLogo': companyLogo, // Save company logo
+      if (id != null) 'id': id,
+      if (userId != null) 'userId': userId,
     };
   }
 
@@ -55,33 +61,47 @@ class Memo {
                 ?.map((item) => Product.fromJson(item))
                 .toList() ??
             [],
-        total: json['total'] ?? 0.0,
+        total: (json['total'] is String)
+            ? double.tryParse(json['total']) ?? 0.0
+            : (json['total'] ?? 0).toDouble(),
         date: json['date'] as String? ?? '',
         customerName: json['customerName'] ?? '',
         customerAddress: json['customerAddress'] ?? '',
         customerPhoneNumber: json['customerPhoneNumber'] ?? '',
-        discount: json['discount']?.toDouble() ?? 0.0, // Handle null discount
-        vat: json['vat']?.toDouble() ?? 0.0, // Handle null VAT
+        discount: (json['discount'] is String)
+            ? double.tryParse(json['discount']) ?? 0.0
+            : (json['discount'] ?? 0)
+                .toDouble(), // Handle null or numeric discount safely
+        vat: (json['vat'] is String)
+            ? double.tryParse(json['vat']) ?? 0.0
+            : (json['vat'] ?? 0)
+                .toDouble(), // Handle null or numeric VAT safely
         isPercentDiscount: json['isPercentDiscount'] ?? true,
         companyAddress:
             json['companyAddress'] ?? '', // Handle null discount type
-        companyLogo: json['companyLogo'] ?? '');
+        companyLogo: json['companyLogo'] ?? '',
+        id: json['id'],
+        userId: json['userId']);
   }
 }
+
+enum DiscountType { perPiece, solid }
 
 class Product {
   String name;
   double price;
   int quantity;
-  double discount; // New field for discount
-  bool isExpanded; // Added isExpanded property
+  double discount;
+  DiscountType discountType;
+  bool isExpanded;
 
   Product({
     required this.name,
     required this.price,
     required this.quantity,
-    this.discount = 0.0, // Initialize discount to 0.0 by default
-    this.isExpanded = false, // Initialize to false by default
+    this.discount = 0.0,
+    this.discountType = DiscountType.perPiece,
+    this.isExpanded = false,
   });
 
   Map<String, dynamic> toJson() {
@@ -89,8 +109,9 @@ class Product {
       'name': name,
       'price': price,
       'quantity': quantity,
-      'discount': discount, // Include discount in toJson
-      'isExpanded': isExpanded, // Include isExpanded in toJson
+      'discount': discount,
+      'discountType': discountType.index,
+      'isExpanded': isExpanded,
     };
   }
 
@@ -106,8 +127,8 @@ class Product {
       discount: (json['discount'] is String)
           ? double.tryParse(json['discount']) ?? 0.0
           : (json['discount'] ?? 0.0).toDouble(),
-      isExpanded: json['isExpanded'] ??
-          false, // Parse isExpanded from JSON, default to false
+      discountType: DiscountType.values[(json['discountType'] ?? 0)],
+      isExpanded: json['isExpanded'] ?? false,
     );
   }
 }

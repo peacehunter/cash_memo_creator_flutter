@@ -9,6 +9,9 @@ buildscript {
 
         // Classpath for Google services plugin (already added)
         classpath 'com.google.gms:google-services:4.4.2'
+
+        // Classpath for latest Android Gradle Plugin
+        classpath 'com.android.tools.build:gradle:8.6.0'
     }
 }
 

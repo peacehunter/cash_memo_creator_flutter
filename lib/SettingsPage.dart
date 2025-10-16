@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,21 +8,22 @@ import 'l10n/gen_l10n/app_localizations.dart';
 
 class SettingsPage extends StatefulWidget {
   @override
- // _SettingsPageState createState() => _SettingsPageState();
+  // _SettingsPageState createState() => _SettingsPageState();
   final Function(String) updateLocale;
   const SettingsPage({super.key, required this.updateLocale});
 
   @override
   _SettingsPageState createState() => _SettingsPageState();
-
 }
 
-class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderStateMixin {
+class _SettingsPageState extends State<SettingsPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   late TextEditingController companyNameController;
   late TextEditingController companyAddressController;
   late TextEditingController watermarkTextController;
-  late TextEditingController nbController; // N.B. controller for special message
+  late TextEditingController
+      nbController; // N.B. controller for special message
   String? logoPath;
   String? watermarkImagePath;
   int selectedWatermarkOption = 0; // 0: Text, 1: Image, 2: Both, 3: None
@@ -35,11 +37,10 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
     companyAddressController = TextEditingController();
     watermarkTextController = TextEditingController();
     nbController = TextEditingController(); // Initialize N.B. controller
-    _tabController = TabController(length: 4, vsync: this); // Update length to 4 for language tab
+    _tabController = TabController(
+        length: 4, vsync: this); // Update length to 4 for language tab
     loadCompanyInfo();
     loadLanguagePreference(); // Load language preference
-
-
   }
 
   Future<void> loadCompanyInfo() async {
@@ -50,12 +51,14 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
     String? watermarkText = prefs.getString('watermarkText');
     String? watermarkImage = prefs.getString('watermarkImage');
     String? nbMessage = prefs.getString('nbMessage'); // Load N.B. message
-    int? watermarkOption = prefs.getInt('watermarkOption'); // Load watermark option
+    int? watermarkOption =
+        prefs.getInt('watermarkOption'); // Load watermark option
 
     if (name != null) companyNameController.text = name;
     if (address != null) companyAddressController.text = address;
     if (watermarkText != null) watermarkTextController.text = watermarkText;
-    if (nbMessage != null) nbController.text = nbMessage; // Set N.B. message text
+    if (nbMessage != null)
+      nbController.text = nbMessage; // Set N.B. message text
     logoPath = logo;
     watermarkImagePath = watermarkImage;
 
@@ -68,7 +71,8 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
 
   Future<void> loadLanguagePreference() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    selectedLanguage = prefs.getString('appLanguage') ?? 'en'; // Default to English
+    selectedLanguage =
+        prefs.getString('appLanguage') ?? 'en'; // Default to English
     setState(() {});
   }
 
@@ -80,29 +84,48 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
     await prefs.setString('watermarkText', watermarkTextController.text);
     await prefs.setString('watermarkImage', watermarkImagePath ?? '');
     await prefs.setString('nbMessage', nbController.text); // Save N.B. message
-    await prefs.setInt('watermarkOption', selectedWatermarkOption); // Save watermark option
-    await prefs.setString('appLanguage', selectedLanguage); // Save language preference
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Settings saved!')));
+    await prefs.setInt(
+        'watermarkOption', selectedWatermarkOption); // Save watermark option
+    await prefs.setString(
+        'appLanguage', selectedLanguage); // Save language preference
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Settings saved!')));
     widget.updateLocale(selectedLanguage);
   }
 
   Future<void> pickLogo() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      setState(() {
-        logoPath = image.path;
-      });
+    if (kIsWeb) {
+      // Web-specific stub: no image picker UX; maybe show toast/snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Image picking not supported on Web.')),
+      );
+      return;
+    } else {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+      if (image != null) {
+        setState(() {
+          logoPath = image.path;
+        });
+      }
     }
   }
 
   Future<void> pickWatermarkImage() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      setState(() {
-        watermarkImagePath = image.path;
-      });
+    if (kIsWeb) {
+      // Web-specific stub: no image picker UX; maybe show toast/snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Image picking not supported on Web.')),
+      );
+      return;
+    } else {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+      if (image != null) {
+        setState(() {
+          watermarkImagePath = image.path;
+        });
+      }
     }
   }
 
@@ -170,7 +193,8 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
             ),
           ),
           child: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+            icon: const Icon(Icons.arrow_back_ios_new,
+                color: Colors.white, size: 20),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
@@ -337,14 +361,20 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                 width: double.infinity,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.secondary],
+                    colors: [
+                      Theme.of(context).colorScheme.primary,
+                      Theme.of(context).colorScheme.secondary
+                    ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withOpacity(0.3),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -356,12 +386,14 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                     backgroundColor: Colors.transparent,
                     foregroundColor: Colors.white,
                     shadowColor: Colors.transparent,
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 32, vertical: 18),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  icon: const Icon(Icons.save_outlined, color: Colors.white, size: 24),
+                  icon: const Icon(Icons.save_outlined,
+                      color: Colors.white, size: 24),
                   label: Text(
                     '${localizations.save_settings_label}',
                     style: const TextStyle(
@@ -417,20 +449,27 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.secondary],
+                      colors: [
+                        Theme.of(context).colorScheme.primary,
+                        Theme.of(context).colorScheme.secondary
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withOpacity(0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
                     ],
                   ),
-                  child: const Icon(Icons.business_outlined, color: Colors.white, size: 28),
+                  child: const Icon(Icons.business_outlined,
+                      color: Colors.white, size: 28),
                 ),
                 const SizedBox(width: 20),
                 Expanded(
@@ -451,7 +490,10 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                         'Configure your business details',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.7),
                           fontWeight: FontWeight.w400,
                         ),
                       ),
@@ -462,7 +504,7 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Company Details Card
           Container(
             padding: const EdgeInsets.all(24),
@@ -489,10 +531,16 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.secondary.withOpacity(0.1),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .secondary
+                            .withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: Theme.of(context).colorScheme.secondary.withOpacity(0.3),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .secondary
+                              .withOpacity(0.3),
                           width: 1,
                         ),
                       ),
@@ -530,7 +578,7 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Logo Section Card
           Container(
             padding: const EdgeInsets.all(24),
@@ -549,108 +597,125 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                 ),
               ],
             ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.tertiary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Theme.of(context).colorScheme.tertiary.withOpacity(0.3),
-                            width: 1,
-                          ),
-                        ),
-                        child: Icon(
-                          Icons.image_outlined,
-                          color: Theme.of(context).colorScheme.tertiary,
-                          size: 24,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .tertiary
+                            .withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .tertiary
+                              .withOpacity(0.3),
+                          width: 1,
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      Text(
-                        '${localizations.company_logo}',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: Theme.of(context).colorScheme.primary,
-                          letterSpacing: 0.3,
+                      child: Icon(
+                        Icons.image_outlined,
+                        color: Theme.of(context).colorScheme.tertiary,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Text(
+                      '${localizations.company_logo}',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: Theme.of(context).colorScheme.primary,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: logoPath == null || logoPath!.isEmpty
+                      ? Column(
+                          children: [
+                            Icon(Icons.image_not_supported,
+                                size: 48, color: Colors.grey.shade400),
+                            const SizedBox(height: 8),
+                            Text(
+                              '${localizations.no_logo}',
+                              style: TextStyle(
+                                  color: Colors.grey.shade600, fontSize: 14),
+                            ),
+                          ],
+                        )
+                      : ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.file(File(logoPath!),
+                              height: 120, fit: BoxFit.contain),
                         ),
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Theme.of(context).colorScheme.tertiary,
+                        Theme.of(context).colorScheme.secondary
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .tertiary
+                            .withOpacity(0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: logoPath == null || logoPath!.isEmpty
-                        ? Column(
-                            children: [
-                              Icon(Icons.image_not_supported, size: 48, color: Colors.grey.shade400),
-                              const SizedBox(height: 8),
-                              Text(
-                                '${localizations.no_logo}',
-                                style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
-                              ),
-                            ],
-                          )
-                        : ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.file(File(logoPath!), height: 120, fit: BoxFit.contain),
-                          ),
-                  ),
-                  const SizedBox(height: 20),
-                  Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Theme.of(context).colorScheme.tertiary, Theme.of(context).colorScheme.secondary],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+                  child: ElevatedButton.icon(
+                    onPressed: pickLogo,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                      shadowColor: Colors.transparent,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Theme.of(context).colorScheme.tertiary.withOpacity(0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
                     ),
-                    child: ElevatedButton.icon(
-                      onPressed: pickLogo,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        foregroundColor: Colors.white,
-                        shadowColor: Colors.transparent,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      icon: const Icon(Icons.upload_outlined, color: Colors.white, size: 22),
-                      label: Text(
-                        '${localizations.select_logo}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
-                        ),
+                    icon: const Icon(Icons.upload_outlined,
+                        color: Colors.white, size: 22),
+                    label: Text(
+                      '${localizations.select_logo}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
+          ),
           const SizedBox(height: 10),
         ],
       ),
@@ -668,12 +733,17 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Theme.of(context).colorScheme.secondary.withOpacity(0.1), Theme.of(context).colorScheme.tertiary.withOpacity(0.1)],
+                colors: [
+                  Theme.of(context).colorScheme.secondary.withOpacity(0.1),
+                  Theme.of(context).colorScheme.tertiary.withOpacity(0.1)
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Theme.of(context).colorScheme.secondary.withOpacity(0.2)),
+              border: Border.all(
+                  color:
+                      Theme.of(context).colorScheme.secondary.withOpacity(0.2)),
             ),
             child: Row(
               children: [
@@ -681,13 +751,17 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Theme.of(context).colorScheme.secondary, Theme.of(context).colorScheme.tertiary],
+                      colors: [
+                        Theme.of(context).colorScheme.secondary,
+                        Theme.of(context).colorScheme.tertiary
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.water_drop, color: Colors.white, size: 24),
+                  child: const Icon(Icons.water_drop,
+                      color: Colors.white, size: 24),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -704,12 +778,13 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Watermark Text Card
           Card(
             elevation: 8,
             shadowColor: Colors.black26,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -729,13 +804,17 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Theme.of(context).colorScheme.secondary, Theme.of(context).colorScheme.tertiary],
+                            colors: [
+                              Theme.of(context).colorScheme.secondary,
+                              Theme.of(context).colorScheme.tertiary
+                            ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.text_fields, color: Colors.white, size: 20),
+                        child: const Icon(Icons.text_fields,
+                            color: Colors.white, size: 20),
                       ),
                       const SizedBox(width: 12),
                       Text(
@@ -759,12 +838,13 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Watermark Image Card
           Card(
             elevation: 8,
             shadowColor: Colors.black26,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -784,13 +864,17 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Theme.of(context).colorScheme.tertiary, Theme.of(context).colorScheme.primary],
+                            colors: [
+                              Theme.of(context).colorScheme.tertiary,
+                              Theme.of(context).colorScheme.primary
+                            ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.image, color: Colors.white, size: 20),
+                        child: const Icon(Icons.image,
+                            color: Colors.white, size: 20),
                       ),
                       const SizedBox(width: 12),
                       Text(
@@ -812,20 +896,24 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.grey.shade300),
                     ),
-                    child: watermarkImagePath == null || watermarkImagePath!.isEmpty
+                    child: watermarkImagePath == null ||
+                            watermarkImagePath!.isEmpty
                         ? Column(
                             children: [
-                              Icon(Icons.image_not_supported, size: 48, color: Colors.grey.shade400),
+                              Icon(Icons.image_not_supported,
+                                  size: 48, color: Colors.grey.shade400),
                               const SizedBox(height: 8),
                               Text(
                                 '${localizations.no_watermark_image_label}',
-                                style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                                style: TextStyle(
+                                    color: Colors.grey.shade600, fontSize: 14),
                               ),
                             ],
                           )
                         : ClipRRect(
                             borderRadius: BorderRadius.circular(8),
-                            child: Image.file(File(watermarkImagePath!), height: 120, fit: BoxFit.contain),
+                            child: Image.file(File(watermarkImagePath!),
+                                height: 120, fit: BoxFit.contain),
                           ),
                   ),
                   const SizedBox(height: 20),
@@ -848,12 +936,14 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                         backgroundColor: Colors.transparent,
                         foregroundColor: Colors.white,
                         shadowColor: Colors.transparent,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      icon: const Icon(Icons.upload, color: Colors.white, size: 20),
+                      icon: const Icon(Icons.upload,
+                          color: Colors.white, size: 20),
                       label: Text(
                         '${localizations.select_watermark_image_label}',
                         style: const TextStyle(
@@ -869,12 +959,13 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Watermark Type Selection Card
           Card(
             elevation: 8,
             shadowColor: Colors.black26,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -894,13 +985,17 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.secondary],
+                            colors: [
+                              Theme.of(context).colorScheme.primary,
+                              Theme.of(context).colorScheme.secondary
+                            ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.tune, color: Colors.white, size: 20),
+                        child: const Icon(Icons.tune,
+                            color: Colors.white, size: 20),
                       ),
                       const SizedBox(width: 12),
                       Text(
@@ -979,12 +1074,17 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Theme.of(context).colorScheme.primary.withOpacity(0.1), Theme.of(context).colorScheme.tertiary.withOpacity(0.1)],
+                colors: [
+                  Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  Theme.of(context).colorScheme.tertiary.withOpacity(0.1)
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.2)),
+              border: Border.all(
+                  color:
+                      Theme.of(context).colorScheme.primary.withOpacity(0.2)),
             ),
             child: Row(
               children: [
@@ -992,13 +1092,17 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.tertiary],
+                      colors: [
+                        Theme.of(context).colorScheme.primary,
+                        Theme.of(context).colorScheme.tertiary
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.sticky_note_2, color: Colors.white, size: 24),
+                  child: const Icon(Icons.sticky_note_2,
+                      color: Colors.white, size: 24),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -1015,12 +1119,13 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Notes Card
           Card(
             elevation: 8,
             shadowColor: Colors.black26,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -1040,13 +1145,17 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.secondary],
+                            colors: [
+                              Theme.of(context).colorScheme.primary,
+                              Theme.of(context).colorScheme.secondary
+                            ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.note_add, color: Colors.white, size: 20),
+                        child: const Icon(Icons.note_add,
+                            color: Colors.white, size: 20),
                       ),
                       const SizedBox(width: 12),
                       Text(
@@ -1090,7 +1199,8 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
-                        hintText: 'Enter additional notes or remarks for your cash memos...',
+                        hintText:
+                            'Enter additional notes or remarks for your cash memos...',
                         hintStyle: TextStyle(
                           color: Colors.grey.shade500,
                           fontSize: 14,
@@ -1100,29 +1210,44 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.secondary],
+                              colors: [
+                                Theme.of(context).colorScheme.primary,
+                                Theme.of(context).colorScheme.secondary
+                              ],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(Icons.note, color: Colors.white, size: 20),
+                          child: const Icon(Icons.note,
+                              color: Colors.white, size: 20),
                         ),
                         filled: true,
                         fillColor: Colors.transparent,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Theme.of(context).colorScheme.primary.withOpacity(0.3)),
+                          borderSide: BorderSide(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                                  .withOpacity(0.3)),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Theme.of(context).colorScheme.primary.withOpacity(0.3)),
+                          borderSide: BorderSide(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                                  .withOpacity(0.3)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
+                          borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.primary,
+                              width: 2),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 16),
                       ),
                     ),
                   ),
@@ -1130,9 +1255,16 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withOpacity(0.05),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.2)),
+                      border: Border.all(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withOpacity(0.2)),
                     ),
                     child: Row(
                       children: [
@@ -1176,12 +1308,17 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Theme.of(context).colorScheme.tertiary.withOpacity(0.1), Theme.of(context).colorScheme.primary.withOpacity(0.1)],
+                colors: [
+                  Theme.of(context).colorScheme.tertiary.withOpacity(0.1),
+                  Theme.of(context).colorScheme.primary.withOpacity(0.1)
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Theme.of(context).colorScheme.tertiary.withOpacity(0.2)),
+              border: Border.all(
+                  color:
+                      Theme.of(context).colorScheme.tertiary.withOpacity(0.2)),
             ),
             child: Row(
               children: [
@@ -1189,13 +1326,17 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Theme.of(context).colorScheme.tertiary, Theme.of(context).colorScheme.primary],
+                      colors: [
+                        Theme.of(context).colorScheme.tertiary,
+                        Theme.of(context).colorScheme.primary
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.language, color: Colors.white, size: 24),
+                  child:
+                      const Icon(Icons.language, color: Colors.white, size: 24),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -1212,12 +1353,13 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Language Selection Card
           Card(
             elevation: 8,
             shadowColor: Colors.black26,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -1237,13 +1379,17 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Theme.of(context).colorScheme.tertiary, Theme.of(context).colorScheme.secondary],
+                            colors: [
+                              Theme.of(context).colorScheme.tertiary,
+                              Theme.of(context).colorScheme.secondary
+                            ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.translate, color: Colors.white, size: 20),
+                        child: const Icon(Icons.translate,
+                            color: Colors.white, size: 20),
                       ),
                       const SizedBox(width: 12),
                       Text(
@@ -1285,9 +1431,16 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.tertiary.withOpacity(0.05),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .tertiary
+                          .withOpacity(0.05),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Theme.of(context).colorScheme.tertiary.withOpacity(0.2)),
+                      border: Border.all(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .tertiary
+                              .withOpacity(0.2)),
                     ),
                     child: Row(
                       children: [
@@ -1397,7 +1550,8 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
               width: 2,
             ),
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         ),
       ),
     );
@@ -1416,7 +1570,10 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
       decoration: BoxDecoration(
         gradient: isSelected
             ? LinearGradient(
-                colors: [Theme.of(context).colorScheme.primary.withOpacity(0.1), Theme.of(context).colorScheme.secondary.withOpacity(0.1)],
+                colors: [
+                  Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  Theme.of(context).colorScheme.secondary.withOpacity(0.1)
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               )
@@ -1424,7 +1581,9 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
         color: isSelected ? null : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey.shade300,
+          color: isSelected
+              ? Theme.of(context).colorScheme.primary
+              : Colors.grey.shade300,
           width: isSelected ? 2 : 1,
         ),
       ),
@@ -1439,7 +1598,10 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
               decoration: BoxDecoration(
                 gradient: isSelected
                     ? LinearGradient(
-                        colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.secondary],
+                        colors: [
+                          Theme.of(context).colorScheme.primary,
+                          Theme.of(context).colorScheme.secondary
+                        ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       )
@@ -1456,7 +1618,9 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey.shade700,
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.grey.shade700,
                 ),
               ),
             ),
@@ -1485,7 +1649,10 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
       decoration: BoxDecoration(
         gradient: isSelected
             ? LinearGradient(
-                colors: [Theme.of(context).colorScheme.tertiary.withOpacity(0.1), Theme.of(context).colorScheme.primary.withOpacity(0.1)],
+                colors: [
+                  Theme.of(context).colorScheme.tertiary.withOpacity(0.1),
+                  Theme.of(context).colorScheme.primary.withOpacity(0.1)
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               )
@@ -1493,7 +1660,9 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
         color: isSelected ? null : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isSelected ? Theme.of(context).colorScheme.tertiary : Colors.grey.shade300,
+          color: isSelected
+              ? Theme.of(context).colorScheme.tertiary
+              : Colors.grey.shade300,
           width: isSelected ? 2 : 1,
         ),
       ),
@@ -1508,7 +1677,10 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
               decoration: BoxDecoration(
                 gradient: isSelected
                     ? LinearGradient(
-                        colors: [Theme.of(context).colorScheme.tertiary, Theme.of(context).colorScheme.primary],
+                        colors: [
+                          Theme.of(context).colorScheme.tertiary,
+                          Theme.of(context).colorScheme.primary
+                        ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       )
@@ -1530,15 +1702,23 @@ class _SettingsPageState extends State<SettingsPage> with SingleTickerProviderSt
                     title,
                     style: TextStyle(
                       fontSize: 16,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                      color: isSelected ? Theme.of(context).colorScheme.tertiary : Colors.grey.shade700,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.w500,
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.tertiary
+                          : Colors.grey.shade700,
                     ),
                   ),
                   Text(
                     subtitle,
                     style: TextStyle(
                       fontSize: 12,
-                      color: isSelected ? Theme.of(context).colorScheme.tertiary.withOpacity(0.7) : Colors.grey.shade500,
+                      color: isSelected
+                          ? Theme.of(context)
+                              .colorScheme
+                              .tertiary
+                              .withOpacity(0.7)
+                          : Colors.grey.shade500,
                     ),
                   ),
                 ],

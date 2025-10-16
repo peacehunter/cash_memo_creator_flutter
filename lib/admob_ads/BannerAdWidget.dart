@@ -17,7 +17,7 @@ class MyBannerAdWidget extends StatefulWidget {
       // ... or this one on iOS.
       : 'ca-app-pub-3940256099942544/2934735716';
 
-  const MyBannerAdWidget({
+  MyBannerAdWidget({
     super.key,
     this.adSize = AdSize.leaderboard,
   });

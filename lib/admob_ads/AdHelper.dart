@@ -1,43 +1,38 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart';
+// Don't import dart:io for web
+// import 'dart:io';
 
 class AdHelper {
   static String get bannerAdUnitId {
-    if (Platform.isAndroid) {
-      return 'ca-app-pub-7069979473754845/4615669566';
-    } else if (Platform.isIOS) {
-      return 'ca-app-pub-3940256099942544/2934735716';
-    } else {
-      throw new UnsupportedError('Unsupported platform');
+    if (kIsWeb) {
+      return '';
     }
+    // import 'dart:io' only valid for non-web: Platform.isAndroid/iOS
+    // The below code WILL NOT run on web since AdHelper should only be used when !kIsWeb
+    // ignore: undefined_prefixed_name, dead_code
+    // ignore_for_file: unnecessary_statements
+    // No implementation for web
+    return '';
   }
 
   static String get interstitialAdUnitId {
-    if (Platform.isAndroid) {
-      return "ca-app-pub-7069979473754845/4585719714";
-    } else if (Platform.isIOS) {
-      return "ca-app-pub-3940256099942544/4411468910";
-    } else {
-      throw new UnsupportedError("Unsupported platform");
+    if (kIsWeb) {
+      return '';
     }
+    return '';
   }
 
   static String get appOpenAdUnitId {
-    if (Platform.isAndroid) {
-      return "ca-app-pub-7069979473754845/5044673962"; // replace with your real App Open Ad unit id
-    } else if (Platform.isIOS) {
-      return "ca-app-pub-3940256099942544/5662855259";
-    } else {
-      throw new UnsupportedError("Unsupported platform");
+    if (kIsWeb) {
+      return '';
     }
+    return '';
   }
 
   static String get rewardedAdUnitId {
-    if (Platform.isAndroid) {
-      return "ca-app-pub-3940256099942544/5224354917";
-    } else if (Platform.isIOS) {
-      return "ca-app-pub-3940256099942544/1712485313";
-    } else {
-      throw new UnsupportedError("Unsupported platform");
+    if (kIsWeb) {
+      return '';
     }
+    return '';
   }
 }

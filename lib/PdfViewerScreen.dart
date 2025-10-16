@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:path_provider/path_provider.dart';
@@ -29,9 +30,9 @@ class PdfPreviewScreenState extends State<PdfPreviewScreen> {
       appBar: AppBar(
         elevation: 2,
         backgroundColor: const Color(0xFF1e40af),
-        title: Text(
+        title: const Text(
           'PDF Preview',
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Roboto',
             fontWeight: FontWeight.bold,
             fontSize: 24,
@@ -169,7 +170,8 @@ class PdfPreviewScreenState extends State<PdfPreviewScreen> {
               ),
             ),
             // Add the Banner Ad widget here, stuck at the bottom
-            MyBannerAdWidget(), // Replace with your actual banner ad widget
+            if(kIsWeb==false)
+              MyBannerAdWidget(), // Replace with your actual banner ad widget
           ],
         ),
       ),
