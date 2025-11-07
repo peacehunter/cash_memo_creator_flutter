@@ -1989,7 +1989,14 @@ class ProductItemWidget extends StatefulWidget {
 }
 
 class _ProductItemWidgetState extends State<ProductItemWidget> {
-  bool isExpanded = false;
+  late bool isExpanded;
+
+  @override
+  void initState() {
+    super.initState();
+    // Expand the first product by default, or if the product has data
+    isExpanded = widget.index == 0 || widget.product.name.isNotEmpty || widget.product.price > 0 || widget.product.quantity > 0;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -2019,8 +2026,25 @@ class _ProductItemWidgetState extends State<ProductItemWidget> {
                 isExpanded = !isExpanded;
               });
             },
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(16),
+              bottom: isExpanded ? Radius.zero : Radius.circular(16),
+            ),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isExpanded
+                      ? [Colors.green.shade50, Colors.green.shade100]
+                      : [Colors.grey.shade50, Colors.white],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(16),
+                  bottom: isExpanded ? Radius.zero : Radius.circular(16),
+                ),
+              ),
               child: Row(
                 children: [
                   Container(

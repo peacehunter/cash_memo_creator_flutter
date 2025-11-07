@@ -1921,6 +1921,1589 @@ class _WebMemoCreateDialogState extends State<WebMemoCreateDialog> {
                                     );
                                     break;
 
+                                  case 'Bold Headings':
+                                    pdfContent = pw.DefaultTextStyle.merge(
+                                      style: pw.TextStyle(
+                                        lineSpacing: 2.2,
+                                        font: pw.Font.helveticaBold(),
+                                      ),
+                                      child: pw.Column(
+                                        crossAxisAlignment:
+                                            pw.CrossAxisAlignment.start,
+                                        children: [
+                                          // Bold Header
+                                          pw.Container(
+                                            padding: const pw.EdgeInsets.all(16),
+                                            decoration: pw.BoxDecoration(
+                                              gradient: pw.LinearGradient(
+                                                colors: [
+                                                  PdfColors.red700,
+                                                  PdfColors.red900
+                                                ],
+                                              ),
+                                              borderRadius:
+                                                  pw.BorderRadius.circular(8),
+                                            ),
+                                            child: pw.Center(
+                                              child: pw.Text(
+                                                'CASH MEMO',
+                                                style: pw.TextStyle(
+                                                  fontSize: 32,
+                                                  fontWeight: pw.FontWeight.bold,
+                                                  color: PdfColors.white,
+                                                  letterSpacing: 2.0,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          pw.SizedBox(height: 20),
+
+                                          // Company Section with Bold Header
+                                          pw.Container(
+                                            padding: const pw.EdgeInsets.all(10),
+                                            decoration: pw.BoxDecoration(
+                                              color: PdfColors.red50,
+                                              borderRadius:
+                                                  pw.BorderRadius.circular(6),
+                                            ),
+                                            child: pw.Column(
+                                              crossAxisAlignment:
+                                                  pw.CrossAxisAlignment.start,
+                                              children: [
+                                                pw.Text(
+                                                  'COMPANY INFORMATION',
+                                                  style: pw.TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight:
+                                                        pw.FontWeight.bold,
+                                                    color: PdfColors.red900,
+                                                    letterSpacing: 1.0,
+                                                  ),
+                                                ),
+                                                pw.SizedBox(height: 6),
+                                                pw.Text(
+                                                  companyNameController.text
+                                                      .toUpperCase(),
+                                                  style: pw.TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight:
+                                                        pw.FontWeight.bold,
+                                                    color: PdfColors.red800,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          pw.SizedBox(height: 16),
+
+                                          // Customer Section with Bold Header
+                                          pw.Container(
+                                            padding: const pw.EdgeInsets.all(10),
+                                            decoration: pw.BoxDecoration(
+                                              color: PdfColors.grey100,
+                                              borderRadius:
+                                                  pw.BorderRadius.circular(6),
+                                            ),
+                                            child: pw.Column(
+                                              crossAxisAlignment:
+                                                  pw.CrossAxisAlignment.start,
+                                              children: [
+                                                pw.Text(
+                                                  'CUSTOMER DETAILS',
+                                                  style: pw.TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight:
+                                                        pw.FontWeight.bold,
+                                                    color: PdfColors.grey900,
+                                                    letterSpacing: 1.0,
+                                                  ),
+                                                ),
+                                                pw.SizedBox(height: 6),
+                                                pw.Text(
+                                                  'Customer: ${customerNameController.text}',
+                                                  style: pw.TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          pw.FontWeight.bold),
+                                                ),
+                                                pw.Text(
+                                                    'Phone: ${phoneController.text}',
+                                                    style: pw.TextStyle(
+                                                        fontSize: 12)),
+                                                pw.Text(
+                                                    'Address: ${addressController.text}',
+                                                    style: pw.TextStyle(
+                                                        fontSize: 12)),
+                                              ],
+                                            ),
+                                          ),
+                                          pw.SizedBox(height: 16),
+
+                                          // Products Section Header
+                                          pw.Text(
+                                            'ITEMS',
+                                            style: pw.TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: pw.FontWeight.bold,
+                                              color: PdfColors.red900,
+                                              letterSpacing: 1.2,
+                                            ),
+                                          ),
+                                          pw.SizedBox(height: 8),
+
+                                          // Products Table
+                                          pw.Table(
+                                            border: pw.TableBorder.all(
+                                                width: 2, color: PdfColors.red700),
+                                            columnWidths: {
+                                              0: pw.FlexColumnWidth(3),
+                                              1: pw.FlexColumnWidth(1),
+                                              2: pw.FlexColumnWidth(1.5),
+                                              3: pw.FlexColumnWidth(1.5),
+                                              4: pw.FlexColumnWidth(2),
+                                            },
+                                            children: [
+                                              // Table Header
+                                              pw.TableRow(
+                                                decoration: pw.BoxDecoration(
+                                                    color: PdfColors.red700),
+                                                children: [
+                                                  pw.Padding(
+                                                    padding:
+                                                        const pw.EdgeInsets.all(8),
+                                                    child: pw.Text('PRODUCT',
+                                                        style: pw.TextStyle(
+                                                            fontSize: 12,
+                                                            fontWeight: pw
+                                                                .FontWeight.bold,
+                                                            color:
+                                                                PdfColors.white)),
+                                                  ),
+                                                  pw.Padding(
+                                                    padding:
+                                                        const pw.EdgeInsets.all(8),
+                                                    child: pw.Text('QTY',
+                                                        style: pw.TextStyle(
+                                                            fontSize: 12,
+                                                            fontWeight: pw
+                                                                .FontWeight.bold,
+                                                            color:
+                                                                PdfColors.white)),
+                                                  ),
+                                                  pw.Padding(
+                                                    padding:
+                                                        const pw.EdgeInsets.all(8),
+                                                    child: pw.Text('PRICE',
+                                                        style: pw.TextStyle(
+                                                            fontSize: 12,
+                                                            fontWeight: pw
+                                                                .FontWeight.bold,
+                                                            color:
+                                                                PdfColors.white)),
+                                                  ),
+                                                  pw.Padding(
+                                                    padding:
+                                                        const pw.EdgeInsets.all(8),
+                                                    child: pw.Text('DISC',
+                                                        style: pw.TextStyle(
+                                                            fontSize: 12,
+                                                            fontWeight: pw
+                                                                .FontWeight.bold,
+                                                            color:
+                                                                PdfColors.white)),
+                                                  ),
+                                                  pw.Padding(
+                                                    padding:
+                                                        const pw.EdgeInsets.all(8),
+                                                    child: pw.Text('AMOUNT',
+                                                        style: pw.TextStyle(
+                                                            fontSize: 12,
+                                                            fontWeight: pw
+                                                                .FontWeight.bold,
+                                                            color:
+                                                                PdfColors.white)),
+                                                  ),
+                                                ],
+                                              ),
+                                              // Table Rows
+                                              ...products.map((p) => pw.TableRow(
+                                                      decoration: pw.BoxDecoration(
+                                                          color:
+                                                              PdfColors.red50),
+                                                      children: [
+                                                        pw.Padding(
+                                                          padding: const pw
+                                                              .EdgeInsets.all(8),
+                                                          child: pw.Text(p.name,
+                                                              style: pw.TextStyle(
+                                                                  fontSize: 11,
+                                                                  fontWeight: pw
+                                                                      .FontWeight
+                                                                      .bold)),
+                                                        ),
+                                                        pw.Padding(
+                                                          padding: const pw
+                                                              .EdgeInsets.all(8),
+                                                          child: pw.Text(
+                                                              p.quantity
+                                                                  .toString(),
+                                                              style: pw.TextStyle(
+                                                                  fontSize: 11)),
+                                                        ),
+                                                        pw.Padding(
+                                                          padding: const pw
+                                                              .EdgeInsets.all(8),
+                                                          child: pw.Text(
+                                                              p.price
+                                                                  .toStringAsFixed(
+                                                                      2),
+                                                              style: pw.TextStyle(
+                                                                  fontSize: 11)),
+                                                        ),
+                                                        pw.Padding(
+                                                          padding: const pw
+                                                              .EdgeInsets.all(8),
+                                                          child: pw.Text(
+                                                              (p.discount ?? 0.0)
+                                                                  .toStringAsFixed(
+                                                                      2),
+                                                              style: pw.TextStyle(
+                                                                  fontSize: 11)),
+                                                        ),
+                                                        pw.Padding(
+                                                          padding: const pw
+                                                              .EdgeInsets.all(8),
+                                                          child: pw.Text(
+                                                            (() {
+                                                              final discount =
+                                                                  p.discount ??
+                                                                      0.0;
+                                                              if (p.discountType ==
+                                                                  DiscountType
+                                                                      .perPiece) {
+                                                                return ((p.price -
+                                                                            discount) *
+                                                                        p.quantity)
+                                                                    .toStringAsFixed(
+                                                                        2);
+                                                              } else {
+                                                                return ((p.price *
+                                                                            p.quantity) -
+                                                                        discount)
+                                                                    .toStringAsFixed(
+                                                                        2);
+                                                              }
+                                                            })(),
+                                                            style: pw.TextStyle(
+                                                                fontSize: 11,
+                                                                fontWeight: pw
+                                                                    .FontWeight
+                                                                    .bold),
+                                                          ),
+                                                        ),
+                                                      ])),
+                                            ],
+                                          ),
+                                          pw.SizedBox(height: 16),
+
+                                          // Summary Section
+                                          pw.Container(
+                                            padding:
+                                                const pw.EdgeInsets.all(12),
+                                            decoration: pw.BoxDecoration(
+                                              color: PdfColors.grey100,
+                                              borderRadius:
+                                                  pw.BorderRadius.circular(6),
+                                            ),
+                                            child: pw.Column(
+                                              crossAxisAlignment:
+                                                  pw.CrossAxisAlignment.start,
+                                              children: [
+                                                pw.Text(
+                                                  'SUMMARY',
+                                                  style: pw.TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight:
+                                                        pw.FontWeight.bold,
+                                                    letterSpacing: 1.0,
+                                                  ),
+                                                ),
+                                                pw.SizedBox(height: 8),
+                                                pw.Row(
+                                                  mainAxisAlignment: pw
+                                                      .MainAxisAlignment
+                                                      .spaceBetween,
+                                                  children: [
+                                                    pw.Text(
+                                                        'Discount: ${discountController.text}',
+                                                        style: pw.TextStyle(
+                                                            fontSize: 12,
+                                                            fontWeight: pw
+                                                                .FontWeight
+                                                                .bold)),
+                                                    pw.Text(
+                                                        'VAT: ${vatController.text}',
+                                                        style: pw.TextStyle(
+                                                            fontSize: 12,
+                                                            fontWeight: pw
+                                                                .FontWeight
+                                                                .bold)),
+                                                  ],
+                                                ),
+                                                pw.Divider(thickness: 2),
+                                                pw.Center(
+                                                  child: pw.Text(
+                                                    'TOTAL: \$' +
+                                                        (() {
+                                                          double subtotal =
+                                                              products.fold(0.0,
+                                                                  (t, p) {
+                                                            final discount =
+                                                                p.discount ?? 0.0;
+                                                            if (p.discountType ==
+                                                                DiscountType
+                                                                    .perPiece) {
+                                                              return t +
+                                                                  ((p.price -
+                                                                          discount) *
+                                                                      p.quantity);
+                                                            } else {
+                                                              return t +
+                                                                  ((p.price *
+                                                                          p.quantity) -
+                                                                      discount);
+                                                            }
+                                                          });
+                                                          double globalDiscount =
+                                                              double.tryParse(
+                                                                      discountController
+                                                                          .text) ??
+                                                                  0.0;
+                                                          double afterDiscount =
+                                                              subtotal *
+                                                                  (1 -
+                                                                      globalDiscount /
+                                                                          100.0);
+                                                          double vat =
+                                                              double.tryParse(
+                                                                      vatController
+                                                                          .text) ??
+                                                                  0.0;
+                                                          double total =
+                                                              afterDiscount *
+                                                                  (1 +
+                                                                      vat /
+                                                                          100.0);
+                                                          return total
+                                                              .toStringAsFixed(2);
+                                                        })(),
+                                                    style: pw.TextStyle(
+                                                      fontSize: 24,
+                                                      fontWeight:
+                                                          pw.FontWeight.bold,
+                                                      color: PdfColors.red900,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                    break;
+
+                                  case 'Minimalist Elegance':
+                                    pdfContent = pw.DefaultTextStyle.merge(
+                                      style: pw.TextStyle(
+                                        lineSpacing: 2.5,
+                                        font: pw.Font.helvetica(),
+                                      ),
+                                      child: pw.Container(
+                                        padding: const pw.EdgeInsets.all(24),
+                                        child: pw.Column(
+                                          crossAxisAlignment:
+                                              pw.CrossAxisAlignment.start,
+                                          children: [
+                                            // Minimalist Header
+                                            pw.Text(
+                                              'Cash Memo',
+                                              style: pw.TextStyle(
+                                                fontSize: 36,
+                                                fontWeight: pw.FontWeight.normal,
+                                                color: PdfColors.grey800,
+                                                letterSpacing: 3.0,
+                                              ),
+                                            ),
+                                            pw.Container(
+                                              width: 100,
+                                              height: 2,
+                                              color: PdfColors.grey800,
+                                              margin: const pw.EdgeInsets.only(
+                                                  top: 8, bottom: 24),
+                                            ),
+
+                                            // Company Info - Minimalist
+                                            pw.Text(
+                                              companyNameController.text,
+                                              style: pw.TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: pw.FontWeight.bold,
+                                                color: PdfColors.grey900,
+                                              ),
+                                            ),
+                                            pw.SizedBox(height: 32),
+
+                                            // Customer Info - Clean Layout
+                                            pw.Row(
+                                              crossAxisAlignment:
+                                                  pw.CrossAxisAlignment.start,
+                                              children: [
+                                                pw.Expanded(
+                                                  child: pw.Column(
+                                                    crossAxisAlignment: pw
+                                                        .CrossAxisAlignment.start,
+                                                    children: [
+                                                      pw.Text('To',
+                                                          style: pw.TextStyle(
+                                                            fontSize: 10,
+                                                            color:
+                                                                PdfColors.grey600,
+                                                            letterSpacing: 1.5,
+                                                          )),
+                                                      pw.SizedBox(height: 4),
+                                                      pw.Text(
+                                                          customerNameController
+                                                              .text,
+                                                          style: pw.TextStyle(
+                                                              fontSize: 14,
+                                                              fontWeight: pw
+                                                                  .FontWeight
+                                                                  .bold)),
+                                                      pw.Text(
+                                                          phoneController.text,
+                                                          style: pw.TextStyle(
+                                                              fontSize: 12,
+                                                              color: PdfColors
+                                                                  .grey700)),
+                                                      pw.Text(
+                                                          addressController.text,
+                                                          style: pw.TextStyle(
+                                                              fontSize: 12,
+                                                              color: PdfColors
+                                                                  .grey700)),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            pw.SizedBox(height: 32),
+
+                                            // Products - Minimalist Table
+                                            ...products.map((p) => pw.Container(
+                                                  padding: const pw.EdgeInsets
+                                                      .symmetric(vertical: 8),
+                                                  decoration: pw.BoxDecoration(
+                                                    border: pw.Border(
+                                                      bottom: pw.BorderSide(
+                                                          color:
+                                                              PdfColors.grey300,
+                                                          width: 1),
+                                                    ),
+                                                  ),
+                                                  child: pw.Row(
+                                                    mainAxisAlignment: pw
+                                                        .MainAxisAlignment
+                                                        .spaceBetween,
+                                                    children: [
+                                                      pw.Expanded(
+                                                        flex: 3,
+                                                        child: pw.Text(p.name,
+                                                            style: pw.TextStyle(
+                                                                fontSize: 13)),
+                                                      ),
+                                                      pw.Expanded(
+                                                        flex: 1,
+                                                        child: pw.Text(
+                                                            '×${p.quantity}',
+                                                            style: pw.TextStyle(
+                                                              fontSize: 12,
+                                                              color: PdfColors
+                                                                  .grey600,
+                                                            ),
+                                                            textAlign: pw
+                                                                .TextAlign
+                                                                .center),
+                                                      ),
+                                                      pw.Expanded(
+                                                        flex: 1,
+                                                        child: pw.Text(
+                                                            '\$${p.price.toStringAsFixed(2)}',
+                                                            style: pw.TextStyle(
+                                                                fontSize: 12),
+                                                            textAlign: pw
+                                                                .TextAlign
+                                                                .right),
+                                                      ),
+                                                      pw.SizedBox(width: 16),
+                                                      pw.Expanded(
+                                                        flex: 1,
+                                                        child: pw.Text(
+                                                          '\$' +
+                                                              (() {
+                                                                final discount =
+                                                                    p.discount ??
+                                                                        0.0;
+                                                                if (p.discountType ==
+                                                                    DiscountType
+                                                                        .perPiece) {
+                                                                  return ((p.price -
+                                                                              discount) *
+                                                                          p.quantity)
+                                                                      .toStringAsFixed(
+                                                                          2);
+                                                                } else {
+                                                                  return ((p.price *
+                                                                              p.quantity) -
+                                                                          discount)
+                                                                      .toStringAsFixed(
+                                                                          2);
+                                                                }
+                                                              })(),
+                                                          style: pw.TextStyle(
+                                                              fontSize: 13,
+                                                              fontWeight: pw
+                                                                  .FontWeight
+                                                                  .bold),
+                                                          textAlign:
+                                                              pw.TextAlign.right,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                )),
+
+                                            pw.SizedBox(height: 24),
+
+                                            // Total Section
+                                            pw.Row(
+                                              mainAxisAlignment:
+                                                  pw.MainAxisAlignment.end,
+                                              children: [
+                                                pw.Column(
+                                                  crossAxisAlignment: pw
+                                                      .CrossAxisAlignment.end,
+                                                  children: [
+                                                    pw.Text('Total',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 12,
+                                                          color:
+                                                              PdfColors.grey600,
+                                                          letterSpacing: 1.5,
+                                                        )),
+                                                    pw.SizedBox(height: 4),
+                                                    pw.Text(
+                                                      '\$' +
+                                                          (() {
+                                                            double subtotal =
+                                                                products.fold(0.0,
+                                                                    (t, p) {
+                                                              final discount =
+                                                                  p.discount ??
+                                                                      0.0;
+                                                              if (p.discountType ==
+                                                                  DiscountType
+                                                                      .perPiece) {
+                                                                return t +
+                                                                    ((p.price -
+                                                                            discount) *
+                                                                        p.quantity);
+                                                              } else {
+                                                                return t +
+                                                                    ((p.price *
+                                                                            p.quantity) -
+                                                                        discount);
+                                                              }
+                                                            });
+                                                            double
+                                                                globalDiscount =
+                                                                double.tryParse(
+                                                                        discountController
+                                                                            .text) ??
+                                                                    0.0;
+                                                            double
+                                                                afterDiscount =
+                                                                subtotal *
+                                                                    (1 -
+                                                                        globalDiscount /
+                                                                            100.0);
+                                                            double vat = double
+                                                                    .tryParse(
+                                                                        vatController
+                                                                            .text) ??
+                                                                0.0;
+                                                            double total =
+                                                                afterDiscount *
+                                                                    (1 +
+                                                                        vat /
+                                                                            100.0);
+                                                            return total
+                                                                .toStringAsFixed(
+                                                                    2);
+                                                          })(),
+                                                      style: pw.TextStyle(
+                                                        fontSize: 32,
+                                                        fontWeight:
+                                                            pw.FontWeight.bold,
+                                                        color: PdfColors.grey900,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                    break;
+
+                                  case 'Professional Invoice':
+                                    pdfContent = pw.DefaultTextStyle.merge(
+                                      style: pw.TextStyle(
+                                        lineSpacing: 2.0,
+                                        font: pw.Font.helvetica(),
+                                      ),
+                                      child: pw.Column(
+                                        crossAxisAlignment:
+                                            pw.CrossAxisAlignment.start,
+                                        children: [
+                                          // Professional Header with Two Columns
+                                          pw.Row(
+                                            mainAxisAlignment: pw
+                                                .MainAxisAlignment.spaceBetween,
+                                            crossAxisAlignment:
+                                                pw.CrossAxisAlignment.start,
+                                            children: [
+                                              // Left: Company Info
+                                              pw.Column(
+                                                crossAxisAlignment: pw
+                                                    .CrossAxisAlignment.start,
+                                                children: [
+                                                  pw.Text(
+                                                    companyNameController.text,
+                                                    style: pw.TextStyle(
+                                                      fontSize: 24,
+                                                      fontWeight:
+                                                          pw.FontWeight.bold,
+                                                      color: PdfColors.blue900,
+                                                    ),
+                                                  ),
+                                                  pw.SizedBox(height: 4),
+                                                  pw.Container(
+                                                    width: 60,
+                                                    height: 3,
+                                                    color: PdfColors.blue700,
+                                                  ),
+                                                ],
+                                              ),
+                                              // Right: Invoice Label
+                                              pw.Column(
+                                                crossAxisAlignment: pw
+                                                    .CrossAxisAlignment.end,
+                                                children: [
+                                                  pw.Text(
+                                                    'INVOICE',
+                                                    style: pw.TextStyle(
+                                                      fontSize: 32,
+                                                      fontWeight:
+                                                          pw.FontWeight.bold,
+                                                      color: PdfColors.blue900,
+                                                      letterSpacing: 2.0,
+                                                    ),
+                                                  ),
+                                                  pw.Text(
+                                                    'Date: ${DateTime.now().toString().split(' ')[0]}',
+                                                    style: pw.TextStyle(
+                                                      fontSize: 11,
+                                                      color: PdfColors.grey700,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                          pw.SizedBox(height: 24),
+
+                                          // Customer Info Section
+                                          pw.Container(
+                                            padding:
+                                                const pw.EdgeInsets.all(12),
+                                            decoration: pw.BoxDecoration(
+                                              color: PdfColors.blue50,
+                                              borderRadius:
+                                                  pw.BorderRadius.circular(6),
+                                              border: pw.Border(
+                                                left: pw.BorderSide(
+                                                    color: PdfColors.blue700,
+                                                    width: 4),
+                                              ),
+                                            ),
+                                            child: pw.Column(
+                                              crossAxisAlignment: pw
+                                                  .CrossAxisAlignment.start,
+                                              children: [
+                                                pw.Text(
+                                                  'BILL TO:',
+                                                  style: pw.TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight:
+                                                        pw.FontWeight.bold,
+                                                    color: PdfColors.blue900,
+                                                    letterSpacing: 1.2,
+                                                  ),
+                                                ),
+                                                pw.SizedBox(height: 6),
+                                                pw.Text(
+                                                  customerNameController.text,
+                                                  style: pw.TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight:
+                                                        pw.FontWeight.bold,
+                                                  ),
+                                                ),
+                                                pw.Text(
+                                                  phoneController.text,
+                                                  style: pw.TextStyle(
+                                                      fontSize: 12,
+                                                      color: PdfColors.grey700),
+                                                ),
+                                                pw.Text(
+                                                  addressController.text,
+                                                  style: pw.TextStyle(
+                                                      fontSize: 12,
+                                                      color: PdfColors.grey700),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          pw.SizedBox(height: 20),
+
+                                          // Products Table
+                                          pw.Table(
+                                            border: pw.TableBorder.symmetric(
+                                              inside: pw.BorderSide(
+                                                  color: PdfColors.grey300,
+                                                  width: 1),
+                                              outside: pw.BorderSide(
+                                                  color: PdfColors.blue700,
+                                                  width: 2),
+                                            ),
+                                            columnWidths: {
+                                              0: pw.FlexColumnWidth(3),
+                                              1: pw.FlexColumnWidth(1),
+                                              2: pw.FlexColumnWidth(1.5),
+                                              3: pw.FlexColumnWidth(1.5),
+                                              4: pw.FlexColumnWidth(2),
+                                            },
+                                            children: [
+                                              // Header
+                                              pw.TableRow(
+                                                decoration: pw.BoxDecoration(
+                                                    color: PdfColors.blue700),
+                                                children: [
+                                                  pw.Padding(
+                                                    padding:
+                                                        const pw.EdgeInsets.all(
+                                                            10),
+                                                    child: pw.Text('DESCRIPTION',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 11,
+                                                          fontWeight:
+                                                              pw.FontWeight.bold,
+                                                          color: PdfColors.white,
+                                                          letterSpacing: 0.8,
+                                                        )),
+                                                  ),
+                                                  pw.Padding(
+                                                    padding:
+                                                        const pw.EdgeInsets.all(
+                                                            10),
+                                                    child: pw.Text('QTY',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 11,
+                                                          fontWeight:
+                                                              pw.FontWeight.bold,
+                                                          color: PdfColors.white,
+                                                          letterSpacing: 0.8,
+                                                        )),
+                                                  ),
+                                                  pw.Padding(
+                                                    padding:
+                                                        const pw.EdgeInsets.all(
+                                                            10),
+                                                    child: pw.Text('RATE',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 11,
+                                                          fontWeight:
+                                                              pw.FontWeight.bold,
+                                                          color: PdfColors.white,
+                                                          letterSpacing: 0.8,
+                                                        )),
+                                                  ),
+                                                  pw.Padding(
+                                                    padding:
+                                                        const pw.EdgeInsets.all(
+                                                            10),
+                                                    child: pw.Text('DISC',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 11,
+                                                          fontWeight:
+                                                              pw.FontWeight.bold,
+                                                          color: PdfColors.white,
+                                                          letterSpacing: 0.8,
+                                                        )),
+                                                  ),
+                                                  pw.Padding(
+                                                    padding:
+                                                        const pw.EdgeInsets.all(
+                                                            10),
+                                                    child: pw.Text('AMOUNT',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 11,
+                                                          fontWeight:
+                                                              pw.FontWeight.bold,
+                                                          color: PdfColors.white,
+                                                          letterSpacing: 0.8,
+                                                        ),
+                                                        textAlign:
+                                                            pw.TextAlign.right),
+                                                  ),
+                                                ],
+                                              ),
+                                              // Products
+                                              ...products.asMap().entries.map(
+                                                  (entry) => pw.TableRow(
+                                                        decoration:
+                                                            pw.BoxDecoration(
+                                                          color: entry.key % 2 ==
+                                                                  0
+                                                              ? PdfColors.white
+                                                              : PdfColors.blue50,
+                                                        ),
+                                                        children: [
+                                                          pw.Padding(
+                                                            padding: const pw
+                                                                .EdgeInsets.all(
+                                                                10),
+                                                            child: pw.Text(
+                                                                entry.value.name,
+                                                                style: pw.TextStyle(
+                                                                    fontSize:
+                                                                        11)),
+                                                          ),
+                                                          pw.Padding(
+                                                            padding: const pw
+                                                                .EdgeInsets.all(
+                                                                10),
+                                                            child: pw.Text(
+                                                                entry.value
+                                                                    .quantity
+                                                                    .toString(),
+                                                                style: pw.TextStyle(
+                                                                    fontSize:
+                                                                        11)),
+                                                          ),
+                                                          pw.Padding(
+                                                            padding: const pw
+                                                                .EdgeInsets.all(
+                                                                10),
+                                                            child: pw.Text(
+                                                                '\$${entry.value.price.toStringAsFixed(2)}',
+                                                                style: pw.TextStyle(
+                                                                    fontSize:
+                                                                        11)),
+                                                          ),
+                                                          pw.Padding(
+                                                            padding: const pw
+                                                                .EdgeInsets.all(
+                                                                10),
+                                                            child: pw.Text(
+                                                                '\$${(entry.value.discount ?? 0.0).toStringAsFixed(2)}',
+                                                                style: pw.TextStyle(
+                                                                    fontSize:
+                                                                        11)),
+                                                          ),
+                                                          pw.Padding(
+                                                            padding: const pw
+                                                                .EdgeInsets.all(
+                                                                10),
+                                                            child: pw.Text(
+                                                              '\$' +
+                                                                  (() {
+                                                                    final p =
+                                                                        entry
+                                                                            .value;
+                                                                    final discount =
+                                                                        p.discount ??
+                                                                            0.0;
+                                                                    if (p.discountType ==
+                                                                        DiscountType
+                                                                            .perPiece) {
+                                                                      return ((p.price -
+                                                                                  discount) *
+                                                                              p.quantity)
+                                                                          .toStringAsFixed(
+                                                                              2);
+                                                                    } else {
+                                                                      return ((p.price *
+                                                                                  p.quantity) -
+                                                                              discount)
+                                                                          .toStringAsFixed(
+                                                                              2);
+                                                                    }
+                                                                  })(),
+                                                              style: pw.TextStyle(
+                                                                  fontSize: 11,
+                                                                  fontWeight: pw
+                                                                      .FontWeight
+                                                                      .bold),
+                                                              textAlign: pw
+                                                                  .TextAlign
+                                                                  .right,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      )),
+                                            ],
+                                          ),
+                                          pw.SizedBox(height: 16),
+
+                                          // Summary
+                                          pw.Row(
+                                            mainAxisAlignment: pw
+                                                .MainAxisAlignment.end,
+                                            children: [
+                                              pw.Container(
+                                                width: 250,
+                                                padding:
+                                                    const pw.EdgeInsets.all(12),
+                                                decoration: pw.BoxDecoration(
+                                                  color: PdfColors.blue50,
+                                                  borderRadius:
+                                                      pw.BorderRadius.circular(
+                                                          6),
+                                                ),
+                                                child: pw.Column(
+                                                  children: [
+                                                    pw.Row(
+                                                      mainAxisAlignment: pw
+                                                          .MainAxisAlignment
+                                                          .spaceBetween,
+                                                      children: [
+                                                        pw.Text('Subtotal:',
+                                                            style: pw.TextStyle(
+                                                                fontSize: 11)),
+                                                        pw.Text(
+                                                            '\$' +
+                                                                products
+                                                                    .fold(0.0,
+                                                                        (t, p) {
+                                                                      final discount =
+                                                                          p.discount ??
+                                                                              0.0;
+                                                                      if (p.discountType ==
+                                                                          DiscountType
+                                                                              .perPiece) {
+                                                                        return t +
+                                                                            ((p.price - discount) *
+                                                                                p.quantity);
+                                                                      } else {
+                                                                        return t +
+                                                                            ((p.price * p.quantity) -
+                                                                                discount);
+                                                                      }
+                                                                    }).toStringAsFixed(2),
+                                                            style: pw.TextStyle(
+                                                                fontSize: 11)),
+                                                      ],
+                                                    ),
+                                                    pw.Row(
+                                                      mainAxisAlignment: pw
+                                                          .MainAxisAlignment
+                                                          .spaceBetween,
+                                                      children: [
+                                                        pw.Text(
+                                                            'Discount (${discountController.text}%):',
+                                                            style: pw.TextStyle(
+                                                                fontSize: 11)),
+                                                        pw.Text(
+                                                            '\$' +
+                                                                (() {
+                                                                  double subtotal =
+                                                                      products.fold(
+                                                                          0.0,
+                                                                          (t, p) {
+                                                                    final discount =
+                                                                        p.discount ??
+                                                                            0.0;
+                                                                    if (p.discountType ==
+                                                                        DiscountType
+                                                                            .perPiece) {
+                                                                      return t +
+                                                                          ((p.price - discount) *
+                                                                              p.quantity);
+                                                                    } else {
+                                                                      return t +
+                                                                          ((p.price * p.quantity) -
+                                                                              discount);
+                                                                    }
+                                                                  });
+                                                                  double discount = double.tryParse(
+                                                                          discountController
+                                                                              .text) ??
+                                                                      0.0;
+                                                                  return (subtotal *
+                                                                          discount /
+                                                                          100.0)
+                                                                      .toStringAsFixed(
+                                                                          2);
+                                                                })(),
+                                                            style: pw.TextStyle(
+                                                                fontSize: 11)),
+                                                      ],
+                                                    ),
+                                                    pw.Row(
+                                                      mainAxisAlignment: pw
+                                                          .MainAxisAlignment
+                                                          .spaceBetween,
+                                                      children: [
+                                                        pw.Text(
+                                                            'VAT (${vatController.text}%):',
+                                                            style: pw.TextStyle(
+                                                                fontSize: 11)),
+                                                        pw.Text(
+                                                            '\$' +
+                                                                (() {
+                                                                  double subtotal =
+                                                                      products.fold(
+                                                                          0.0,
+                                                                          (t, p) {
+                                                                    final discount =
+                                                                        p.discount ??
+                                                                            0.0;
+                                                                    if (p.discountType ==
+                                                                        DiscountType
+                                                                            .perPiece) {
+                                                                      return t +
+                                                                          ((p.price - discount) *
+                                                                              p.quantity);
+                                                                    } else {
+                                                                      return t +
+                                                                          ((p.price * p.quantity) -
+                                                                              discount);
+                                                                    }
+                                                                  });
+                                                                  double discount = double.tryParse(
+                                                                          discountController
+                                                                              .text) ??
+                                                                      0.0;
+                                                                  double
+                                                                      afterDiscount =
+                                                                      subtotal *
+                                                                          (1 -
+                                                                              discount /
+                                                                                  100.0);
+                                                                  double vat = double.tryParse(
+                                                                          vatController
+                                                                              .text) ??
+                                                                      0.0;
+                                                                  return (afterDiscount *
+                                                                          vat /
+                                                                          100.0)
+                                                                      .toStringAsFixed(
+                                                                          2);
+                                                                })(),
+                                                            style: pw.TextStyle(
+                                                                fontSize: 11)),
+                                                      ],
+                                                    ),
+                                                    pw.Divider(thickness: 2),
+                                                    pw.Row(
+                                                      mainAxisAlignment: pw
+                                                          .MainAxisAlignment
+                                                          .spaceBetween,
+                                                      children: [
+                                                        pw.Text('TOTAL:',
+                                                            style: pw.TextStyle(
+                                                              fontSize: 14,
+                                                              fontWeight: pw
+                                                                  .FontWeight
+                                                                  .bold,
+                                                            )),
+                                                        pw.Text(
+                                                          '\$' +
+                                                              (() {
+                                                                double subtotal =
+                                                                    products.fold(
+                                                                        0.0,
+                                                                        (t, p) {
+                                                                  final discount =
+                                                                      p.discount ??
+                                                                          0.0;
+                                                                  if (p.discountType ==
+                                                                      DiscountType
+                                                                          .perPiece) {
+                                                                    return t +
+                                                                        ((p.price -
+                                                                                discount) *
+                                                                            p.quantity);
+                                                                  } else {
+                                                                    return t +
+                                                                        ((p.price *
+                                                                                p.quantity) -
+                                                                            discount);
+                                                                  }
+                                                                });
+                                                                double
+                                                                    globalDiscount =
+                                                                    double.tryParse(
+                                                                            discountController
+                                                                                .text) ??
+                                                                        0.0;
+                                                                double
+                                                                    afterDiscount =
+                                                                    subtotal *
+                                                                        (1 -
+                                                                            globalDiscount /
+                                                                                100.0);
+                                                                double vat = double
+                                                                        .tryParse(
+                                                                            vatController
+                                                                                .text) ??
+                                                                    0.0;
+                                                                double total =
+                                                                    afterDiscount *
+                                                                        (1 +
+                                                                            vat /
+                                                                                100.0);
+                                                                return total
+                                                                    .toStringAsFixed(
+                                                                        2);
+                                                              })(),
+                                                          style: pw.TextStyle(
+                                                            fontSize: 16,
+                                                            fontWeight: pw
+                                                                .FontWeight
+                                                                .bold,
+                                                            color:
+                                                                PdfColors.blue900,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                    break;
+
+                                  case 'Creative Gradient':
+                                    pdfContent = pw.DefaultTextStyle.merge(
+                                      style: pw.TextStyle(
+                                        lineSpacing: 2.0,
+                                        font: pw.Font.helvetica(),
+                                      ),
+                                      child: pw.Column(
+                                        crossAxisAlignment:
+                                            pw.CrossAxisAlignment.start,
+                                        children: [
+                                          // Gradient-style Header
+                                          pw.Container(
+                                            decoration: pw.BoxDecoration(
+                                              gradient: pw.LinearGradient(
+                                                colors: [
+                                                  PdfColors.purple700,
+                                                  PdfColors.pink600
+                                                ],
+                                              ),
+                                              borderRadius:
+                                                  pw.BorderRadius.circular(10),
+                                            ),
+                                            padding:
+                                                const pw.EdgeInsets.all(20),
+                                            child: pw.Column(
+                                              crossAxisAlignment: pw
+                                                  .CrossAxisAlignment.start,
+                                              children: [
+                                                pw.Text(
+                                                  'CASH MEMO',
+                                                  style: pw.TextStyle(
+                                                    fontSize: 28,
+                                                    fontWeight:
+                                                        pw.FontWeight.bold,
+                                                    color: PdfColors.white,
+                                                    letterSpacing: 2.0,
+                                                  ),
+                                                ),
+                                                pw.SizedBox(height: 8),
+                                                pw.Text(
+                                                  companyNameController.text
+                                                      .toUpperCase(),
+                                                  style: pw.TextStyle(
+                                                    fontSize: 18,
+                                                    fontWeight:
+                                                        pw.FontWeight.bold,
+                                                    color: PdfColors.white,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          pw.SizedBox(height: 20),
+
+                                          // Customer Info Card
+                                          pw.Container(
+                                            padding:
+                                                const pw.EdgeInsets.all(12),
+                                            decoration: pw.BoxDecoration(
+                                              border: pw.Border.all(
+                                                  color: PdfColors.purple300,
+                                                  width: 2),
+                                              borderRadius:
+                                                  pw.BorderRadius.circular(8),
+                                            ),
+                                            child: pw.Column(
+                                              crossAxisAlignment: pw
+                                                  .CrossAxisAlignment.start,
+                                              children: [
+                                                pw.Text(
+                                                  'CUSTOMER DETAILS',
+                                                  style: pw.TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight:
+                                                        pw.FontWeight.bold,
+                                                    color: PdfColors.purple700,
+                                                    letterSpacing: 1.2,
+                                                  ),
+                                                ),
+                                                pw.Divider(
+                                                    color: PdfColors.purple300),
+                                                pw.Text(
+                                                  customerNameController.text,
+                                                  style: pw.TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight:
+                                                        pw.FontWeight.bold,
+                                                  ),
+                                                ),
+                                                pw.Text(
+                                                    'Phone: ${phoneController.text}',
+                                                    style: pw.TextStyle(
+                                                        fontSize: 12)),
+                                                pw.Text(
+                                                    'Address: ${addressController.text}',
+                                                    style: pw.TextStyle(
+                                                        fontSize: 12)),
+                                              ],
+                                            ),
+                                          ),
+                                          pw.SizedBox(height: 20),
+
+                                          // Products with Modern Style
+                                          pw.Table(
+                                            border: pw.TableBorder(
+                                              horizontalInside: pw.BorderSide(
+                                                  color: PdfColors.purple100,
+                                                  width: 1),
+                                              verticalInside: pw.BorderSide(
+                                                  color: PdfColors.purple100,
+                                                  width: 1),
+                                            ),
+                                            columnWidths: {
+                                              0: pw.FlexColumnWidth(3),
+                                              1: pw.FlexColumnWidth(1),
+                                              2: pw.FlexColumnWidth(1.5),
+                                              3: pw.FlexColumnWidth(1.5),
+                                              4: pw.FlexColumnWidth(2),
+                                            },
+                                            children: [
+                                              // Header
+                                              pw.TableRow(
+                                                decoration: pw.BoxDecoration(
+                                                  gradient: pw.LinearGradient(
+                                                    colors: [
+                                                      PdfColors.purple100,
+                                                      PdfColors.pink100
+                                                    ],
+                                                  ),
+                                                ),
+                                                children: [
+                                                  pw.Padding(
+                                                    padding:
+                                                        const pw.EdgeInsets.all(
+                                                            10),
+                                                    child: pw.Text('ITEM',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 11,
+                                                          fontWeight:
+                                                              pw.FontWeight.bold,
+                                                          color:
+                                                              PdfColors.purple900,
+                                                        )),
+                                                  ),
+                                                  pw.Padding(
+                                                    padding:
+                                                        const pw.EdgeInsets.all(
+                                                            10),
+                                                    child: pw.Text('QTY',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 11,
+                                                          fontWeight:
+                                                              pw.FontWeight.bold,
+                                                          color:
+                                                              PdfColors.purple900,
+                                                        )),
+                                                  ),
+                                                  pw.Padding(
+                                                    padding:
+                                                        const pw.EdgeInsets.all(
+                                                            10),
+                                                    child: pw.Text('PRICE',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 11,
+                                                          fontWeight:
+                                                              pw.FontWeight.bold,
+                                                          color:
+                                                              PdfColors.purple900,
+                                                        )),
+                                                  ),
+                                                  pw.Padding(
+                                                    padding:
+                                                        const pw.EdgeInsets.all(
+                                                            10),
+                                                    child: pw.Text('DISC',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 11,
+                                                          fontWeight:
+                                                              pw.FontWeight.bold,
+                                                          color:
+                                                              PdfColors.purple900,
+                                                        )),
+                                                  ),
+                                                  pw.Padding(
+                                                    padding:
+                                                        const pw.EdgeInsets.all(
+                                                            10),
+                                                    child: pw.Text('TOTAL',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 11,
+                                                          fontWeight:
+                                                              pw.FontWeight.bold,
+                                                          color:
+                                                              PdfColors.purple900,
+                                                        ),
+                                                        textAlign:
+                                                            pw.TextAlign.right),
+                                                  ),
+                                                ],
+                                              ),
+                                              // Products
+                                              ...products.map(
+                                                (p) => pw.TableRow(
+                                                  children: [
+                                                    pw.Padding(
+                                                      padding: const pw
+                                                          .EdgeInsets.all(10),
+                                                      child: pw.Text(p.name,
+                                                          style: pw.TextStyle(
+                                                              fontSize: 11)),
+                                                    ),
+                                                    pw.Padding(
+                                                      padding: const pw
+                                                          .EdgeInsets.all(10),
+                                                      child: pw.Text(
+                                                          p.quantity.toString(),
+                                                          style: pw.TextStyle(
+                                                              fontSize: 11)),
+                                                    ),
+                                                    pw.Padding(
+                                                      padding: const pw
+                                                          .EdgeInsets.all(10),
+                                                      child: pw.Text(
+                                                          '\$${p.price.toStringAsFixed(2)}',
+                                                          style: pw.TextStyle(
+                                                              fontSize: 11)),
+                                                    ),
+                                                    pw.Padding(
+                                                      padding: const pw
+                                                          .EdgeInsets.all(10),
+                                                      child: pw.Text(
+                                                          '\$${(p.discount ?? 0.0).toStringAsFixed(2)}',
+                                                          style: pw.TextStyle(
+                                                              fontSize: 11)),
+                                                    ),
+                                                    pw.Padding(
+                                                      padding: const pw
+                                                          .EdgeInsets.all(10),
+                                                      child: pw.Text(
+                                                        '\$' +
+                                                            (() {
+                                                              final discount =
+                                                                  p.discount ??
+                                                                      0.0;
+                                                              if (p.discountType ==
+                                                                  DiscountType
+                                                                      .perPiece) {
+                                                                return ((p.price -
+                                                                            discount) *
+                                                                        p.quantity)
+                                                                    .toStringAsFixed(
+                                                                        2);
+                                                              } else {
+                                                                return ((p.price *
+                                                                            p.quantity) -
+                                                                        discount)
+                                                                    .toStringAsFixed(
+                                                                        2);
+                                                              }
+                                                            })(),
+                                                        style: pw.TextStyle(
+                                                            fontSize: 11,
+                                                            fontWeight: pw
+                                                                .FontWeight
+                                                                .bold),
+                                                        textAlign:
+                                                            pw.TextAlign.right,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          pw.SizedBox(height: 20),
+
+                                          // Grand Total with Gradient
+                                          pw.Container(
+                                            decoration: pw.BoxDecoration(
+                                              gradient: pw.LinearGradient(
+                                                colors: [
+                                                  PdfColors.purple700,
+                                                  PdfColors.pink600
+                                                ],
+                                              ),
+                                              borderRadius:
+                                                  pw.BorderRadius.circular(8),
+                                            ),
+                                            padding:
+                                                const pw.EdgeInsets.all(16),
+                                            child: pw.Row(
+                                              mainAxisAlignment: pw
+                                                  .MainAxisAlignment
+                                                  .spaceBetween,
+                                              children: [
+                                                pw.Column(
+                                                  crossAxisAlignment: pw
+                                                      .CrossAxisAlignment.start,
+                                                  children: [
+                                                    pw.Text(
+                                                        'Discount: ${discountController.text}%',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 11,
+                                                          color:
+                                                              PdfColors.white,
+                                                        )),
+                                                    pw.Text(
+                                                        'VAT: ${vatController.text}%',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 11,
+                                                          color:
+                                                              PdfColors.white,
+                                                        )),
+                                                  ],
+                                                ),
+                                                pw.Column(
+                                                  crossAxisAlignment: pw
+                                                      .CrossAxisAlignment.end,
+                                                  children: [
+                                                    pw.Text('TOTAL',
+                                                        style: pw.TextStyle(
+                                                          fontSize: 12,
+                                                          color:
+                                                              PdfColors.white,
+                                                          letterSpacing: 1.0,
+                                                        )),
+                                                    pw.Text(
+                                                      '\$' +
+                                                          (() {
+                                                            double subtotal =
+                                                                products.fold(0.0,
+                                                                    (t, p) {
+                                                              final discount =
+                                                                  p.discount ??
+                                                                      0.0;
+                                                              if (p.discountType ==
+                                                                  DiscountType
+                                                                      .perPiece) {
+                                                                return t +
+                                                                    ((p.price -
+                                                                            discount) *
+                                                                        p.quantity);
+                                                              } else {
+                                                                return t +
+                                                                    ((p.price *
+                                                                            p.quantity) -
+                                                                        discount);
+                                                              }
+                                                            });
+                                                            double
+                                                                globalDiscount =
+                                                                double.tryParse(
+                                                                        discountController
+                                                                            .text) ??
+                                                                    0.0;
+                                                            double
+                                                                afterDiscount =
+                                                                subtotal *
+                                                                    (1 -
+                                                                        globalDiscount /
+                                                                            100.0);
+                                                            double vat = double
+                                                                    .tryParse(
+                                                                        vatController
+                                                                            .text) ??
+                                                                0.0;
+                                                            double total =
+                                                                afterDiscount *
+                                                                    (1 +
+                                                                        vat /
+                                                                            100.0);
+                                                            return total
+                                                                .toStringAsFixed(
+                                                                    2);
+                                                          })(),
+                                                      style: pw.TextStyle(
+                                                        fontSize: 24,
+                                                        fontWeight:
+                                                            pw.FontWeight.bold,
+                                                        color: PdfColors.white,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                    break;
+
                                   default:
                                     pdfContent = pw.Text('Template: $template');
                                 }
