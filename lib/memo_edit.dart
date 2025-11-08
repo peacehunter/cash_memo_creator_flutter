@@ -1826,14 +1826,14 @@ class _CashMemoEditState extends State<CashMemoEdit>
                       companyName ?? '',
                       style: pw.TextStyle(
                         fontSize: 16,
-                        color: PdfColors.white.withOpacity(0.95),
+                        color: PdfColors.white,
                         fontWeight: pw.FontWeight.bold,
                       ),
                     ),
                     pw.Container(
                       padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: pw.BoxDecoration(
-                        color: PdfColors.white.withOpacity(0.2),
+                        color: PdfColors.red900,
                         borderRadius: const pw.BorderRadius.all(pw.Radius.circular(20)),
                       ),
                       child: pw.Text(
@@ -2177,7 +2177,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
                     pw.Container(
                       padding: const pw.EdgeInsets.all(16),
                       decoration: pw.BoxDecoration(
-                        color: PdfColors.white.withOpacity(0.95),
+                        color: PdfColors.white,
                         borderRadius: const pw.BorderRadius.all(pw.Radius.circular(12)),
                       ),
                       child: pw.Column(
