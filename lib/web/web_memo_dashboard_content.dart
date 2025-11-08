@@ -64,7 +64,7 @@ class _WebMemoDashboardContentState extends State<WebMemoDashboardContent> {
             ListView.separated(
               padding: const EdgeInsets.all(24),
               itemCount: memos.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (_, __) => SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final memo = memos[index];
                 return _buildMemoCard(memo);
