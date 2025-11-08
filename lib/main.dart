@@ -14,6 +14,7 @@ import 'cash_memo.dart';
 import 'l10n/gen_l10n/app_localizations.dart';
 import 'memo_list.dart';
 import 'auth_gate.dart';
+import 'settings_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 // Only include Firebase imports if not web
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -158,8 +159,7 @@ class CashMemoAppState extends State<CashMemoApp> with WidgetsBindingObserver {
       routes: {
         '/edit': (context) =>
             const Scaffold(body: Center(child: Text('Edit placeholder'))),
-        '/settings': (context) =>
-            const Scaffold(body: Center(child: Text('Settings placeholder'))),
+        '/settings': (context) => const SettingsScreen(),
       },
     );
   }

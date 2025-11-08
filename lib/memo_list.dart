@@ -166,44 +166,69 @@ class MemoListScreenState extends State<MemoListScreen>
     final localizations = _cachedLocalizations!;
     final theme = _cachedTheme!;
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.blue.shade700,
-        elevation: 4,
+        backgroundColor: AppColors.white,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Colors.black.withOpacity(0.05),
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color(0x33FFFFFF), // Colors.white.withOpacity(0.2)
-                borderRadius: BorderRadius.circular(12),
+                gradient: AppGradients.primary,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: const Icon(
-                Icons.receipt_long,
+                Icons.receipt_long_rounded,
                 color: Colors.white,
-                size: 24,
+                size: 22,
               ),
             ),
-            const SizedBox(width: 12),
-            Text(
-              localizations.savedMemos,
-              style: theme.textTheme.headlineMedium?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
+            const SizedBox(width: 14),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  localizations.savedMemos,
+                  style: AppTypography.h2.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                ),
+                Text(
+                  'Manage your invoices',
+                  style: AppTypography.labelSmall.copyWith(
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
-        centerTitle: true,
+        centerTitle: false,
         actions: [
           Container(
-            margin: const EdgeInsets.only(right: 16),
+            margin: const EdgeInsets.only(right: 12),
             decoration: BoxDecoration(
-              color: const Color(0x33FFFFFF), // Colors.white.withOpacity(0.2)
-              borderRadius: BorderRadius.circular(12),
+              color: AppColors.neutral100,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(color: AppColors.border),
             ),
             child: IconButton(
-              icon: const Icon(Icons.settings_rounded, color: Colors.white, size: 24),
+              icon: Icon(Icons.settings_rounded, color: AppColors.primary, size: 22),
               tooltip: 'Settings',
               onPressed: () {
                 Navigator.pushNamed(context, '/settings');
@@ -212,30 +237,44 @@ class MemoListScreenState extends State<MemoListScreen>
           ),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
+          preferredSize: const Size.fromHeight(64),
           child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             decoration: BoxDecoration(
-              color: const Color(0x26FFFFFF), // Colors.white.withOpacity(0.15)
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: const Color(0x4DFFFFFF), // Colors.white.withOpacity(0.3)
-                width: 1,
-              ),
+              color: AppColors.neutral50,
+              borderRadius: BorderRadius.circular(AppRadius.xl),
+              border: Border.all(color: AppColors.border, width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: TabBar(
               controller: _tabController,
-              labelColor: Colors.white,
-              unselectedLabelColor:
-                  const Color(0xB3FFFFFF), // Colors.white.withOpacity(0.7)
-              indicatorColor: Colors.white,
-              indicatorWeight: 3,
+              labelColor: AppColors.white,
+              unselectedLabelColor: AppColors.textSecondary,
+              indicator: BoxDecoration(
+                gradient: AppGradients.primary,
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              dividerColor: Colors.transparent,
               labelStyle: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
               ),
               unselectedLabelStyle: const TextStyle(
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w600,
                 fontSize: 14,
               ),
               tabs: [
@@ -246,14 +285,14 @@ class MemoListScreenState extends State<MemoListScreen>
                     children: [
                       const Icon(
                         Icons.receipt_long_rounded,
-                        size: 20,
+                        size: 18,
                       ),
                       const SizedBox(width: 8),
                       Flexible(
                         child: Text(
                           localizations.memosTab,
                           style: const TextStyle(
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w700,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -268,14 +307,14 @@ class MemoListScreenState extends State<MemoListScreen>
                     children: [
                       const Icon(
                         Icons.picture_as_pdf_rounded,
-                        size: 20,
+                        size: 18,
                       ),
                       const SizedBox(width: 8),
                       Flexible(
                         child: Text(
                           localizations.pdfTab,
                           style: const TextStyle(
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w700,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
