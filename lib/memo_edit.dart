@@ -468,6 +468,18 @@ class _CashMemoEditState extends State<CashMemoEdit>
             case 4:
               templateWidget = buildTemplate4(logoBytes, currentDate);
               break;
+            case 5:
+              templateWidget = buildTemplate5(logoBytes, currentDate);
+              break;
+            case 6:
+              templateWidget = buildTemplate6(logoBytes, currentDate);
+              break;
+            case 7:
+              templateWidget = buildTemplate7(logoBytes, currentDate);
+              break;
+            case 8:
+              templateWidget = buildTemplate8(logoBytes, currentDate);
+              break;
             default:
               templateWidget = buildTemplate1(logoBytes, currentDate);
           }
@@ -630,85 +642,144 @@ class _CashMemoEditState extends State<CashMemoEdit>
     }
   }
 
-// Template 4: Borderless Product Template
-  pw.Widget buildTemplate4(Uint8List? logoBytes, String currentDate) {
-    return pw.Stack(
-      children: [
-        // Content over the watermark
-        pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Center(
-              child: buildCompanyDetails(logoBytes),
-            ),
-            pw.SizedBox(height: 10),
-            pw.Text('Date: $currentDate',
-                style: const pw.TextStyle(fontSize: 12)),
-            pw.SizedBox(height: 10),
-            buildCustomerDetails(),
-            pw.SizedBox(height: 20),
-            buildBorderlessProductTable(),
-            pw.SizedBox(height: 30),
-            buildPricingDetails(),
-          ],
-        ),
-      ],
-    );
-  }
-
-// Helper to build a borderless product table
-  pw.Widget buildBorderlessProductTable() {
+// Modern Helper Functions for Templates
+  pw.Widget buildModernProductTable() {
     return pw.Table(
-      border: null, // Remove borders
+      border: pw.TableBorder(
+        horizontalInside: pw.BorderSide(color: PdfColors.grey200, width: 0.5),
+        verticalInside: pw.BorderSide(color: PdfColors.grey200, width: 0.5),
+      ),
       children: [
         // Header Row
         pw.TableRow(
-          decoration: const pw.BoxDecoration(
-            color:
-                PdfColors.grey300, // Optional: Add background color to header
-          ),
+          decoration: const pw.BoxDecoration(color: PdfColors.grey800),
           children: [
             pw.Padding(
-              padding: const pw.EdgeInsets.all(8.0), // Add padding
-              child: pw.Text('Product',
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              padding: const pw.EdgeInsets.all(10),
+              child: pw.Text(
+                'PRODUCT',
+                style: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold,
+                  fontSize: 10,
+                  color: PdfColors.white,
+                  letterSpacing: 0.8,
+                ),
+              ),
             ),
             pw.Padding(
-              padding: const pw.EdgeInsets.all(8.0), // Add padding
-              child: pw.Text('Price',
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              padding: const pw.EdgeInsets.all(10),
+              child: pw.Text(
+                'PRICE',
+                style: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold,
+                  fontSize: 10,
+                  color: PdfColors.white,
+                  letterSpacing: 0.8,
+                ),
+                textAlign: pw.TextAlign.right,
+              ),
             ),
             pw.Padding(
-              padding: const pw.EdgeInsets.all(8.0), // Add padding
-              child: pw.Text('Quantity',
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              padding: const pw.EdgeInsets.all(10),
+              child: pw.Text(
+                'QTY',
+                style: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold,
+                  fontSize: 10,
+                  color: PdfColors.white,
+                  letterSpacing: 0.8,
+                ),
+                textAlign: pw.TextAlign.center,
+              ),
             ),
             pw.Padding(
-              padding: const pw.EdgeInsets.all(8.0), // Add padding
-              child: pw.Text('Total',
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              padding: const pw.EdgeInsets.all(10),
+              child: pw.Text(
+                'DISCOUNT',
+                style: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold,
+                  fontSize: 10,
+                  color: PdfColors.white,
+                  letterSpacing: 0.8,
+                ),
+                textAlign: pw.TextAlign.right,
+              ),
+            ),
+            pw.Padding(
+              padding: const pw.EdgeInsets.all(10),
+              child: pw.Text(
+                'TOTAL',
+                style: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold,
+                  fontSize: 10,
+                  color: PdfColors.white,
+                  letterSpacing: 0.8,
+                ),
+                textAlign: pw.TextAlign.right,
+              ),
             ),
           ],
         ),
         // Data Rows
-        ...products.map((product) {
+        ...products.asMap().entries.map((entry) {
+          int index = entry.key;
+          Product product = entry.value;
+          double productTotal = product.price * product.quantity;
+          double discountAmount = _isProductDiscountPercent[index]
+              ? productTotal * (product.discount / 100)
+              : product.discount;
+          double discountedTotal = productTotal - discountAmount;
+
+          String discountDisplay = _isProductDiscountPercent[index]
+              ? '${product.discount}%'
+              : '৳${product.discount.toStringAsFixed(2)}';
+
           return pw.TableRow(
+            decoration: pw.BoxDecoration(
+              color: index.isEven ? PdfColors.white : PdfColors.grey50,
+            ),
             children: [
               pw.Padding(
-                padding: const pw.EdgeInsets.all(8.0), // Add padding
-                child: pw.Text(product.name),
+                padding: const pw.EdgeInsets.all(10),
+                child: pw.Text(
+                  product.name,
+                  style: const pw.TextStyle(fontSize: 10),
+                ),
               ),
               pw.Padding(
-                padding: const pw.EdgeInsets.all(8.0), // Add padding
-                child: pw.Text(product.price.toString()),
+                padding: const pw.EdgeInsets.all(10),
+                child: pw.Text(
+                  '৳${product.price.toStringAsFixed(2)}',
+                  style: const pw.TextStyle(fontSize: 10),
+                  textAlign: pw.TextAlign.right,
+                ),
               ),
               pw.Padding(
-                padding: const pw.EdgeInsets.all(8.0), // Add padding
-                child: pw.Text(product.quantity.toString()),
+                padding: const pw.EdgeInsets.all(10),
+                child: pw.Text(
+                  product.quantity.toString(),
+                  style: const pw.TextStyle(fontSize: 10),
+                  textAlign: pw.TextAlign.center,
+                ),
               ),
               pw.Padding(
-                padding: const pw.EdgeInsets.all(8.0), // Add padding
-                child: pw.Text((product.price * product.quantity).toString()),
+                padding: const pw.EdgeInsets.all(10),
+                child: pw.Text(
+                  discountDisplay,
+                  style: const pw.TextStyle(fontSize: 10, color: PdfColors.red700),
+                  textAlign: pw.TextAlign.right,
+                ),
+              ),
+              pw.Padding(
+                padding: const pw.EdgeInsets.all(10),
+                child: pw.Text(
+                  '৳${discountedTotal.toStringAsFixed(2)}',
+                  style: pw.TextStyle(
+                    fontSize: 10,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                  textAlign: pw.TextAlign.right,
+                ),
               ),
             ],
           );
@@ -717,113 +788,1708 @@ class _CashMemoEditState extends State<CashMemoEdit>
     );
   }
 
-// Template 1: Classic Template
-  pw.Widget buildTemplate1(Uint8List? logoBytes, String currentDate) {
-    return pw.Stack(
+  pw.Widget buildCleanProductTable() {
+    return pw.Column(
       children: [
-        pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.center,
-          children: [
-            pw.Text('Cash Memo',
-                style: const pw.TextStyle(fontSize: 24),
-                textAlign: pw.TextAlign.center),
-            pw.SizedBox(height: 20),
-            buildCompanyDetails(logoBytes),
-            pw.SizedBox(height: 10),
-            pw.Text('Date: $currentDate',
-                style: const pw.TextStyle(fontSize: 12),
-                textAlign: pw.TextAlign.right),
-            pw.SizedBox(height: 10),
-            buildCustomerDetails(),
-            pw.SizedBox(height: 10),
-            buildProductTable(),
-            buildPricingDetails(),
-          ],
+        // Header with bottom border only
+        pw.Container(
+          padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          decoration: const pw.BoxDecoration(
+            border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey800, width: 2)),
+          ),
+          child: pw.Row(
+            children: [
+              pw.Expanded(
+                flex: 3,
+                child: pw.Text(
+                  'ITEM',
+                  style: pw.TextStyle(
+                    fontSize: 9,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.grey800,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ),
+              pw.Expanded(
+                child: pw.Text(
+                  'PRICE',
+                  style: pw.TextStyle(
+                    fontSize: 9,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.grey800,
+                    letterSpacing: 1,
+                  ),
+                  textAlign: pw.TextAlign.right,
+                ),
+              ),
+              pw.SizedBox(width: 12),
+              pw.Expanded(
+                child: pw.Text(
+                  'QTY',
+                  style: pw.TextStyle(
+                    fontSize: 9,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.grey800,
+                    letterSpacing: 1,
+                  ),
+                  textAlign: pw.TextAlign.center,
+                ),
+              ),
+              pw.SizedBox(width: 12),
+              pw.Expanded(
+                flex: 2,
+                child: pw.Text(
+                  'AMOUNT',
+                  style: pw.TextStyle(
+                    fontSize: 9,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.grey800,
+                    letterSpacing: 1,
+                  ),
+                  textAlign: pw.TextAlign.right,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Product rows with minimal styling
+        ...products.asMap().entries.map((entry) {
+          int index = entry.key;
+          Product product = entry.value;
+          double productTotal = product.price * product.quantity;
+          double discountAmount = _isProductDiscountPercent[index]
+              ? productTotal * (product.discount / 100)
+              : product.discount;
+          double discountedTotal = productTotal - discountAmount;
+
+          return pw.Container(
+            padding: const pw.EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+            decoration: const pw.BoxDecoration(
+              border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey200, width: 0.5)),
+            ),
+            child: pw.Row(
+              children: [
+                pw.Expanded(
+                  flex: 3,
+                  child: pw.Text(
+                    product.name,
+                    style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey900),
+                  ),
+                ),
+                pw.Expanded(
+                  child: pw.Text(
+                    '৳${product.price.toStringAsFixed(2)}',
+                    style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+                    textAlign: pw.TextAlign.right,
+                  ),
+                ),
+                pw.SizedBox(width: 12),
+                pw.Expanded(
+                  child: pw.Text(
+                    '${product.quantity}',
+                    style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                ),
+                pw.SizedBox(width: 12),
+                pw.Expanded(
+                  flex: 2,
+                  child: pw.Text(
+                    '৳${discountedTotal.toStringAsFixed(2)}',
+                    style: pw.TextStyle(
+                      fontSize: 10,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.grey900,
+                    ),
+                    textAlign: pw.TextAlign.right,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  pw.Widget buildModernPricingDetails() {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(16),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.grey50,
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
+        border: pw.Border.all(color: PdfColors.grey300, width: 1),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+        children: [
+          _buildModernPricingRow('Subtotal', '৳${getMemoizedSubtotal().toStringAsFixed(2)}', false),
+          pw.SizedBox(height: 6),
+          _buildModernPricingRow('Discount', '${discountController.text}%', false),
+          pw.SizedBox(height: 6),
+          _buildModernPricingRow('VAT/Tax', '${vatController.text}%', false),
+          pw.SizedBox(height: 10),
+          pw.Container(
+            height: 1,
+            color: PdfColors.grey400,
+          ),
+          pw.SizedBox(height: 10),
+          _buildModernPricingRow('TOTAL', '৳${getMemoizedTotal().toStringAsFixed(2)}', true),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _buildModernPricingRow(String label, String value, bool isTotal) {
+    return pw.Row(
+      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+      children: [
+        pw.Text(
+          label,
+          style: pw.TextStyle(
+            fontWeight: isTotal ? pw.FontWeight.bold : pw.FontWeight.normal,
+            fontSize: isTotal ? 13 : 11,
+            color: isTotal ? PdfColors.grey900 : PdfColors.grey700,
+            letterSpacing: isTotal ? 0.5 : 0,
+          ),
+        ),
+        pw.Text(
+          value,
+          style: pw.TextStyle(
+            fontWeight: isTotal ? pw.FontWeight.bold : pw.FontWeight.normal,
+            fontSize: isTotal ? 15 : 11,
+            color: isTotal ? PdfColors.blue700 : PdfColors.grey800,
+          ),
         ),
       ],
     );
   }
 
-// Template 2: Modern Template
-  pw.Widget buildTemplate2(Uint8List? logoBytes, String currentDate) {
-    return pw.Stack(
+// Template 4: Modern Accent (Modernized - formerly Borderless)
+  pw.Widget buildTemplate4(Uint8List? logoBytes, String currentDate) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(24),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          // Side accent bar
+          pw.Row(
+            children: [
+              pw.Container(
+                width: 6,
+                height: 80,
+                decoration: const pw.BoxDecoration(
+                  color: PdfColors.purple600,
+                  borderRadius: pw.BorderRadius.all(pw.Radius.circular(3)),
+                ),
+              ),
+              pw.SizedBox(width: 20),
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'CASH MEMO',
+                      style: pw.TextStyle(
+                        fontSize: 30,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.purple700,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    pw.SizedBox(height: 4),
+                    pw.Text(
+                      'Invoice Date: $currentDate',
+                      style: const pw.TextStyle(
+                        fontSize: 11,
+                        color: PdfColors.grey700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (logoBytes != null)
+                pw.Container(
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(color: PdfColors.purple200, width: 2),
+                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
+                  ),
+                  padding: const pw.EdgeInsets.all(6),
+                  child: pw.Image(pw.MemoryImage(logoBytes), width: 50, height: 50),
+                ),
+            ],
+          ),
+          pw.SizedBox(height: 28),
+
+          // Company and Customer in cards
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              // Company Card
+              pw.Expanded(
+                child: pw.Container(
+                  padding: const pw.EdgeInsets.all(14),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.purple50,
+                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
+                    border: pw.Border.all(color: PdfColors.purple100, width: 1.5),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Row(
+                        children: [
+                          pw.Container(
+                            width: 4,
+                            height: 4,
+                            decoration: const pw.BoxDecoration(
+                              color: PdfColors.purple600,
+                              shape: pw.BoxShape.circle,
+                            ),
+                          ),
+                          pw.SizedBox(width: 6),
+                          pw.Text(
+                            'FROM',
+                            style: pw.TextStyle(
+                              fontSize: 9,
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColors.purple700,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ],
+                      ),
+                      pw.SizedBox(height: 8),
+                      pw.Text(
+                        companyName ?? '',
+                        style: pw.TextStyle(
+                          fontSize: 15,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.grey900,
+                        ),
+                      ),
+                      pw.SizedBox(height: 3),
+                      pw.Text(
+                        companyAddress ?? '',
+                        style: const pw.TextStyle(
+                          fontSize: 10,
+                          color: PdfColors.grey700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              pw.SizedBox(width: 14),
+
+              // Customer Card
+              pw.Expanded(
+                child: pw.Container(
+                  padding: const pw.EdgeInsets.all(14),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.grey50,
+                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
+                    border: pw.Border.all(color: PdfColors.grey200, width: 1.5),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Row(
+                        children: [
+                          pw.Container(
+                            width: 4,
+                            height: 4,
+                            decoration: const pw.BoxDecoration(
+                              color: PdfColors.grey700,
+                              shape: pw.BoxShape.circle,
+                            ),
+                          ),
+                          pw.SizedBox(width: 6),
+                          pw.Text(
+                            'BILL TO',
+                            style: pw.TextStyle(
+                              fontSize: 9,
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColors.grey700,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ],
+                      ),
+                      pw.SizedBox(height: 8),
+                      pw.Text(
+                        customerNameController.text,
+                        style: pw.TextStyle(
+                          fontSize: 14,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.grey900,
+                        ),
+                      ),
+                      pw.SizedBox(height: 3),
+                      pw.Text(
+                        customerAddressController.text,
+                        style: const pw.TextStyle(
+                          fontSize: 10,
+                          color: PdfColors.grey700,
+                        ),
+                      ),
+                      pw.SizedBox(height: 2),
+                      pw.Text(
+                        'Tel: ${customerPhoneNumberController.text}',
+                        style: const pw.TextStyle(
+                          fontSize: 10,
+                          color: PdfColors.grey700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 24),
+
+          // Borderless product table with alternating row colors
+          buildBorderlessProductTable(),
+          pw.SizedBox(height: 24),
+
+          // Summary section
+          buildModernPricingDetails(),
+        ],
+      ),
+    );
+  }
+
+  // Helper to build a modern borderless product table
+  pw.Widget buildBorderlessProductTable() {
+    return pw.Column(
       children: [
-        // Content over the watermark
-        pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            // Different arrangement for company details and customer info
-            pw.Row(
+        // Header with purple accent
+        pw.Container(
+          padding: const pw.EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+          decoration: const pw.BoxDecoration(
+            color: PdfColors.purple600,
+            borderRadius: pw.BorderRadius.vertical(top: pw.Radius.circular(8)),
+          ),
+          child: pw.Row(
+            children: [
+              pw.Expanded(
+                flex: 3,
+                child: pw.Text(
+                  'PRODUCT',
+                  style: pw.TextStyle(
+                    fontSize: 10,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.white,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ),
+              pw.Expanded(
+                child: pw.Text(
+                  'PRICE',
+                  style: pw.TextStyle(
+                    fontSize: 10,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.white,
+                    letterSpacing: 0.8,
+                  ),
+                  textAlign: pw.TextAlign.right,
+                ),
+              ),
+              pw.SizedBox(width: 12),
+              pw.Expanded(
+                child: pw.Text(
+                  'QTY',
+                  style: pw.TextStyle(
+                    fontSize: 10,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.white,
+                    letterSpacing: 0.8,
+                  ),
+                  textAlign: pw.TextAlign.center,
+                ),
+              ),
+              pw.SizedBox(width: 12),
+              pw.Expanded(
+                flex: 2,
+                child: pw.Text(
+                  'TOTAL',
+                  style: pw.TextStyle(
+                    fontSize: 10,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.white,
+                    letterSpacing: 0.8,
+                  ),
+                  textAlign: pw.TextAlign.right,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Product rows with alternating background
+        ...products.asMap().entries.map((entry) {
+          int index = entry.key;
+          Product product = entry.value;
+          double productTotal = product.price * product.quantity;
+          double discountAmount = _isProductDiscountPercent[index]
+              ? productTotal * (product.discount / 100)
+              : product.discount;
+          double discountedTotal = productTotal - discountAmount;
+
+          return pw.Container(
+            padding: const pw.EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            decoration: pw.BoxDecoration(
+              color: index.isEven ? PdfColors.white : PdfColors.grey50,
+            ),
+            child: pw.Row(
+              children: [
+                pw.Expanded(
+                  flex: 3,
+                  child: pw.Text(
+                    product.name,
+                    style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey900),
+                  ),
+                ),
+                pw.Expanded(
+                  child: pw.Text(
+                    '৳${product.price.toStringAsFixed(2)}',
+                    style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey800),
+                    textAlign: pw.TextAlign.right,
+                  ),
+                ),
+                pw.SizedBox(width: 12),
+                pw.Expanded(
+                  child: pw.Text(
+                    '${product.quantity}',
+                    style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey800),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                ),
+                pw.SizedBox(width: 12),
+                pw.Expanded(
+                  flex: 2,
+                  child: pw.Text(
+                    '৳${discountedTotal.toStringAsFixed(2)}',
+                    style: pw.TextStyle(
+                      fontSize: 10,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.grey900,
+                    ),
+                    textAlign: pw.TextAlign.right,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+
+        // Bottom border
+        pw.Container(
+          height: 2,
+          decoration: const pw.BoxDecoration(
+            color: PdfColors.purple200,
+            borderRadius: pw.BorderRadius.vertical(bottom: pw.Radius.circular(8)),
+          ),
+        ),
+      ],
+    );
+  }
+
+// Template 1: Professional Classic (Modernized)
+  pw.Widget buildTemplate1(Uint8List? logoBytes, String currentDate) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(24),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          // Header with gradient effect simulation using colored box
+          pw.Container(
+            padding: const pw.EdgeInsets.all(20),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.blue700,
+              borderRadius: const pw.BorderRadius.all(pw.Radius.circular(12)),
+            ),
+            child: pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                // Company details on the left
-                buildCompanyDetails(logoBytes),
+                pw.Text(
+                  'CASH MEMO',
+                  style: pw.TextStyle(
+                    fontSize: 28,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.white,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                pw.Text(
+                  currentDate,
+                  style: pw.TextStyle(
+                    fontSize: 12,
+                    color: PdfColors.white,
+                    fontWeight: pw.FontWeight.normal,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 24),
 
-                // Customer and date details on the right
-                pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  // Aligns everything to the left (or start)
+          // Company and Customer Info Row
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              // Company Details
+              pw.Expanded(
+                child: pw.Container(
+                  padding: const pw.EdgeInsets.all(16),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.grey100,
+                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'FROM',
+                        style: pw.TextStyle(
+                          fontSize: 10,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.grey700,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      pw.SizedBox(height: 8),
+                      if (logoBytes != null) ...[
+                        pw.Image(pw.MemoryImage(logoBytes), width: 40, height: 40),
+                        pw.SizedBox(height: 8),
+                      ],
+                      pw.Text(
+                        companyName ?? '',
+                        style: pw.TextStyle(
+                          fontSize: 16,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
+                      pw.SizedBox(height: 4),
+                      pw.Text(
+                        companyAddress ?? '',
+                        style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey800),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              pw.SizedBox(width: 16),
+
+              // Customer Details
+              pw.Expanded(
+                child: pw.Container(
+                  padding: const pw.EdgeInsets.all(16),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.grey100,
+                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'BILL TO',
+                        style: pw.TextStyle(
+                          fontSize: 10,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.grey700,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      pw.SizedBox(height: 8),
+                      pw.Text(
+                        customerNameController.text,
+                        style: pw.TextStyle(
+                          fontSize: 14,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
+                      pw.SizedBox(height: 4),
+                      pw.Text(
+                        customerAddressController.text,
+                        style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey800),
+                      ),
+                      pw.SizedBox(height: 2),
+                      pw.Text(
+                        'Phone: ${customerPhoneNumberController.text}',
+                        style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey800),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 24),
+
+          // Products Table
+          buildModernProductTable(),
+          pw.SizedBox(height: 20),
+
+          // Pricing Summary
+          buildModernPricingDetails(),
+        ],
+      ),
+    );
+  }
+
+// Template 2: Modern Elegance (Modernized)
+  pw.Widget buildTemplate2(Uint8List? logoBytes, String currentDate) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(24),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          // Top Bar with accent color
+          pw.Container(
+            height: 8,
+            decoration: const pw.BoxDecoration(
+              color: PdfColors.green600,
+              borderRadius: pw.BorderRadius.all(pw.Radius.circular(4)),
+            ),
+          ),
+          pw.SizedBox(height: 20),
+
+          // Header Row
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              // Left Side - Company Info
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  if (logoBytes != null) ...[
+                    pw.Container(
+                      decoration: pw.BoxDecoration(
+                        border: pw.Border.all(color: PdfColors.green600, width: 2),
+                        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                      ),
+                      padding: const pw.EdgeInsets.all(8),
+                      child: pw.Image(pw.MemoryImage(logoBytes), width: 50, height: 50),
+                    ),
+                    pw.SizedBox(height: 12),
+                  ],
+                  pw.Text(
+                    companyName ?? '',
+                    style: pw.TextStyle(
+                      fontSize: 22,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.grey900,
+                    ),
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    companyAddress ?? '',
+                    style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey700),
+                  ),
+                ],
+              ),
+
+              // Right Side - Invoice Details
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                children: [
+                  pw.Text(
+                    'CASH MEMO',
+                    style: pw.TextStyle(
+                      fontSize: 24,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.green700,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  pw.SizedBox(height: 12),
+                  pw.Container(
+                    padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: pw.BoxDecoration(
+                      color: PdfColors.green50,
+                      borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+                      border: pw.Border.all(color: PdfColors.green200),
+                    ),
+                    child: pw.Text(
+                      'Date: $currentDate',
+                      style: pw.TextStyle(
+                        fontSize: 11,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.green900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 28),
+
+          // Customer Details Section
+          pw.Container(
+            padding: const pw.EdgeInsets.all(16),
+            decoration: pw.BoxDecoration(
+              border: pw.Border.all(color: PdfColors.green200, width: 1.5),
+              borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+            ),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  'CUSTOMER INFORMATION',
+                  style: pw.TextStyle(
+                    fontSize: 10,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.green700,
+                    letterSpacing: 1,
+                  ),
+                ),
+                pw.SizedBox(height: 8),
+                pw.Row(
                   children: [
-                    pw.Text('Date: $currentDate',
-                        style: const pw.TextStyle(fontSize: 12)),
-                    pw.SizedBox(height: 5),
-                    buildCustomerDetails(),
+                    pw.Expanded(
+                      child: _buildInfoRow('Name:', customerNameController.text),
+                    ),
+                    pw.SizedBox(width: 16),
+                    pw.Expanded(
+                      child: _buildInfoRow('Phone:', customerPhoneNumberController.text),
+                    ),
+                  ],
+                ),
+                pw.SizedBox(height: 6),
+                _buildInfoRow('Address:', customerAddressController.text),
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 24),
+
+          // Products Table
+          buildModernProductTable(),
+          pw.SizedBox(height: 20),
+
+          // Footer with pricing
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Expanded(
+                child: pw.Container(
+                  padding: const pw.EdgeInsets.all(12),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.grey50,
+                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                  ),
+                  child: pw.Text(
+                    'Thank you for your business!',
+                    style: pw.TextStyle(
+                      fontSize: 11,
+                      fontStyle: pw.FontStyle.italic,
+                      color: PdfColors.grey700,
+                    ),
+                  ),
+                ),
+              ),
+              pw.SizedBox(width: 16),
+              pw.Expanded(
+                child: buildModernPricingDetails(),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Helper for info rows
+  pw.Widget _buildInfoRow(String label, String value) {
+    return pw.Row(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Container(
+          width: 60,
+          child: pw.Text(
+            label,
+            style: pw.TextStyle(
+              fontSize: 10,
+              fontWeight: pw.FontWeight.bold,
+              color: PdfColors.grey700,
+            ),
+          ),
+        ),
+        pw.Expanded(
+          child: pw.Text(
+            value,
+            style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey900),
+          ),
+        ),
+      ],
+    );
+  }
+
+// Template 3: Minimalist Clean (Modernized)
+  pw.Widget buildTemplate3(Uint8List? logoBytes, String currentDate) {
+    return pw.Stack(
+      children: [
+        // Subtle watermark
+        if (watermarkText != null && watermarkText!.isNotEmpty)
+          pw.Positioned.fill(
+            child: pw.Opacity(
+              opacity: 0.05,
+              child: pw.Center(
+                child: pw.Text(
+                  watermarkText!,
+                  style: pw.TextStyle(
+                    fontSize: 80,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.grey600,
+                  ),
+                  textAlign: pw.TextAlign.center,
+                ),
+              ),
+            ),
+          ),
+
+        // Clean content
+        pw.Container(
+          padding: const pw.EdgeInsets.all(28),
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              // Header - Centered and minimal
+              pw.Center(
+                child: pw.Column(
+                  children: [
+                    if (logoBytes != null) ...[
+                      pw.Image(pw.MemoryImage(logoBytes), width: 60, height: 60),
+                      pw.SizedBox(height: 12),
+                    ],
+                    pw.Text(
+                      companyName ?? '',
+                      style: pw.TextStyle(
+                        fontSize: 26,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.grey900,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    pw.SizedBox(height: 6),
+                    pw.Text(
+                      companyAddress ?? '',
+                      style: const pw.TextStyle(
+                        fontSize: 11,
+                        color: PdfColors.grey600,
+                      ),
+                    ),
+                    pw.SizedBox(height: 20),
+                    pw.Container(
+                      width: 200,
+                      height: 1,
+                      color: PdfColors.grey300,
+                    ),
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 24),
+
+              // Date and Customer in a clean grid
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'INVOICE DATE',
+                        style: pw.TextStyle(
+                          fontSize: 9,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.grey600,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      pw.SizedBox(height: 4),
+                      pw.Text(
+                        currentDate,
+                        style: pw.TextStyle(
+                          fontSize: 13,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.grey900,
+                        ),
+                      ),
+                    ],
+                  ),
+                  pw.SizedBox(width: 40),
+                  pw.Expanded(
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          'BILL TO',
+                          style: pw.TextStyle(
+                            fontSize: 9,
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.grey600,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                        pw.SizedBox(height: 4),
+                        pw.Text(
+                          customerNameController.text,
+                          style: pw.TextStyle(
+                            fontSize: 13,
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.grey900,
+                          ),
+                        ),
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          customerAddressController.text,
+                          style: const pw.TextStyle(
+                            fontSize: 10,
+                            color: PdfColors.grey700,
+                          ),
+                        ),
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          customerPhoneNumberController.text,
+                          style: const pw.TextStyle(
+                            fontSize: 10,
+                            color: PdfColors.grey700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              pw.SizedBox(height: 28),
+
+              // Clean product table with minimal borders
+              buildCleanProductTable(),
+              pw.SizedBox(height: 24),
+
+              // Pricing aligned to right
+              pw.Row(
+                children: [
+                  pw.Spacer(),
+                  pw.Container(
+                    width: 240,
+                    child: buildModernPricingDetails(),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+// Template 5: Bold Gradient Header
+  pw.Widget buildTemplate5(Uint8List? logoBytes, String currentDate) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(24),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          // Bold gradient header (simulated with red background)
+          pw.Container(
+            padding: const pw.EdgeInsets.all(24),
+            decoration: const pw.BoxDecoration(
+              color: PdfColors.red700,
+              borderRadius: pw.BorderRadius.all(pw.Radius.circular(12)),
+            ),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  'CASH MEMO',
+                  style: pw.TextStyle(
+                    fontSize: 36,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.white,
+                    letterSpacing: 2,
+                  ),
+                ),
+                pw.SizedBox(height: 8),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text(
+                      companyName ?? '',
+                      style: pw.TextStyle(
+                        fontSize: 16,
+                        color: PdfColors.white.withOpacity(0.95),
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                    pw.Container(
+                      padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: pw.BoxDecoration(
+                        color: PdfColors.white.withOpacity(0.2),
+                        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(20)),
+                      ),
+                      child: pw.Text(
+                        currentDate,
+                        style: pw.TextStyle(
+                          fontSize: 11,
+                          color: PdfColors.white,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ],
             ),
-            pw.SizedBox(height: 20),
-            buildProductTable(),
-            pw.Divider(),
-            buildPricingDetails(),
-          ],
-        ),
-      ],
+          ),
+          pw.SizedBox(height: 24),
+
+          // Content area
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              // Company info
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'FROM',
+                      style: pw.TextStyle(
+                        fontSize: 10,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.red700,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    pw.SizedBox(height: 6),
+                    if (logoBytes != null) ...[
+                      pw.Image(pw.MemoryImage(logoBytes), width: 45, height: 45),
+                      pw.SizedBox(height: 8),
+                    ],
+                    pw.Text(
+                      companyAddress ?? '',
+                      style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey800),
+                    ),
+                  ],
+                ),
+              ),
+              pw.SizedBox(width: 24),
+
+              // Customer info
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'BILL TO',
+                      style: pw.TextStyle(
+                        fontSize: 10,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.red700,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    pw.SizedBox(height: 6),
+                    pw.Text(
+                      customerNameController.text,
+                      style: pw.TextStyle(
+                        fontSize: 14,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.grey900,
+                      ),
+                    ),
+                    pw.SizedBox(height: 4),
+                    pw.Text(
+                      customerAddressController.text,
+                      style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey800),
+                    ),
+                    pw.SizedBox(height: 2),
+                    pw.Text(
+                      'Phone: ${customerPhoneNumberController.text}',
+                      style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey800),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 24),
+
+          // Products table
+          buildModernProductTable(),
+          pw.SizedBox(height: 20),
+
+          // Pricing
+          pw.Row(
+            children: [
+              pw.Spacer(),
+              pw.Container(
+                width: 280,
+                child: buildModernPricingDetails(),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
-// Template 3: Minimal Template
-  pw.Widget buildTemplate3(Uint8List? logoBytes, String currentDate) {
-    return pw.Stack(
-      children: [
-        // Watermark in the middle of the page
-        pw.Positioned.fill(
-          child: pw.Opacity(
-            opacity: 0.1,
-            child: pw.Center(
-              child: pw.Text(
-                (watermarkText ?? ''),
-                style: pw.TextStyle(
-                  fontSize: 72,
-                  fontWeight: pw.FontWeight.bold,
-                  color: PdfColors.grey,
+// Template 6: Executive Professional
+  pw.Widget buildTemplate6(Uint8List? logoBytes, String currentDate) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(28),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          // Executive header with logo and details side by side
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              // Logo section
+              if (logoBytes != null)
+                pw.Container(
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(color: PdfColors.blue900, width: 3),
+                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(12)),
+                  ),
+                  padding: const pw.EdgeInsets.all(10),
+                  child: pw.Image(pw.MemoryImage(logoBytes), width: 60, height: 60),
                 ),
-                textAlign: pw.TextAlign.center,
+              pw.SizedBox(width: 20),
+
+              // Company details
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      companyName ?? '',
+                      style: pw.TextStyle(
+                        fontSize: 24,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.blue900,
+                      ),
+                    ),
+                    pw.SizedBox(height: 6),
+                    pw.Text(
+                      companyAddress ?? '',
+                      style: const pw.TextStyle(fontSize: 12, color: PdfColors.grey700),
+                    ),
+                  ],
+                ),
               ),
+
+              // Invoice badge
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.blue900,
+                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                ),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                  children: [
+                    pw.Text(
+                      'INVOICE',
+                      style: pw.TextStyle(
+                        fontSize: 16,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.white,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    pw.SizedBox(height: 4),
+                    pw.Text(
+                      currentDate,
+                      style: const pw.TextStyle(fontSize: 10, color: PdfColors.white),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 28),
+
+          // Divider
+          pw.Container(
+            height: 2,
+            color: PdfColors.blue900,
+          ),
+          pw.SizedBox(height: 20),
+
+          // Customer section
+          pw.Container(
+            padding: const pw.EdgeInsets.all(18),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.blue50,
+              borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
+              border: pw.Border.all(color: PdfColors.blue200, width: 1.5),
+            ),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  'BILLED TO',
+                  style: pw.TextStyle(
+                    fontSize: 11,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.blue900,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                pw.SizedBox(height: 10),
+                pw.Text(
+                  customerNameController.text,
+                  style: pw.TextStyle(
+                    fontSize: 15,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.grey900,
+                  ),
+                ),
+                pw.SizedBox(height: 4),
+                pw.Text(
+                  customerAddressController.text,
+                  style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey800),
+                ),
+                pw.SizedBox(height: 4),
+                pw.Text(
+                  'Tel: ${customerPhoneNumberController.text}',
+                  style: pw.TextStyle(
+                    fontSize: 11,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.blue800,
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
+          pw.SizedBox(height: 24),
 
-        // Content over the watermark
-        pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            // Company name centered with customer details on the side
-            pw.Center(
-              child: buildCompanyDetails(logoBytes),
+          // Products
+          buildModernProductTable(),
+          pw.SizedBox(height: 24),
+
+          // Summary
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Expanded(
+                child: pw.Container(
+                  padding: const pw.EdgeInsets.all(14),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.grey50,
+                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'NOTES',
+                        style: pw.TextStyle(
+                          fontSize: 9,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.grey700,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      pw.SizedBox(height: 6),
+                      pw.Text(
+                        'Thank you for your business. Payment is due within 30 days.',
+                        style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              pw.SizedBox(width: 20),
+              pw.Container(
+                width: 260,
+                child: buildModernPricingDetails(),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+// Template 7: Creative Modern
+  pw.Widget buildTemplate7(Uint8List? logoBytes, String currentDate) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(24),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          // Creative top section with diagonal accent
+          pw.Stack(
+            children: [
+              // Background accent
+              pw.Container(
+                height: 120,
+                decoration: const pw.BoxDecoration(
+                  color: PdfColors.orange500,
+                  borderRadius: pw.BorderRadius.all(pw.Radius.circular(16)),
+                ),
+              ),
+
+              // Content
+              pw.Container(
+                height: 120,
+                padding: const pw.EdgeInsets.all(20),
+                child: pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      mainAxisAlignment: pw.MainAxisAlignment.center,
+                      children: [
+                        if (logoBytes != null) ...[
+                          pw.Container(
+                            padding: const pw.EdgeInsets.all(8),
+                            decoration: const pw.BoxDecoration(
+                              color: PdfColors.white,
+                              borderRadius: pw.BorderRadius.all(pw.Radius.circular(10)),
+                            ),
+                            child: pw.Image(pw.MemoryImage(logoBytes), width: 40, height: 40),
+                          ),
+                          pw.SizedBox(height: 10),
+                        ],
+                        pw.Text(
+                          companyName ?? '',
+                          style: pw.TextStyle(
+                            fontSize: 20,
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                    pw.Container(
+                      padding: const pw.EdgeInsets.all(16),
+                      decoration: pw.BoxDecoration(
+                        color: PdfColors.white.withOpacity(0.95),
+                        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(12)),
+                      ),
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.end,
+                        children: [
+                          pw.Text(
+                            'CASH MEMO',
+                            style: pw.TextStyle(
+                              fontSize: 18,
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColors.orange700,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                          pw.SizedBox(height: 6),
+                          pw.Text(
+                            currentDate,
+                            style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey700),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 28),
+
+          // Customer and company details
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Expanded(
+                child: pw.Container(
+                  padding: const pw.EdgeInsets.all(16),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(color: PdfColors.orange200, width: 2),
+                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Row(
+                        children: [
+                          pw.Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const pw.BoxDecoration(
+                              color: PdfColors.orange500,
+                              shape: pw.BoxShape.circle,
+                            ),
+                          ),
+                          pw.SizedBox(width: 8),
+                          pw.Text(
+                            'FROM',
+                            style: pw.TextStyle(
+                              fontSize: 10,
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColors.orange700,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ],
+                      ),
+                      pw.SizedBox(height: 8),
+                      pw.Text(
+                        companyAddress ?? '',
+                        style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey800),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              pw.SizedBox(width: 16),
+              pw.Expanded(
+                child: pw.Container(
+                  padding: const pw.EdgeInsets.all(16),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.orange50,
+                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
+                    border: pw.Border.all(color: PdfColors.orange100, width: 1.5),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Row(
+                        children: [
+                          pw.Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const pw.BoxDecoration(
+                              color: PdfColors.orange600,
+                              shape: pw.BoxShape.circle,
+                            ),
+                          ),
+                          pw.SizedBox(width: 8),
+                          pw.Text(
+                            'BILL TO',
+                            style: pw.TextStyle(
+                              fontSize: 10,
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColors.orange700,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ],
+                      ),
+                      pw.SizedBox(height: 8),
+                      pw.Text(
+                        customerNameController.text,
+                        style: pw.TextStyle(
+                          fontSize: 13,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.grey900,
+                        ),
+                      ),
+                      pw.SizedBox(height: 3),
+                      pw.Text(
+                        customerAddressController.text,
+                        style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey800),
+                      ),
+                      pw.SizedBox(height: 2),
+                      pw.Text(
+                        customerPhoneNumberController.text,
+                        style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey800),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 24),
+
+          // Products
+          buildModernProductTable(),
+          pw.SizedBox(height: 20),
+
+          // Total
+          buildModernPricingDetails(),
+        ],
+      ),
+    );
+  }
+
+// Template 8: Elegant Minimalist
+  pw.Widget buildTemplate8(Uint8List? logoBytes, String currentDate) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          // Elegant header with thin accent line
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Container(
+                width: 60,
+                height: 4,
+                decoration: const pw.BoxDecoration(
+                  color: PdfColors.teal600,
+                  borderRadius: pw.BorderRadius.all(pw.Radius.circular(2)),
+                ),
+              ),
+              pw.SizedBox(height: 16),
+              pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                children: [
+                  if (logoBytes != null) ...[
+                    pw.Image(pw.MemoryImage(logoBytes), width: 55, height: 55),
+                    pw.SizedBox(width: 16),
+                  ],
+                  pw.Expanded(
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          companyName ?? '',
+                          style: pw.TextStyle(
+                            fontSize: 28,
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.grey900,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        pw.SizedBox(height: 4),
+                        pw.Text(
+                          companyAddress ?? '',
+                          style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey600),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 32),
+
+          // Invoice details in elegant grid
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    'Invoice Date',
+                    style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    currentDate,
+                    style: pw.TextStyle(
+                      fontSize: 13,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.teal700,
+                    ),
+                  ),
+                ],
+              ),
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(color: PdfColors.teal600, width: 2),
+                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                ),
+                child: pw.Text(
+                  'CASH MEMO',
+                  style: pw.TextStyle(
+                    fontSize: 14,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.teal700,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 24),
+
+          // Customer section with elegant border
+          pw.Container(
+            padding: const pw.EdgeInsets.all(16),
+            decoration: const pw.BoxDecoration(
+              border: pw.Border(
+                left: pw.BorderSide(color: PdfColors.teal600, width: 4),
+                top: pw.BorderSide(color: PdfColors.grey200, width: 1),
+                right: pw.BorderSide(color: PdfColors.grey200, width: 1),
+                bottom: pw.BorderSide(color: PdfColors.grey200, width: 1),
+              ),
+              borderRadius: pw.BorderRadius.all(pw.Radius.circular(6)),
             ),
-            pw.SizedBox(height: 10),
-            pw.Text('Date: $currentDate',
-                style: const pw.TextStyle(fontSize: 12)),
-            pw.SizedBox(height: 10),
-            buildCustomerDetails(),
-            pw.SizedBox(height: 20),
-            buildProductTable(),
-            pw.SizedBox(height: 10),
-            buildPricingDetails(),
-          ],
-        ),
-      ],
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  'BILLING DETAILS',
+                  style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600, letterSpacing: 1.2),
+                ),
+                pw.SizedBox(height: 10),
+                pw.Text(
+                  customerNameController.text,
+                  style: pw.TextStyle(
+                    fontSize: 14,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.grey900,
+                  ),
+                ),
+                pw.SizedBox(height: 4),
+                pw.Text(
+                  customerAddressController.text,
+                  style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey700),
+                ),
+                pw.SizedBox(height: 3),
+                pw.Text(
+                  'Phone: ${customerPhoneNumberController.text}',
+                  style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey700),
+                ),
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 28),
+
+          // Elegant product table
+          buildCleanProductTable(),
+          pw.SizedBox(height: 24),
+
+          // Summary
+          pw.Row(
+            children: [
+              pw.Spacer(),
+              pw.Container(
+                width: 280,
+                child: buildModernPricingDetails(),
+              ),
+            ],
+          ),
+
+          // Footer accent line
+          pw.SizedBox(height: 24),
+          pw.Container(
+            width: 100,
+            height: 3,
+            decoration: const pw.BoxDecoration(
+              color: PdfColors.teal600,
+              borderRadius: pw.BorderRadius.all(pw.Radius.circular(2)),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -981,71 +2647,182 @@ class _CashMemoEditState extends State<CashMemoEdit>
   }
 
   void _showTemplateSelectionDialog(BuildContext context, localizations) {
+    final templates = [
+      {
+        'id': 1,
+        'name': 'Professional Classic',
+        'description': 'Modern blue header with organized sections',
+        'icon': Icons.business_center_rounded,
+        'color': Colors.blue.shade700,
+      },
+      {
+        'id': 2,
+        'name': 'Modern Elegance',
+        'description': 'Green accent with clean professional layout',
+        'icon': Icons.auto_awesome_rounded,
+        'color': Colors.green.shade600,
+      },
+      {
+        'id': 3,
+        'name': 'Minimalist Clean',
+        'description': 'Subtle watermark with centered design',
+        'icon': Icons.fiber_manual_record_outlined,
+        'color': Colors.grey.shade700,
+      },
+      {
+        'id': 4,
+        'name': 'Modern Accent',
+        'description': 'Purple themed with borderless table',
+        'icon': Icons.palette_rounded,
+        'color': Colors.purple.shade600,
+      },
+      {
+        'id': 5,
+        'name': 'Bold Gradient',
+        'description': 'Eye-catching red header with bold typography',
+        'icon': Icons.gradient_rounded,
+        'color': Colors.red.shade700,
+      },
+      {
+        'id': 6,
+        'name': 'Executive Professional',
+        'description': 'Corporate style with detailed sections',
+        'icon': Icons.workspace_premium_rounded,
+        'color': Colors.indigo.shade900,
+      },
+      {
+        'id': 7,
+        'name': 'Creative Modern',
+        'description': 'Orange creative design with unique layout',
+        'icon': Icons.brush_rounded,
+        'color': Colors.orange.shade600,
+      },
+      {
+        'id': 8,
+        'name': 'Elegant Minimalist',
+        'description': 'Teal accents with sophisticated borders',
+        'icon': Icons.diamond_outlined,
+        'color': Colors.teal.shade600,
+      },
+    ];
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(localizations.select_template_label),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
+          title: Row(
             children: [
-              ListTile(
-                title: Text(localizations.template_name_1),
-                onTap: () {
-                  Navigator.of(context).pop(); // Close the dialog
-
-                  generateCashMemo(
-                      localizations,
-                      1,
-                      selectedWatermarkOption,
-                      watermarkText,
-                      watermarkImagePath); // Pass all required arguments
-                },
-              ),
-              ListTile(
-                title: Text(localizations.template_name_2),
-                onTap: () {
-                  Navigator.of(context).pop(); // Close the dialog
-                  generateCashMemo(
-                      localizations,
-                      2,
-                      selectedWatermarkOption,
-                      watermarkText,
-                      watermarkImagePath); // Pass all required arguments
-                },
-              ),
-              ListTile(
-                title: Text(localizations.template_name_3),
-                onTap: () {
-                  Navigator.of(context).pop(); // Close the dialog
-                  generateCashMemo(
-                      localizations,
-                      3,
-                      selectedWatermarkOption,
-                      watermarkText,
-                      watermarkImagePath); // Pass all required arguments
-                },
-              ),
-              ListTile(
-                title: Text(localizations.template_name_4),
-                onTap: () {
-                  Navigator.of(context).pop(); // Close the dialog
-                  generateCashMemo(
-                      localizations,
-                      4,
-                      selectedWatermarkOption,
-                      watermarkText,
-                      watermarkImagePath); // Pass all required arguments
-                },
-              ),
+              Icon(Icons.article_outlined, color: Colors.blue.shade700),
+              const SizedBox(width: 12),
+              const Text('Select Template'),
             ],
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+          content: SizedBox(
+            width: 500,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: templates.map((template) {
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300, width: 1.5),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          generateCashMemo(
+                            localizations,
+                            template['id'] as int,
+                            selectedWatermarkOption,
+                            watermarkText,
+                            watermarkImagePath,
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Row(
+                            children: [
+                              // Icon
+                              Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  color: (template['color'] as Color).withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: (template['color'] as Color).withOpacity(0.3),
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Icon(
+                                  template['icon'] as IconData,
+                                  color: template['color'] as Color,
+                                  size: 26,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              // Text
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      template['name'] as String,
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.grey.shade900,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      template['description'] as String,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Arrow
+                              Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                size: 16,
+                                color: Colors.grey.shade400,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog without action
+                Navigator.of(context).pop();
               },
-              child: Text(localizations.dialog_cancel_label),
+              child: Text(
+                localizations.dialog_cancel_label,
+                style: TextStyle(color: Colors.grey.shade700),
+              ),
             ),
           ],
         );
