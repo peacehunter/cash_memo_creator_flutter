@@ -14,6 +14,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'PdfViewerScreen.dart';
 import 'Memo.dart';
 import 'l10n/gen_l10n/app_localizations.dart';
+import 'design_system.dart';
+import 'widgets/professional_widgets.dart';
 
 class CashMemoEdit extends StatefulWidget {
   final Memo? memo;
