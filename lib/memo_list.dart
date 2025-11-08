@@ -19,6 +19,8 @@ import 'Memo.dart';
 import 'admob_ads/BannerAdWidget.dart'; // still imported, not used
 import 'memo_edit.dart';
 import 'package:cash_memo_creator/l10n/gen_l10n/app_localizations.dart';
+import 'design_system.dart';
+import 'widgets/professional_widgets.dart';
 
 class MemoListScreen extends StatefulWidget {
   const MemoListScreen({super.key});
