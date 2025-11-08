@@ -338,17 +338,10 @@ class MemoListScreenState extends State<MemoListScreen>
 
   // Add this widget for the web PDF tab
   Widget _buildPdfWebWarningTab() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: const [
-          Icon(Icons.info_outline, size: 48, color: Colors.blueGrey),
-          SizedBox(height: 16),
-          Text('PDF preview and file features are not available in the web version.',
-              textAlign: TextAlign.center, style: TextStyle(fontSize: 16, color: Colors.blueGrey)),
-        ],
-      ),
+    return const EmptyState(
+      icon: Icons.cloud_off_rounded,
+      title: 'PDF Features Not Available',
+      description: 'PDF preview and file management features are only available in the mobile version of the app.',
     );
   }
 
@@ -529,8 +522,10 @@ class MemoListScreenState extends State<MemoListScreen>
                     );
                   },
                 )
-              : const Center(
-                  child: Text("No PDF files found in the specified directory."),
+              : const EmptyState(
+                  icon: Icons.picture_as_pdf_outlined,
+                  title: 'No PDF Files',
+                  description: 'Generated PDF invoices will appear here. Create your first cash memo to get started.',
                 ),
         );
       },
@@ -692,146 +687,71 @@ class MemoListScreenState extends State<MemoListScreen>
 
   Widget _buildSavedMemosTab() {
     final localizations = _cachedLocalizations!;
-    final theme = _cachedTheme!;
 
     return Column(
       children: [
-        // Hero Create Button
-        Container(
-          margin: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                theme.colorScheme.primary,
-                Color.lerp(theme.colorScheme.primary, Colors.black, 0.08)!,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: _cachedTheme!.colorScheme.primary
-                    .withOpacity(0.1), // Simplified shadow color
-                blurRadius: 8,
-                offset: const Offset(0, 4),
+        // Statistics Dashboard (only show if memos exist)
+        if (_memos.isNotEmpty)
+          StatisticsDashboard(memos: _memos),
+
+        // Professional Create Button
+        ProfessionalCreateButton(
+          title: localizations.generateCashMemo,
+          subtitle: 'Generate professional invoices instantly',
+          onPressed: () async {
+            Memo? newMemo = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const CashMemoEdit(autoGenerate: true),
               ),
-            ],
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: () async {
-                Memo? newMemo = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        const CashMemoEdit(autoGenerate: true),
-                  ),
-                );
-                if (newMemo != null) {
-                  setState(() => _memos.add(newMemo));
-                  saveMemos();
-                }
-              },
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Color.alphaBlend(
-                            const Color(0x26000000),
-                            theme.colorScheme
-                                .onPrimary), // onPrimary.withOpacity(0.15)
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Color.alphaBlend(
-                              const Color(0x33000000),
-                              theme.colorScheme
-                                  .onPrimary), // onPrimary.withOpacity(0.2)
-                          width: 1,
-                        ),
-                      ),
-                      child: Icon(
-                        Icons.receipt_long_outlined,
-                        color: theme.colorScheme.onPrimary,
-                        size: 28,
-                      ),
-                    ),
-                    const SizedBox(width: 20),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            localizations.generateCashMemo,
-                            style: theme.textTheme.titleLarge?.copyWith(
-                              color: theme.colorScheme.onPrimary,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 18,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Create professional cash memos',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onPrimary.withAlpha(
-                                  217), // onPrimary.withOpacity(0.85)
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(
-                      Icons.arrow_forward_ios,
-                      color: Colors
-                          .white70, // Using a const color instead of computed color
-                      size: 16,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+            );
+            if (newMemo != null) {
+              setState(() => _memos.add(newMemo));
+              saveMemos();
+            }
+          },
         ),
 
-        ..._memos.isNotEmpty
-            ? [
-                Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: _memos.length,
-                    // Performance optimizations
-                    cacheExtent:
-                        1000, // Cache more items for smoother scrolling
-                    physics:
-                        const BouncingScrollPhysics(), // Better scroll feel
-                    itemBuilder: (context, index) {
-                      final memo = _memos[index];
-                      return MemoItem(
-                        memo: memo,
-                        index: index,
-                        onEdit: _editMemo,
-                        onDelete: _deleteMemo,
-                        onPrint: _printMemo,
-                        theme: theme,
-                        localizations: localizations,
-                      );
-                    },
-                  ),
+        // Memos List or Empty State
+        _memos.isNotEmpty
+            ? Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                  itemCount: _memos.length,
+                  cacheExtent: 1000,
+                  physics: const BouncingScrollPhysics(),
+                  itemBuilder: (context, index) {
+                    final memo = _memos[index];
+                    return ProfessionalMemoCard(
+                      memo: memo,
+                      index: index,
+                      onEdit: _editMemo,
+                      onDelete: _deleteMemo,
+                      onPrint: _printMemo,
+                    );
+                  },
                 ),
-              ]
-            : [
-                const Expanded(
-                  child: Center(
-                    child: Text("No memos available. Create your first memo!"),
-                  ),
+              )
+            : Expanded(
+                child: EmptyState(
+                  icon: Icons.receipt_long_rounded,
+                  title: 'No Memos Yet',
+                  description: 'Create your first professional cash memo to get started with invoicing',
+                  actionText: 'Create First Memo',
+                  onAction: () async {
+                    Memo? newMemo = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CashMemoEdit(autoGenerate: true),
+                      ),
+                    );
+                    if (newMemo != null) {
+                      setState(() => _memos.add(newMemo));
+                      saveMemos();
+                    }
+                  },
                 ),
-              ],
+              ),
       ],
     );
   }
