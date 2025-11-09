@@ -42,6 +42,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
   late TextEditingController customerNameController;
   late TextEditingController customerAddressController;
   late TextEditingController customerPhoneNumberController;
+  late TextEditingController notesController;
   late ScrollController _scrollController;
 
   InterstitialAd? _interstitialAd;
@@ -230,6 +231,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
         TextEditingController(text: widget.memo?.customerAddress ?? '');
     customerPhoneNumberController =
         TextEditingController(text: widget.memo?.customerPhoneNumber ?? '');
+    notesController =
+        TextEditingController(text: widget.memo?.notes ?? '');
 
     isPercentDiscount = widget.memo?.isPercentDiscount ?? true;
 
@@ -315,6 +318,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
       customerName: customerNameController.text,
       customerAddress: customerAddressController.text,
       customerPhoneNumber: customerPhoneNumberController.text,
+      notes: notesController.text.isNotEmpty ? notesController.text : null,
       companyAddress: '',
       companyLogo: '',
     );
@@ -968,6 +972,55 @@ class _CashMemoEditState extends State<CashMemoEdit>
     );
   }
 
+  // Helper to build notes section if notes exist
+  pw.Widget? buildNotesSection() {
+    if (notesController.text.isEmpty) {
+      return null;
+    }
+
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(14),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.amber50,
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+        border: pw.Border.all(color: PdfColors.amber200, width: 1),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            children: [
+              pw.Icon(
+                const pw.IconData(0xe873), // note icon
+                color: PdfColors.amber700,
+                size: 16,
+              ),
+              pw.SizedBox(width: 8),
+              pw.Text(
+                'NOTES',
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.amber900,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 8),
+          pw.Text(
+            notesController.text,
+            style: const pw.TextStyle(
+              fontSize: 10,
+              color: PdfColors.grey900,
+              lineSpacing: 1.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
 // Template 4: Modern Accent (Modernized - formerly Borderless)
   pw.Widget buildTemplate4(Uint8List? logoBytes, String currentDate) {
     return pw.Container(
@@ -1158,6 +1211,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
 
           // Summary section
           buildModernPricingDetails(),
+
+          // Notes section (if exists)
+          if (buildNotesSection() != null) ...[
+            pw.SizedBox(height: 16),
+            buildNotesSection()!,
+          ],
         ],
       ),
     );
@@ -3199,6 +3258,34 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
             ),
             keyboardType: TextInputType.phone,
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: notesController,
+            decoration: InputDecoration(
+              labelText: 'Notes / Remarks (Optional)',
+              labelStyle: TextStyle(color: Colors.blue.shade600),
+              filled: true,
+              fillColor: Colors.blue.shade50,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.blue.shade100),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.blue.shade400, width: 2),
+              ),
+              prefixIcon: Icon(Icons.note_alt_outlined, color: Colors.blue.shade600),
+              contentPadding:
+                  const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+              hintText: 'Add any additional notes or remarks here...',
+              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+            ),
+            maxLines: 3,
           ),
         ],
       ),

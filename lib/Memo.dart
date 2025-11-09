@@ -11,6 +11,7 @@ class Memo {
   bool isPercentDiscount;
   String? id; // Firestore document id
   String? userId; // Owner uid
+  String? notes; // Notes/remarks field
 
   String companyAddress; // Add this line
   String companyLogo; // Add this line (assuming it's a URL or file path)
@@ -29,6 +30,7 @@ class Memo {
     this.discount = 0.0, // Default value for discount
     this.vat = 0.0, // Default value for VAT
     this.isPercentDiscount = true, // Default value for percentage discount
+    this.notes, // Optional notes
     this.id,
     this.userId,
   });
@@ -48,6 +50,7 @@ class Memo {
       'isPercentDiscount': isPercentDiscount, // Save discount type
       'companyAddress': companyAddress, // Save company address
       'companyLogo': companyLogo, // Save company logo
+      'notes': notes ?? '', // Save notes
       if (id != null) 'id': id,
       if (userId != null) 'userId': userId,
     };
@@ -80,6 +83,7 @@ class Memo {
         companyAddress:
             json['companyAddress'] ?? '', // Handle null discount type
         companyLogo: json['companyLogo'] ?? '',
+        notes: json['notes'] as String?,
         id: json['id'],
         userId: json['userId']);
   }
