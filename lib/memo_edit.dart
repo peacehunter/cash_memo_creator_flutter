@@ -106,6 +106,16 @@ class _CashMemoEditState extends State<CashMemoEdit>
       controller.dispose();
     }
 
+    // Dispose of discount/vat controllers and focus nodes
+    discountController.dispose();
+    vatController.dispose();
+    customerNameController.dispose();
+    customerAddressController.dispose();
+    customerPhoneNumberController.dispose();
+    notesController.dispose();
+    discountFocusNode.dispose();
+    vatFocusNode.dispose();
+
     // Dispose of debounce timers
     _debounceTimer?.cancel();
     for (var timer in _productDebounceTimers.values) {
@@ -237,6 +247,39 @@ class _CashMemoEditState extends State<CashMemoEdit>
         TextEditingController(text: widget.memo?.notes ?? '');
 
     isPercentDiscount = widget.memo?.isPercentDiscount ?? true;
+
+    // Add focus listeners to clear "0" or "0.0" when user taps on discount/vat fields
+    discountFocusNode.addListener(() {
+      if (discountFocusNode.hasFocus) {
+        // When field gains focus, select all text if it's "0" or "0.0"
+        final text = discountController.text.trim();
+        if (text == '0' || text == '0.0') {
+          discountController.clear();
+        }
+      } else {
+        // When field loses focus, set to "0" if empty
+        if (discountController.text.trim().isEmpty) {
+          discountController.text = '0';
+          discount = 0.0;
+        }
+      }
+    });
+
+    vatFocusNode.addListener(() {
+      if (vatFocusNode.hasFocus) {
+        // When field gains focus, select all text if it's "0" or "0.0"
+        final text = vatController.text.trim();
+        if (text == '0' || text == '0.0') {
+          vatController.clear();
+        }
+      } else {
+        // When field loses focus, set to "0" if empty
+        if (vatController.text.trim().isEmpty) {
+          vatController.text = '0';
+          vat = 0.0;
+        }
+      }
+    });
 
     for (var product in products) {
       _nameControllers.add(TextEditingController(text: product.name));
@@ -1008,7 +1051,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
         children: [
           _buildModernPricingRow('Subtotal', '৳${getMemoizedSubtotal().toStringAsFixed(2)}', false),
           pw.SizedBox(height: 6),
-          _buildModernPricingRow('Discount', '${discountController.text}%', false),
+          _buildModernPricingRow('Discount', isPercentDiscount ? '${discountController.text}%' : '৳${discountController.text}', false),
           pw.SizedBox(height: 6),
           _buildModernPricingRow('VAT/Tax', '${vatController.text}%', false),
           pw.SizedBox(height: 10),
@@ -2064,9 +2107,9 @@ class _CashMemoEditState extends State<CashMemoEdit>
                     ),
                     pw.Container(
                       padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: pw.BoxDecoration(
+                      decoration: const pw.BoxDecoration(
                         color: PdfColors.red900,
-                        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(20)),
+                        borderRadius: pw.BorderRadius.all(pw.Radius.circular(20)),
                       ),
                       child: pw.Text(
                         currentDate,
@@ -2837,7 +2880,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
       crossAxisAlignment: pw.CrossAxisAlignment.end,
       children: [
         buildPricingRow('Subtotal', getMemoizedSubtotal().toStringAsFixed(2)),
-        buildPricingRow('Discount', '${discountController.text}%'),
+        buildPricingRow('Discount', isPercentDiscount ? '${discountController.text}%' : '৳${discountController.text}'),
         buildPricingRow('Vat/Tax', '${vatController.text}%'),
         pw.Divider(),
         buildPricingRow('Total', getMemoizedTotal().toStringAsFixed(2)),
@@ -3736,6 +3779,118 @@ class _CashMemoEditState extends State<CashMemoEdit>
               ),
             ],
           ),
+          const SizedBox(height: 16),
+          // Discount Type Selector
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.grey.shade300,
+                width: 1,
+              ),
+            ),
+            padding: const EdgeInsets.all(4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      setState(() {
+                        isPercentDiscount = false;
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color: !isPercentDiscount
+                            ? Colors.blue.shade600
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.attach_money,
+                            size: 16,
+                            color: !isPercentDiscount
+                                ? Colors.white
+                                : Colors.grey.shade600,
+                          ),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              'Flat (৳)',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: !isPercentDiscount
+                                    ? Colors.white
+                                    : Colors.grey.shade600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      setState(() {
+                        isPercentDiscount = true;
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isPercentDiscount
+                            ? Colors.blue.shade600
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.percent,
+                            size: 16,
+                            color: isPercentDiscount
+                                ? Colors.white
+                                : Colors.grey.shade600,
+                          ),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              'Percent',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: isPercentDiscount
+                                    ? Colors.white
+                                    : Colors.grey.shade600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -4001,34 +4156,116 @@ class _CashMemoEditState extends State<CashMemoEdit>
             ],
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Transform.scale(
-                scale: 1.2,
-                child: Checkbox(
-                  value: isPercentDiscount,
-                  onChanged: (value) {
-                    setState(() {
-                      isPercentDiscount = value ?? true;
-                    });
-                  },
-                  activeColor: Colors.blue.shade600,
-                  checkColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
+          // Discount Type Selector
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.grey.shade300,
+                width: 1,
+              ),
+            ),
+            padding: const EdgeInsets.all(4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      setState(() {
+                        isPercentDiscount = false;
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color: !isPercentDiscount
+                            ? Colors.blue.shade600
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.attach_money,
+                            size: 16,
+                            color: !isPercentDiscount
+                                ? Colors.white
+                                : Colors.grey.shade600,
+                          ),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              'Flat (৳)',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: !isPercentDiscount
+                                    ? Colors.white
+                                    : Colors.grey.shade600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                localizations.percent_discount_label,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey.shade700,
-                  fontWeight: FontWeight.w500,
+                const SizedBox(width: 8),
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      setState(() {
+                        isPercentDiscount = true;
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isPercentDiscount
+                            ? Colors.blue.shade600
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.percent,
+                            size: 16,
+                            color: isPercentDiscount
+                                ? Colors.white
+                                : Colors.grey.shade600,
+                          ),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              'Percent',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: isPercentDiscount
+                                    ? Colors.white
+                                    : Colors.grey.shade600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
