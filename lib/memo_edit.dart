@@ -2430,7 +2430,6 @@ class _CashMemoEditState extends State<CashMemoEdit>
                 right: pw.BorderSide(color: PdfColors.grey200, width: 1),
                 bottom: pw.BorderSide(color: PdfColors.grey200, width: 1),
               ),
-              borderRadius: pw.BorderRadius.all(pw.Radius.circular(6)),
             ),
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
