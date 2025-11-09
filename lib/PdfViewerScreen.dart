@@ -29,7 +29,7 @@ class PdfPreviewScreenState extends State<PdfPreviewScreen> {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    final pdfHeight = screenHeight * 0.65; // 65% of screen height for responsive design
+    final pdfHeight = screenHeight * 0.75; // Increased to 75% since button moved to AppBar
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -74,6 +74,49 @@ class PdfPreviewScreenState extends State<PdfPreviewScreen> {
             ),
           ],
         ),
+        actions: [
+          // Save button always visible in AppBar
+          Container(
+            margin: const EdgeInsets.only(right: 12, top: 8, bottom: 8),
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                PdfService().savePdf(
+                  widget.pdfData,
+                  "Invoice Generator",
+                  widget.fileName,
+                );
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Row(
+                      children: [
+                        const Icon(Icons.check_circle_rounded, color: Colors.white),
+                        const SizedBox(width: AppSpacing.sm),
+                        const Text('PDF saved successfully!'),
+                      ],
+                    ),
+                    backgroundColor: AppColors.secondary,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.download_rounded, size: 18),
+              label: const Text('Save PDF'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                elevation: 2,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -171,41 +214,6 @@ class PdfPreviewScreenState extends State<PdfPreviewScreen> {
                           );
                         },
                       ),
-                    ),
-                  ),
-
-                  const SizedBox(height: AppSpacing.xl),
-
-                  // Save button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ProfessionalButton(
-                      text: 'Save PDF',
-                      icon: Icons.download_rounded,
-                      onPressed: () async {
-                        PdfService().savePdf(
-                          widget.pdfData,
-                          "Invoice Generator",
-                          widget.fileName,
-                        );
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Row(
-                              children: [
-                                const Icon(Icons.check_circle_rounded, color: Colors.white),
-                                const SizedBox(width: AppSpacing.sm),
-                                const Text('PDF saved successfully!'),
-                              ],
-                            ),
-                            backgroundColor: AppColors.secondary,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppRadius.md),
-                            ),
-                          ),
-                        );
-                      },
                     ),
                   ),
 
