@@ -281,9 +281,10 @@ class _CashMemoEditState extends State<CashMemoEdit>
   Future<void> loadCompanyInfo(localizations) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
+      // Use new keys from settings_screen.dart
       companyName =
-          prefs.getString('companyName') ?? localizations.pdf_company_name;
-      companyAddress = prefs.getString('companyAddress') ?? '';
+          prefs.getString('company_name') ?? localizations.pdf_company_name;
+      companyAddress = prefs.getString('company_address') ?? '';
       companyLogoPath = prefs.getString('companyLogo') ?? '';
       watermarkText = prefs.getString('watermarkText') ?? '';
       watermarkImagePath = prefs.getString('watermarkImage') ?? '';
