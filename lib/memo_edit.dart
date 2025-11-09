@@ -3142,12 +3142,14 @@ class _CashMemoEditState extends State<CashMemoEdit>
                                   children: [
                                     Row(
                                       children: [
-                                        Text(
-                                          template['name'] as String,
-                                          style: TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.grey.shade900,
+                                        Expanded(
+                                          child: Text(
+                                            template['name'] as String,
+                                            style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.grey.shade900,
+                                            ),
                                           ),
                                         ),
                                         if (isPremium) ...[
