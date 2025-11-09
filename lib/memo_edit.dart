@@ -744,7 +744,9 @@ class _CashMemoEditState extends State<CashMemoEdit>
               : '৳${product.discount.toStringAsFixed(2)}';
 
           return pw.TableRow(
-            // Removed background color to avoid boxes around digits
+            decoration: pw.BoxDecoration(
+              color: index.isEven ? PdfColors.white : PdfColors.grey50,
+            ),
             children: [
               pw.Padding(
                 padding: const pw.EdgeInsets.all(10),
@@ -1359,7 +1361,9 @@ class _CashMemoEditState extends State<CashMemoEdit>
 
           return pw.Container(
             padding: const pw.EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-            // Removed background color to avoid boxes around digits
+            decoration: pw.BoxDecoration(
+              color: index.isEven ? PdfColors.white : PdfColors.grey50,
+            ),
             child: pw.Row(
               children: [
                 pw.Expanded(
