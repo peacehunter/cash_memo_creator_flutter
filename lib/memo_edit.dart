@@ -527,23 +527,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                     children: [
                       templateWidget,
                       pw.Expanded(child: pw.Container()),
-                      pw.Row(
-                        mainAxisAlignment: pw.MainAxisAlignment.start,
-                        children: [
-                          pw.Text('Signature: ',
-                              style: const pw.TextStyle(fontSize: 18)),
-                          pw.Container(
-                            width: 200,
-                            height: 50,
-                            decoration: const pw.BoxDecoration(
-                              border: pw.Border(
-                                bottom: pw.BorderSide(
-                                    width: 1, color: PdfColors.black),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                      // Professional signature section
+                      buildSignatureSection(),
                       if (nbMessage != null && nbMessage!.isNotEmpty) ...[
                         pw.SizedBox(height: 20),
                         buildNBMessage(),
@@ -567,6 +552,70 @@ class _CashMemoEditState extends State<CashMemoEdit>
     String formattedDate =
         DateFormat('_yyyyMMdd_HHmmss').format(DateTime.now());
     return '${customerName}_$formattedDate.pdf'; // e.g., document_20231001_120101.pdf
+  }
+
+// Professional signature section
+  pw.Widget buildSignatureSection() {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.only(top: 30, left: 24, right: 24, bottom: 20),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: pw.CrossAxisAlignment.end,
+        children: [
+          // Customer signature
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Container(
+                width: 180,
+                padding: const pw.EdgeInsets.only(bottom: 8),
+                decoration: const pw.BoxDecoration(
+                  border: pw.Border(
+                    bottom: pw.BorderSide(color: PdfColors.grey700, width: 1.5),
+                  ),
+                ),
+              ),
+              pw.SizedBox(height: 6),
+              pw.Text(
+                'Customer Signature',
+                style: pw.TextStyle(
+                  fontSize: 9,
+                  color: PdfColors.grey700,
+                  fontWeight: pw.FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+
+          // Authorized signature
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.end,
+            children: [
+              pw.Container(
+                width: 180,
+                padding: const pw.EdgeInsets.only(bottom: 8),
+                decoration: const pw.BoxDecoration(
+                  border: pw.Border(
+                    bottom: pw.BorderSide(color: PdfColors.grey700, width: 1.5),
+                  ),
+                ),
+              ),
+              pw.SizedBox(height: 6),
+              pw.Text(
+                'Authorized Signature',
+                style: pw.TextStyle(
+                  fontSize: 9,
+                  color: PdfColors.grey700,
+                  fontWeight: pw.FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
 // N.B. message widget
