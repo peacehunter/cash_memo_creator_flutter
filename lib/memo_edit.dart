@@ -17,6 +17,7 @@ import 'Memo.dart';
 import 'l10n/gen_l10n/app_localizations.dart';
 import 'design_system.dart';
 import 'widgets/professional_widgets.dart';
+import 'TemplateManager.dart';
 
 class CashMemoEdit extends StatefulWidget {
   final Memo? memo;
@@ -3033,14 +3034,25 @@ class _CashMemoEditState extends State<CashMemoEdit>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: templates.map((template) {
+                  final templateId = template['id'] as int;
+                  final isPremium = TemplateManager.isPremiumTemplate(templateId);
+
                   return Container(
                     margin: const EdgeInsets.only(bottom: 10),
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300, width: 1.5),
+                      border: Border.all(
+                        color: isPremium
+                            ? Colors.purple.shade200
+                            : Colors.grey.shade300,
+                        width: isPremium ? 2.0 : 1.5,
+                      ),
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.grey.withOpacity(0.1),
+                          color: (isPremium
+                              ? Colors.purple
+                              : Colors.grey
+                          ).withOpacity(0.1),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
                         ),
@@ -3049,11 +3061,51 @@ class _CashMemoEditState extends State<CashMemoEdit>
                     child: Material(
                       color: Colors.transparent,
                       child: InkWell(
-                        onTap: () {
+                        onTap: () async {
+                          // Check if template is premium and locked
+                          if (isPremium) {
+                            bool isUnlocked = await TemplateManager.isTemplateUnlocked(templateId);
+
+                            if (!isUnlocked) {
+                              // Close template selection dialog first
+                              Navigator.of(context).pop();
+
+                              // Show unlock dialog
+                              bool shouldUnlock = await TemplateManager.showUnlockDialog(
+                                context,
+                                templateId,
+                                template['name'] as String,
+                              );
+
+                              if (shouldUnlock) {
+                                // Attempt to unlock with rewarded ad
+                                bool unlocked = await TemplateManager.unlockTemplate(
+                                  templateId,
+                                  context,
+                                );
+
+                                if (unlocked) {
+                                  // Success! Generate cash memo
+                                  if (mounted) {
+                                    generateCashMemo(
+                                      localizations,
+                                      templateId,
+                                      selectedWatermarkOption,
+                                      watermarkText,
+                                      watermarkImagePath,
+                                    );
+                                  }
+                                }
+                              }
+                              return;
+                            }
+                          }
+
+                          // Free template or unlocked premium - proceed directly
                           Navigator.of(context).pop();
                           generateCashMemo(
                             localizations,
-                            template['id'] as int,
+                            templateId,
                             selectedWatermarkOption,
                             watermarkText,
                             watermarkImagePath,
@@ -3088,13 +3140,54 @@ class _CashMemoEditState extends State<CashMemoEdit>
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      template['name'] as String,
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.grey.shade900,
-                                      ),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          template['name'] as String,
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.grey.shade900,
+                                          ),
+                                        ),
+                                        if (isPremium) ...[
+                                          const SizedBox(width: 6),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                colors: [
+                                                  Colors.purple.shade400,
+                                                  Colors.blue.shade400,
+                                                ],
+                                              ),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: const [
+                                                Icon(
+                                                  Icons.lock_rounded,
+                                                  size: 10,
+                                                  color: Colors.white,
+                                                ),
+                                                SizedBox(width: 2),
+                                                Text(
+                                                  'PRO',
+                                                  style: TextStyle(
+                                                    fontSize: 9,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
@@ -3107,11 +3200,15 @@ class _CashMemoEditState extends State<CashMemoEdit>
                                   ],
                                 ),
                               ),
-                              // Arrow
+                              // Arrow or Lock icon
                               Icon(
-                                Icons.arrow_forward_ios_rounded,
+                                isPremium
+                                    ? Icons.lock_outline_rounded
+                                    : Icons.arrow_forward_ios_rounded,
                                 size: 16,
-                                color: Colors.grey.shade400,
+                                color: isPremium
+                                    ? Colors.purple.shade400
+                                    : Colors.grey.shade400,
                               ),
                             ],
                           ),

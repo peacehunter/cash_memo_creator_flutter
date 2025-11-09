@@ -2,6 +2,12 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'AdHelper.dart';
 
 class AppOpenAdManager {
+  // Singleton pattern
+  static final AppOpenAdManager _instance = AppOpenAdManager._internal();
+  static AppOpenAdManager get instance => _instance;
+
+  AppOpenAdManager._internal();
+
   AppOpenAd? _appOpenAd;
   bool _isShowingAd = false;
   DateTime? _appOpenLoadTime;
@@ -76,6 +82,9 @@ class AppOpenAdManager {
 
     _appOpenAd!.show();
   }
+
+  // Alias for consistency with main.dart
+  void showIfAvailable() => showAdIfAvailable();
 
   // Dispose
   void dispose() {

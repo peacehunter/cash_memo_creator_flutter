@@ -18,6 +18,8 @@ import 'package:flutter/foundation.dart';
 import 'Memo.dart';
 // import 'NativeAdContainer.dart'; // Removed
 import 'admob_ads/BannerAdWidget.dart'; // still imported, not used
+import 'admob_ads/NativeAdWidget.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'memo_edit.dart';
 import 'package:cash_memo_creator/l10n/gen_l10n/app_localizations.dart';
 import 'design_system.dart';
@@ -829,19 +831,38 @@ class MemoListScreenState extends State<MemoListScreen>
       );
     }
 
+    // Calculate total items including native ads (one ad every 5 items)
+    final int adFrequency = 5;
+    final int totalAds = _memos.isEmpty ? 0 : (_memos.length / adFrequency).floor();
+    final int totalItems = _memos.length + totalAds;
+
     return ListView.builder(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.all(AppSpacing.lg),
-      itemCount: _memos.length,
+      itemCount: totalItems,
       itemBuilder: (context, index) {
-        final memo = _memos[index];
-        return ProfessionalMemoCard(
-          memo: memo,
-          index: index,
-          onEdit: _editMemo,
-          onDelete: _deleteMemo,
-          onPrint: _printMemo,
-        );
+        // Calculate if this position should show a native ad
+        final int adsBeforeIndex = (index / (adFrequency + 1)).floor();
+        final int adjustedIndex = index - adsBeforeIndex;
+
+        // Show native ad at every (adFrequency + 1) position
+        if ((index + 1) % (adFrequency + 1) == 0 && index > 0) {
+          return const NativeAdWidget(templateType: TemplateType.medium);
+        }
+
+        // Show memo card
+        if (adjustedIndex < _memos.length) {
+          final memo = _memos[adjustedIndex];
+          return ProfessionalMemoCard(
+            memo: memo,
+            index: adjustedIndex,
+            onEdit: _editMemo,
+            onDelete: _deleteMemo,
+            onPrint: _printMemo,
+          );
+        }
+
+        return const SizedBox.shrink();
       },
     );
   }
