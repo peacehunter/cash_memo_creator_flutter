@@ -6,6 +6,8 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'PdfSaver.dart';
 import 'admob_ads/BannerAdWidget.dart';
+import 'design_system.dart';
+import 'widgets/professional_widgets.dart';
 
 class PdfPreviewScreen extends StatefulWidget {
   final Uint8List pdfData;
@@ -26,154 +28,195 @@ class PdfPreviewScreenState extends State<PdfPreviewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final pdfHeight = screenHeight * 0.65; // 65% of screen height for responsive design
+
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        elevation: 2,
-        backgroundColor: const Color(0xFF1e40af),
-        title: const Text(
-          'PDF Preview',
-          style: TextStyle(
-            fontFamily: 'Roboto',
-            fontWeight: FontWeight.bold,
-            fontSize: 24,
-            color: Colors.white,
-          ),
-        ),
-        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.white,
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new,
-            color: Colors.white,
-            size: 28,
-          ),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                gradient: AppGradients.primary,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                boxShadow: AppShadows.sm,
+              ),
+              child: const Icon(Icons.picture_as_pdf_rounded, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'PDF Preview',
+                  style: AppTypography.h3.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  'Review your document',
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Theme.of(context).colorScheme.surface,
-              Theme.of(context).colorScheme.background,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        constraints: BoxConstraints.expand(), // Ensures full-screen coverage
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Center(
-                      child: Text(
-                        'Preview of ${widget.fileName}',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // File name card
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                      border: Border.all(color: AppColors.border),
+                      boxShadow: AppShadows.sm,
                     ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      height: 500, // Adjust this height according to your needs
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(AppSpacing.sm),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
+                          ),
+                          child: Icon(
+                            Icons.description_rounded,
+                            color: AppColors.primary,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.md),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Document',
+                                style: AppTypography.caption.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                widget.fileName,
+                                style: AppTypography.bodyMedium.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textPrimary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: AppSpacing.xl),
+
+                  // PDF viewer container
+                  Container(
+                    height: pdfHeight,
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                      border: Border.all(color: AppColors.border),
+                      boxShadow: AppShadows.md,
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
                       child: PDFView(
                         pdfData: widget.pdfData,
                         autoSpacing: false,
                         enableSwipe: true,
                         pageSnap: true,
                         onError: (error) {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            content: Text('Error loading PDF: $error'),
-                          ));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Row(
+                                children: [
+                                  const Icon(Icons.error_outline, color: Colors.white),
+                                  const SizedBox(width: AppSpacing.sm),
+                                  Expanded(child: Text('Error loading PDF: $error')),
+                                ],
+                              ),
+                              backgroundColor: AppColors.error,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(AppRadius.md),
+                              ),
+                            ),
+                          );
                         },
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    Center(
-                      child: Container(
-                        width: 200,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Theme.of(context).colorScheme.primary,
-                              Theme.of(context).colorScheme.secondary,
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                              spreadRadius: 1,
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
+                  ),
+
+                  const SizedBox(height: AppSpacing.xl),
+
+                  // Save button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ProfessionalButton(
+                      text: 'Save PDF',
+                      icon: Icons.download_rounded,
+                      onPressed: () async {
+                        PdfService().savePdf(
+                          widget.pdfData,
+                          "Invoice Generator",
+                          widget.fileName,
+                        );
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Row(
+                              children: [
+                                const Icon(Icons.check_circle_rounded, color: Colors.white),
+                                const SizedBox(width: AppSpacing.sm),
+                                const Text('PDF saved successfully!'),
+                              ],
                             ),
-                          ],
-                        ),
-                        child: ElevatedButton.icon(
-                          onPressed: () async {
-                            PdfService().savePdf(widget.pdfData,
-                                "Invoice Generator", widget.fileName);
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Row(
-                                children: [
-                                  Icon(Icons.check_circle, color: Colors.white),
-                                  const SizedBox(width: 8),
-                                  Text('PDF saved successfully!'),
-                                ],
-                              ),
-                              backgroundColor: Theme.of(context).colorScheme.primary,
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ));
-                          },
-                          icon: const Icon(
-                            Icons.save_alt,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                          label: const Text(
-                            'Save PDF',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
+                            backgroundColor: AppColors.secondary,
+                            behavior: SnackBarBehavior.floating,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(AppRadius.md),
                             ),
                           ),
-                        ),
-                      ),
+                        );
+                      },
                     ),
-                    const SizedBox(height: 20),
-                  ],
-                ),
+                  ),
+
+                  const SizedBox(height: AppSpacing.lg),
+                ],
               ),
             ),
-            // Add the Banner Ad widget here, stuck at the bottom
-            if(kIsWeb==false)
-              MyBannerAdWidget(), // Replace with your actual banner ad widget
-          ],
-        ),
+          ),
+          // Banner ad at bottom
+          if (kIsWeb == false) MyBannerAdWidget(),
+        ],
       ),
     );
   }

@@ -3159,65 +3159,53 @@ class _CashMemoEditState extends State<CashMemoEdit>
         return false;
       },
       child: Scaffold(
-        backgroundColor: Colors.grey.shade50,
+        backgroundColor: AppColors.background,
         appBar: AppBar(
           elevation: 0,
-          backgroundColor: Colors.transparent,
-          flexibleSpace: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.blue.shade600, Colors.blue.shade800],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.blue.shade200,
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
+          backgroundColor: AppColors.white,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
+            onPressed: () {
+              Memo memo = saveMemo();
+              Navigator.pop(context, memo);
+            },
+          ),
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  gradient: AppGradients.primary,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  boxShadow: AppShadows.sm,
                 ),
-              ],
-            ),
-          ),
-          title: Text(
-            widget.memo != null ? 'Edit Cash Memo' : 'Create Cash Memo',
-            style: const TextStyle(
-              fontFamily: 'Roboto',
-              fontWeight: FontWeight.w600,
-              fontSize: 22,
-              color: Colors.white,
-              letterSpacing: 0.5,
-            ),
-          ),
-          centerTitle: true,
-          leading: Container(
-            margin: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: IconButton(
-              icon: const Icon(
-                Icons.arrow_back_ios_new,
-                color: Colors.white,
-                size: 20,
+                child: const Icon(Icons.receipt_long_rounded, color: Colors.white, size: 20),
               ),
-              onPressed: () {
-                Memo memo = saveMemo();
-                Navigator.pop(context, memo);
-              },
-            ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    widget.memo != null ? 'Edit Cash Memo' : 'Create Cash Memo',
+                    style: AppTypography.h3.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    'Fill in the details below',
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-        body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.grey.shade50, Colors.white],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-          ),
-          child: Column(
+        body: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
@@ -3233,63 +3221,60 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Company Header Card
+                      // Compact Company Header Card
                       Container(
-                        margin: EdgeInsets.only(
-                          bottom:
-                              MediaQuery.of(context).size.width > 600 ? 32 : 24,
-                        ),
-                        padding: EdgeInsets.all(
-                          MediaQuery.of(context).size.width > 600 ? 32 : 24,
-                        ),
+                        margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+                        padding: const EdgeInsets.all(AppSpacing.lg),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Colors.blue.shade50, Colors.white],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.blue.shade100,
-                              blurRadius: 15,
-                              offset: const Offset(0, 5),
-                            ),
-                          ],
-                          border: Border.all(
-                            color: Colors.blue.shade100,
-                            width: 1,
-                          ),
+                          color: AppColors.white,
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                          border: Border.all(color: AppColors.border),
+                          boxShadow: AppShadows.sm,
                         ),
-                        child: Column(
+                        child: Row(
                           children: [
-                            Icon(
-                              Icons.business,
-                              size: 40,
-                              color: Colors.blue.shade600,
-                            ),
-                            const SizedBox(height: 12),
-                            isLoadingCompanyInfo
-                                ? const CircularProgressIndicator()
-                                : Text(
-                                    companyName ?? 'Company Name',
-                                    style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.blue.shade800,
-                                      letterSpacing: 0.5,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Professional Cash Memo',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.blue.shade600,
-                                fontWeight: FontWeight.w500,
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                gradient: AppGradients.primary,
+                                borderRadius: BorderRadius.circular(AppRadius.md),
+                                boxShadow: AppShadows.sm,
                               ),
-                              textAlign: TextAlign.center,
+                              child: const Icon(
+                                Icons.business_rounded,
+                                size: 24,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Creating for',
+                                    style: AppTypography.caption.copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  isLoadingCompanyInfo
+                                      ? const SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(strokeWidth: 2),
+                                        )
+                                      : Text(
+                                          companyName ?? 'Company Name',
+                                          style: AppTypography.h3.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.textPrimary,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
