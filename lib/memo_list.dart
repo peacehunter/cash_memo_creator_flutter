@@ -367,6 +367,83 @@ class MemoListScreenState extends State<MemoListScreen>
                 },
               ),
             ),
+
+            // Create Memo Banner Button (only on Memos tab)
+            if (_tabController.index == 0)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 12,
+                      offset: const Offset(0, -4),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () async {
+                      Memo? newMemo = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const CashMemoEdit(autoGenerate: true),
+                        ),
+                      );
+                      if (newMemo != null) {
+                        setState(() => _memos.add(newMemo));
+                        saveMemos();
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      decoration: BoxDecoration(
+                        gradient: AppGradients.primary,
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(AppRadius.sm),
+                            ),
+                            child: const Icon(
+                              Icons.add_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'Create New Cash Memo',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
             // Only show ads on mobile (not web)
             if (!kIsWeb)
               SafeArea(
@@ -375,38 +452,6 @@ class MemoListScreenState extends State<MemoListScreen>
           ],
         ),
       ),
-      floatingActionButton: _tabController.index == 0
-          ? Padding(
-              padding: EdgeInsets.only(
-                bottom: kIsWeb ? 0 : 80, // Add space above banner ad on mobile
-              ),
-              child: FloatingActionButton.extended(
-                onPressed: () async {
-                  Memo? newMemo = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const CashMemoEdit(autoGenerate: true),
-                    ),
-                  );
-                  if (newMemo != null) {
-                    setState(() => _memos.add(newMemo));
-                    saveMemos();
-                  }
-                },
-                backgroundColor: AppColors.primary,
-                elevation: 4,
-                icon: const Icon(Icons.add_rounded, color: Colors.white),
-                label: const Text(
-                  'Create Memo',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
-                ),
-              ),
-            )
-          : null,
     );
   }
 
@@ -786,12 +831,7 @@ class MemoListScreenState extends State<MemoListScreen>
 
     return ListView.builder(
       physics: const BouncingScrollPhysics(),
-      padding: EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.lg,
-        AppSpacing.lg,
-        kIsWeb ? AppSpacing.xl : 140, // Extra padding for FAB + banner ad on mobile
-      ),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       itemCount: _memos.length,
       itemBuilder: (context, index) {
         final memo = _memos[index];
