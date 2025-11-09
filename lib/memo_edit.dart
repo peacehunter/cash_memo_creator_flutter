@@ -3371,8 +3371,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
             ],
           ),
         ),
-      ),
-    );
+      );
+
   }
 
   Widget _buildCustomerDetails(localizations) {

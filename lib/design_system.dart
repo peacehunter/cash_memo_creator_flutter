@@ -150,6 +150,14 @@ class AppTypography {
     color: AppColors.textSecondary,
   );
 
+  // Caption Style (small secondary text)
+  static const TextStyle caption = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w400,
+    height: 1.4,
+    color: AppColors.textSecondary,
+  );
+
   // Button Text
   static const TextStyle button = TextStyle(
     fontSize: 14,
