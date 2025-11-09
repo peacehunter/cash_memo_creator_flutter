@@ -290,15 +290,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             fillColor: AppColors.neutral50,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppRadius.md),
-              borderSide: BorderSide(color: AppColors.border),
+              borderSide: const BorderSide(color: AppColors.border),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppRadius.md),
-              borderSide: BorderSide(color: AppColors.border),
+              borderSide: const BorderSide(color: AppColors.border),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppRadius.md),
-              borderSide: BorderSide(color: AppColors.primary, width: 2),
+              borderSide: const BorderSide(color: AppColors.primary, width: 2),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.lg,
