@@ -3062,13 +3062,17 @@ class _CashMemoEditState extends State<CashMemoEdit>
                       color: Colors.transparent,
                       child: InkWell(
                         onTap: () async {
+                          print('📋 [MemoEdit] Template $templateId selected. Premium: $isPremium');
+
                           // Check if template is premium and locked
                           if (isPremium) {
                             bool isUnlocked = await TemplateManager.isTemplateUnlocked(templateId);
+                            print('📋 [MemoEdit] Template $templateId unlock status: $isUnlocked');
 
                             if (!isUnlocked) {
                               // Close template selection dialog first
                               Navigator.of(context).pop();
+                              print('📋 [MemoEdit] Closed template selection, showing unlock dialog');
 
                               // Show unlock dialog
                               bool shouldUnlock = await TemplateManager.showUnlockDialog(
@@ -3076,16 +3080,20 @@ class _CashMemoEditState extends State<CashMemoEdit>
                                 templateId,
                                 template['name'] as String,
                               );
+                              print('📋 [MemoEdit] User wants to unlock: $shouldUnlock');
 
                               if (shouldUnlock) {
                                 // Attempt to unlock with rewarded ad
+                                print('📋 [MemoEdit] Calling unlockTemplate...');
                                 bool unlocked = await TemplateManager.unlockTemplate(
                                   templateId,
                                   context,
                                 );
+                                print('📋 [MemoEdit] Unlock result: $unlocked');
 
                                 if (unlocked) {
                                   // Success! Generate cash memo
+                                  print('📋 [MemoEdit] ✅ Template unlocked! Generating cash memo...');
                                   if (mounted) {
                                     generateCashMemo(
                                       localizations,
@@ -3095,13 +3103,18 @@ class _CashMemoEditState extends State<CashMemoEdit>
                                       watermarkImagePath,
                                     );
                                   }
+                                } else {
+                                  print('📋 [MemoEdit] ❌ Template unlock failed. No cash memo generated.');
                                 }
+                              } else {
+                                print('📋 [MemoEdit] User cancelled unlock dialog');
                               }
                               return;
                             }
                           }
 
                           // Free template or unlocked premium - proceed directly
+                          print('📋 [MemoEdit] Proceeding with template $templateId (free or already unlocked)');
                           Navigator.of(context).pop();
                           generateCashMemo(
                             localizations,

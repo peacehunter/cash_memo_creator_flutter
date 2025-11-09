@@ -26,24 +26,31 @@ class TemplateManager {
     int templateId,
     BuildContext context,
   ) async {
+    print('🔓 [TemplateManager] Starting unlock process for template $templateId');
+
     final rewardedAdManager = RewardedAdManager();
 
     // Check failed attempts count for this template
     final prefs = await SharedPreferences.getInstance();
     final failedAttempts = prefs.getInt('template_failed_attempts_$templateId') ?? 0;
+    print('🔓 [TemplateManager] Failed attempts: $failedAttempts');
 
     // If user has failed 3 times, offer alternative
     if (failedAttempts >= 3) {
+      print('🔓 [TemplateManager] 3 failures detected, showing fallback dialog');
       final shouldUnlockAnyway = await _showFallbackDialog(context, templateId);
       if (shouldUnlockAnyway) {
         await prefs.setBool('template_unlocked_$templateId', true);
-        await prefs.remove('template_failed_attempts_$templateId'); // Reset counter
+        await prefs.remove('template_failed_attempts_$templateId');
+        print('🔓 [TemplateManager] Template unlocked via fallback');
         return true;
       }
+      print('🔓 [TemplateManager] User declined fallback unlock');
       return false;
     }
 
     // Show loading dialog
+    print('🔓 [TemplateManager] Showing loading dialog');
     if (context.mounted) {
       showDialog(
         context: context,
@@ -64,16 +71,21 @@ class TemplateManager {
     // Load the ad
     bool adLoaded = false;
     bool loadFailed = false;
+    String? loadError;
 
+    print('🔓 [TemplateManager] Starting ad load...');
     rewardedAdManager.loadRewardedAd(
       onAdLoaded: () {
+        print('🔓 [TemplateManager] ✅ Ad loaded successfully!');
         adLoaded = true;
         if (context.mounted) {
           Navigator.pop(context); // Close loading dialog
         }
       },
       onAdFailedToLoad: (error) {
+        print('🔓 [TemplateManager] ❌ Ad failed to load: $error');
         loadFailed = true;
+        loadError = error.toString();
         if (context.mounted) {
           Navigator.pop(context); // Close loading dialog
         }
@@ -85,14 +97,19 @@ class TemplateManager {
     while (!adLoaded && !loadFailed && waitTime < 8000) {
       await Future.delayed(const Duration(milliseconds: 500));
       waitTime += 500;
+      if (waitTime % 2000 == 0) {
+        print('🔓 [TemplateManager] Waiting for ad... ${waitTime}ms elapsed');
+      }
     }
 
     // Close loading dialog if still open
     if (context.mounted && !adLoaded && !loadFailed) {
+      print('🔓 [TemplateManager] ⏱️ Timeout waiting for ad');
       Navigator.pop(context);
     }
 
     if (!adLoaded || loadFailed) {
+      print('🔓 [TemplateManager] Ad load failed. Error: $loadError');
       // Increment failed attempts
       await prefs.setInt('template_failed_attempts_$templateId', failedAttempts + 1);
 
@@ -102,7 +119,8 @@ class TemplateManager {
           _showErrorDialog(
             context,
             'Failed to load ad. Please check your internet connection.\n\n'
-            'Attempts remaining: $remaining',
+            'Attempts remaining: $remaining\n\n'
+            'Debug: ${loadError ?? "Timeout"}',
           );
         } else {
           _showErrorDialog(
@@ -112,16 +130,20 @@ class TemplateManager {
         }
       }
       rewardedAdManager.dispose();
+      print('🔓 [TemplateManager] Returning false (ad failed to load)');
       return false;
     }
 
     // Show the ad and wait for completion
+    print('🔓 [TemplateManager] Showing rewarded ad...');
     final rewardEarned = await rewardedAdManager.showRewardedAd();
+    print('🔓 [TemplateManager] Ad completed. Reward earned: $rewardEarned');
 
     if (rewardEarned) {
       // Save unlock status and reset failed attempts
       await prefs.setBool('template_unlocked_$templateId', true);
       await prefs.remove('template_failed_attempts_$templateId');
+      print('🔓 [TemplateManager] ✅ Template $templateId unlocked successfully!');
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -133,6 +155,7 @@ class TemplateManager {
         );
       }
     } else {
+      print('🔓 [TemplateManager] ❌ Reward not earned');
       // Increment failed attempts
       await prefs.setInt('template_failed_attempts_$templateId', failedAttempts + 1);
 
@@ -145,6 +168,7 @@ class TemplateManager {
     }
 
     rewardedAdManager.dispose();
+    print('🔓 [TemplateManager] Unlock process complete. Returning: $rewardEarned');
     return rewardEarned;
   }
 

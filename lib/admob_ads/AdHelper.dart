@@ -36,18 +36,26 @@ class AdHelper {
 
   // Rewarded Ad Unit IDs
   static String get rewardedAdUnitId {
-    if (kIsWeb) return '';
+    if (kIsWeb) {
+      print('📱 [AdHelper] Platform is Web - rewarded ads not supported');
+      return '';
+    }
 
+    String adUnitId = '';
     if (Platform.isAndroid) {
       // TODO: Replace with your actual Android rewarded ad unit ID
-      return 'ca-app-pub-3940256099942544/5224354917'; // Test ID
-      // return 'ca-app-pub-XXXXXXXXXXXXXXXX/YYYYYYYYYY'; // Your actual ID
+      adUnitId = 'ca-app-pub-3940256099942544/5224354917'; // Test ID
+      // adUnitId = 'ca-app-pub-XXXXXXXXXXXXXXXX/YYYYYYYYYY'; // Your actual ID
+      print('📱 [AdHelper] Using Android rewarded ad unit ID: $adUnitId');
     } else if (Platform.isIOS) {
       // TODO: Replace with your actual iOS rewarded ad unit ID
-      return 'ca-app-pub-3940256099942544/1712485313'; // Test ID
-      // return 'ca-app-pub-XXXXXXXXXXXXXXXX/ZZZZZZZZZZ'; // Your actual ID
+      adUnitId = 'ca-app-pub-3940256099942544/1712485313'; // Test ID
+      // adUnitId = 'ca-app-pub-XXXXXXXXXXXXXXXX/ZZZZZZZZZZ'; // Your actual ID
+      print('📱 [AdHelper] Using iOS rewarded ad unit ID: $adUnitId');
+    } else {
+      print('📱 [AdHelper] Unsupported platform for rewarded ads');
     }
-    return '';
+    return adUnitId;
   }
 
   // Native Ad Unit IDs
