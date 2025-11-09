@@ -28,57 +28,175 @@ class TemplateManager {
   ) async {
     final rewardedAdManager = RewardedAdManager();
 
-    // Show loading dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
+    // Check failed attempts count for this template
+    final prefs = await SharedPreferences.getInstance();
+    final failedAttempts = prefs.getInt('template_failed_attempts_$templateId') ?? 0;
 
-    // Load the ad
-    bool adLoaded = false;
-    rewardedAdManager.loadRewardedAd(
-      onAdLoaded: () {
-        adLoaded = true;
-        Navigator.pop(context); // Close loading dialog
-      },
-      onAdFailedToLoad: (error) {
-        Navigator.pop(context); // Close loading dialog
-        _showErrorDialog(context, 'Failed to load ad. Please try again.');
-      },
-    );
-
-    // Wait for ad to load (max 5 seconds)
-    await Future.delayed(const Duration(seconds: 5));
-
-    if (!adLoaded) {
-      if (context.mounted) {
-        Navigator.pop(context); // Close loading dialog if still open
-        _showErrorDialog(context, 'Ad took too long to load. Please check your connection.');
+    // If user has failed 3 times, offer alternative
+    if (failedAttempts >= 3) {
+      final shouldUnlockAnyway = await _showFallbackDialog(context, templateId);
+      if (shouldUnlockAnyway) {
+        await prefs.setBool('template_unlocked_$templateId', true);
+        await prefs.remove('template_failed_attempts_$templateId'); // Reset counter
+        return true;
       }
       return false;
     }
 
-    // Show the ad
-    bool rewardEarned = false;
-    await rewardedAdManager.showRewardedAd(
-      onUserEarnedReward: () async {
-        rewardEarned = true;
-        // Save unlock status
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('template_unlocked_$templateId', true);
-      },
-      onAdFailed: () {
+    // Show loading dialog
+    if (context.mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Loading ad...'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Load the ad
+    bool adLoaded = false;
+    bool loadFailed = false;
+
+    rewardedAdManager.loadRewardedAd(
+      onAdLoaded: () {
+        adLoaded = true;
         if (context.mounted) {
-          _showErrorDialog(context, 'Failed to show ad. Please try again.');
+          Navigator.pop(context); // Close loading dialog
+        }
+      },
+      onAdFailedToLoad: (error) {
+        loadFailed = true;
+        if (context.mounted) {
+          Navigator.pop(context); // Close loading dialog
         }
       },
     );
 
+    // Wait for ad to load (max 8 seconds)
+    int waitTime = 0;
+    while (!adLoaded && !loadFailed && waitTime < 8000) {
+      await Future.delayed(const Duration(milliseconds: 500));
+      waitTime += 500;
+    }
+
+    // Close loading dialog if still open
+    if (context.mounted && !adLoaded && !loadFailed) {
+      Navigator.pop(context);
+    }
+
+    if (!adLoaded || loadFailed) {
+      // Increment failed attempts
+      await prefs.setInt('template_failed_attempts_$templateId', failedAttempts + 1);
+
+      if (context.mounted) {
+        final remaining = 3 - (failedAttempts + 1);
+        if (remaining > 0) {
+          _showErrorDialog(
+            context,
+            'Failed to load ad. Please check your internet connection.\n\n'
+            'Attempts remaining: $remaining',
+          );
+        } else {
+          _showErrorDialog(
+            context,
+            'Ad loading failed multiple times. You can now unlock this template for free!',
+          );
+        }
+      }
+      rewardedAdManager.dispose();
+      return false;
+    }
+
+    // Show the ad and wait for completion
+    final rewardEarned = await rewardedAdManager.showRewardedAd();
+
+    if (rewardEarned) {
+      // Save unlock status and reset failed attempts
+      await prefs.setBool('template_unlocked_$templateId', true);
+      await prefs.remove('template_failed_attempts_$templateId');
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✓ Template unlocked successfully!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } else {
+      // Increment failed attempts
+      await prefs.setInt('template_failed_attempts_$templateId', failedAttempts + 1);
+
+      if (context.mounted) {
+        _showErrorDialog(
+          context,
+          'You did not complete watching the ad. Please try again.',
+        );
+      }
+    }
+
     rewardedAdManager.dispose();
     return rewardEarned;
+  }
+
+  // Show fallback dialog when ads fail 3 times
+  static Future<bool> _showFallbackDialog(
+    BuildContext context,
+    int templateId,
+  ) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.celebration, color: Colors.green.shade600),
+            const SizedBox(width: 12),
+            const Text('Free Unlock!'),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'We noticed ads aren\'t loading for you.',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            ),
+            SizedBox(height: 12),
+            Text(
+              'As a thank you for your patience, you can now unlock this premium template for free!',
+              style: TextStyle(fontSize: 14),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Maybe Later'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.pop(context, true),
+            icon: const Icon(Icons.lock_open),
+            label: const Text('Unlock for Free'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return result ?? false;
   }
 
   // Show unlock dialog for premium templates
