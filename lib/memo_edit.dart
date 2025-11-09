@@ -1498,6 +1498,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
 
           // Pricing Summary
           buildModernPricingDetails(),
+
+          // Notes section (if exists)
+          if (buildNotesSection() != null) ...[
+            pw.SizedBox(height: 16),
+            buildNotesSection()!,
+          ],
         ],
       ),
     );
@@ -1661,6 +1667,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
               ),
             ],
           ),
+
+          // Notes section (if exists)
+          if (buildNotesSection() != null) ...[
+            pw.SizedBox(height: 16),
+            buildNotesSection()!,
+          ],
         ],
       ),
     );
@@ -1845,6 +1857,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   ),
                 ],
               ),
+
+              // Notes section (if exists)
+              if (buildNotesSection() != null) ...[
+                pw.SizedBox(height: 16),
+                buildNotesSection()!,
+              ],
             ],
           ),
         ),
@@ -1998,6 +2016,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
               ),
             ],
           ),
+
+          // Notes section (if exists)
+          if (buildNotesSection() != null) ...[
+            pw.SizedBox(height: 16),
+            buildNotesSection()!,
+          ],
         ],
       ),
     );
@@ -2177,6 +2201,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
               ),
             ],
           ),
+
+          // Notes section (if exists)
+          if (buildNotesSection() != null) ...[
+            pw.SizedBox(height: 16),
+            buildNotesSection()!,
+          ],
         ],
       ),
     );
@@ -2379,6 +2409,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
 
           // Total
           buildModernPricingDetails(),
+
+          // Notes section (if exists)
+          if (buildNotesSection() != null) ...[
+            pw.SizedBox(height: 16),
+            buildNotesSection()!,
+          ],
         ],
       ),
     );
@@ -2536,6 +2572,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
               ),
             ],
           ),
+
+          // Notes section (if exists)
+          if (buildNotesSection() != null) ...[
+            pw.SizedBox(height: 16),
+            buildNotesSection()!,
+          ],
 
           // Footer accent line
           pw.SizedBox(height: 24),
