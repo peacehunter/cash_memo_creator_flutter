@@ -17,11 +17,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _companyPhoneController = TextEditingController();
   final TextEditingController _companyEmailController = TextEditingController();
   final TextEditingController _watermarkTextController = TextEditingController();
+  final TextEditingController _specialNoteController = TextEditingController();
 
   bool _isLoading = true;
   bool _isSaving = false;
   int _watermarkOption = 0; // 0: Text only, 1: Image only, 2: Both
   String? _watermarkImagePath;
+  bool _specialNoteEnabled = false;
 
   @override
   void initState() {
@@ -40,6 +42,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _watermarkTextController.text = prefs.getString('watermarkText') ?? '';
       _watermarkImagePath = prefs.getString('watermarkImage');
       _watermarkOption = prefs.getInt('watermarkOption') ?? 0;
+      _specialNoteEnabled = prefs.getBool('special_note_enabled') ?? false;
+      _specialNoteController.text = prefs.getString('special_note') ?? '';
     } catch (e) {
       _showSnackBar('Failed to load settings', isError: true);
     } finally {
@@ -57,6 +61,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await prefs.setString('company_email', _companyEmailController.text);
       await prefs.setString('watermarkText', _watermarkTextController.text);
       await prefs.setInt('watermarkOption', _watermarkOption);
+      await prefs.setBool('special_note_enabled', _specialNoteEnabled);
+      await prefs.setString('special_note', _specialNoteController.text);
       if (_watermarkImagePath != null) {
         await prefs.setString('watermarkImage', _watermarkImagePath!);
       }
@@ -314,6 +320,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   const SizedBox(height: AppSpacing.xxl),
 
+                  // Special Note Section
+                  _buildSectionHeader(
+                    icon: Icons.note_add_rounded,
+                    title: 'Special Note',
+                    subtitle: 'Add a note that appears on all cash memos',
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+
+                  _buildSettingCard(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Enable Special Note',
+                                  style: AppTypography.labelMedium.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Show special note on all templates',
+                                  style: AppTypography.bodySmall.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Switch(
+                            value: _specialNoteEnabled,
+                            activeColor: AppColors.primary,
+                            onChanged: (value) {
+                              setState(() => _specialNoteEnabled = value);
+                            },
+                          ),
+                        ],
+                      ),
+                      if (_specialNoteEnabled) ...[
+                        const SizedBox(height: AppSpacing.lg),
+                        _buildTextField(
+                          controller: _specialNoteController,
+                          label: 'Special Note Text',
+                          hint: 'E.g., Thank you for your business. Payment due within 30 days.',
+                          icon: Icons.edit_note_rounded,
+                          maxLines: 3,
+                        ),
+                      ],
+                    ],
+                  ),
+
+                  const SizedBox(height: AppSpacing.xxl),
+
                   // App Information Section
                   _buildSectionHeader(
                     icon: Icons.info_rounded,
@@ -497,6 +561,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _companyPhoneController.dispose();
     _companyEmailController.dispose();
     _watermarkTextController.dispose();
+    _specialNoteController.dispose();
     super.dispose();
   }
 }

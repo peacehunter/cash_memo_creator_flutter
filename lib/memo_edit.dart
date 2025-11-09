@@ -82,6 +82,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
   String? companyLogoPath;
   String? watermarkText;
   String? nbMessage;
+  String? specialNote;
+  bool specialNoteEnabled = false;
   bool isLoadingCompanyInfo = true;
 
   @override
@@ -293,6 +295,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
       watermarkImagePath = prefs.getString('watermarkImage') ?? '';
       nbMessage = prefs.getString('nbMessage') ?? '';
       selectedWatermarkOption = prefs.getInt('watermarkOption') ?? 0;
+      specialNoteEnabled = prefs.getBool('special_note_enabled') ?? false;
+      specialNote = prefs.getString('special_note') ?? '';
       isLoadingCompanyInfo = false;
     });
   }
@@ -1021,6 +1025,55 @@ class _CashMemoEditState extends State<CashMemoEdit>
     );
   }
 
+  // Helper to build special note section from settings if enabled
+  pw.Widget? buildSpecialNoteSection() {
+    if (!specialNoteEnabled || specialNote == null || specialNote!.isEmpty) {
+      return null;
+    }
+
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(14),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.blue50,
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+        border: pw.Border.all(color: PdfColors.blue200, width: 1),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            children: [
+              pw.Icon(
+                const pw.IconData(0xe873), // note icon
+                color: PdfColors.blue700,
+                size: 16,
+              ),
+              pw.SizedBox(width: 8),
+              pw.Text(
+                'IMPORTANT NOTE',
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.blue900,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 8),
+          pw.Text(
+            specialNote!,
+            style: const pw.TextStyle(
+              fontSize: 10,
+              color: PdfColors.grey900,
+              lineSpacing: 1.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
 // Template 4: Modern Accent (Modernized - formerly Borderless)
   pw.Widget buildTemplate4(Uint8List? logoBytes, String currentDate) {
     return pw.Container(
@@ -1216,6 +1269,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
           if (buildNotesSection() != null) ...[
             pw.SizedBox(height: 16),
             buildNotesSection()!,
+          ],
+
+          // Special note from settings (if enabled)
+          if (buildSpecialNoteSection() != null) ...[
+            pw.SizedBox(height: 16),
+            buildSpecialNoteSection()!,
           ],
         ],
       ),
@@ -1504,6 +1563,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
             pw.SizedBox(height: 16),
             buildNotesSection()!,
           ],
+
+          // Special note from settings (if enabled)
+          if (buildSpecialNoteSection() != null) ...[
+            pw.SizedBox(height: 16),
+            buildSpecialNoteSection()!,
+          ],
         ],
       ),
     );
@@ -1672,6 +1737,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
           if (buildNotesSection() != null) ...[
             pw.SizedBox(height: 16),
             buildNotesSection()!,
+          ],
+
+          // Special note from settings (if enabled)
+          if (buildSpecialNoteSection() != null) ...[
+            pw.SizedBox(height: 16),
+            buildSpecialNoteSection()!,
           ],
         ],
       ),
@@ -1863,6 +1934,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
                 pw.SizedBox(height: 16),
                 buildNotesSection()!,
               ],
+
+              // Special note from settings (if enabled)
+              if (buildSpecialNoteSection() != null) ...[
+                pw.SizedBox(height: 16),
+                buildSpecialNoteSection()!,
+              ],
             ],
           ),
         ),
@@ -2021,6 +2098,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
           if (buildNotesSection() != null) ...[
             pw.SizedBox(height: 16),
             buildNotesSection()!,
+          ],
+
+          // Special note from settings (if enabled)
+          if (buildSpecialNoteSection() != null) ...[
+            pw.SizedBox(height: 16),
+            buildSpecialNoteSection()!,
           ],
         ],
       ),
@@ -2203,6 +2286,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
               ),
             ],
           ),
+
+          // Special note from settings (if enabled)
+          if (buildSpecialNoteSection() != null) ...[
+            pw.SizedBox(height: 16),
+            buildSpecialNoteSection()!,
+          ],
         ],
       ),
     );
@@ -2411,6 +2500,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
             pw.SizedBox(height: 16),
             buildNotesSection()!,
           ],
+
+          // Special note from settings (if enabled)
+          if (buildSpecialNoteSection() != null) ...[
+            pw.SizedBox(height: 16),
+            buildSpecialNoteSection()!,
+          ],
         ],
       ),
     );
@@ -2573,6 +2668,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
           if (buildNotesSection() != null) ...[
             pw.SizedBox(height: 16),
             buildNotesSection()!,
+          ],
+
+          // Special note from settings (if enabled)
+          if (buildSpecialNoteSection() != null) ...[
+            pw.SizedBox(height: 16),
+            buildSpecialNoteSection()!,
           ],
 
           // Footer accent line
