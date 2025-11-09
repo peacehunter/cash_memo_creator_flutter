@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 // dart:io is used only on non-web platforms
 import 'dart:io' if (dart.library.html) 'src/stub_io.dart';
 import 'package:cash_memo_creator/admob_ads/AdHelper.dart';
+import 'package:cash_memo_creator/admob_ads/InterstitialAdManager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -44,6 +45,10 @@ class _CashMemoEditState extends State<CashMemoEdit>
   late TextEditingController customerPhoneNumberController;
   late TextEditingController notesController;
   late ScrollController _scrollController;
+
+  // Ad managers
+  final InterstitialAdManager _interstitialAdManager = InterstitialAdManager();
+  static int _pdfGenerationCount = 0; // Static counter for PDF generations
 
   InterstitialAd? _interstitialAd;
   FocusNode discountFocusNode = FocusNode();
@@ -219,7 +224,10 @@ class _CashMemoEditState extends State<CashMemoEdit>
     WidgetsBinding.instance.addObserver(this); // Add the observer here
 
     _scrollController = ScrollController();
-    loadInterstitialAD();
+    // Load interstitial ad using new manager
+    if (!kIsWeb) {
+      _interstitialAdManager.loadInterstitialAd();
+    }
     print("widget.autoGenerate value : ${widget.autoGenerate}");
     print("widget.memo value : ${widget.memo}");
     // Check if we need to automatically generate the memo
@@ -437,9 +445,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
       );
       return;
     }
-    if (_interstitialAd == null) {
-      print("add error: interstitial null");
 
+    // Increment PDF generation counter
+    _pdfGenerationCount++;
+
+    // Navigate to PDF preview function
+    void navigateToPdfPreview() {
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -449,50 +460,30 @@ class _CashMemoEditState extends State<CashMemoEdit>
           ),
         ),
       );
+    }
+
+    // Show ad every 3rd PDF generation
+    if (_pdfGenerationCount % 3 == 0) {
+      print('Showing interstitial ad (PDF generation #$_pdfGenerationCount)');
+      _interstitialAdManager.showInterstitialAd(
+        onAdClosed: () {
+          navigateToPdfPreview();
+          // Preload next ad
+          _interstitialAdManager.loadInterstitialAd();
+        },
+        onAdFailedToLoad: (error) {
+          print('Interstitial ad failed: $error. Navigating anyway.');
+          navigateToPdfPreview();
+          // Preload next ad
+          _interstitialAdManager.loadInterstitialAd();
+        },
+        onAdDismissed: () {
+          navigateToPdfPreview();
+        },
+      );
     } else {
-      _interstitialAd?.show();
-
-      _interstitialAd?.fullScreenContentCallback = FullScreenContentCallback(
-          // Called when the ad showed the full screen content.
-          onAdShowedFullScreenContent: (ad) {
-            SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
-          },
-          // Called when an impression occurs on the ad.
-          onAdImpression: (ad) {},
-          // Called when the ad failed to show full screen content.
-          onAdFailedToShowFullScreenContent: (ad, err) {
-            print('Ad failed to show. Navigating to PdfPreviewScreen.');
-            // Navigate to PdfPreviewScreen after ad is closed
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => PdfPreviewScreen(
-                  pdfData: pdfData,
-                  fileName: fileName,
-                ),
-              ),
-            );
-          },
-          // Called when the ad dismissed full screen content.
-          onAdDismissedFullScreenContent: (ad) {
-            ad.dispose();
-            _interstitialAd = null;
-            loadInterstitialAD(); // Load a new ad for the next time
-            SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-
-            print('Ad closed. Navigating to PdfPreviewScreen.');
-            // Navigate to PdfPreviewScreen after ad is closed
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => PdfPreviewScreen(
-                  pdfData: pdfData,
-                  fileName: fileName,
-                ),
-              ),
-            );
-          });
-      // Removed onAdClicked handler to comply with AdMob policy
+      print('Skipping ad (PDF generation #$_pdfGenerationCount)');
+      navigateToPdfPreview();
     }
   }
 

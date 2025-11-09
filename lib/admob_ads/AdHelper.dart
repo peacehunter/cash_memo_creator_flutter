@@ -1,37 +1,83 @@
 import 'package:flutter/foundation.dart';
-// Don't import dart:io for web
-// import 'dart:io';
+import 'dart:io';
 
 class AdHelper {
+  // Banner Ad Unit IDs
   static String get bannerAdUnitId {
-    if (kIsWeb) {
-      return '';
+    if (kIsWeb) return '';
+
+    if (Platform.isAndroid) {
+      // TODO: Replace with your actual Android banner ad unit ID
+      return 'ca-app-pub-3940256099942544/6300978111'; // Test ID
+      // return 'ca-app-pub-XXXXXXXXXXXXXXXX/YYYYYYYYYY'; // Your actual ID
+    } else if (Platform.isIOS) {
+      // TODO: Replace with your actual iOS banner ad unit ID
+      return 'ca-app-pub-3940256099942544/2934735716'; // Test ID
+      // return 'ca-app-pub-XXXXXXXXXXXXXXXX/ZZZZZZZZZZ'; // Your actual ID
     }
-    // import 'dart:io' only valid for non-web: Platform.isAndroid/iOS
-    // The below code WILL NOT run on web since AdHelper should only be used when !kIsWeb
-    // ignore: undefined_prefixed_name, dead_code
-    // ignore_for_file: unnecessary_statements
-    // No implementation for web
     return '';
   }
 
+  // Interstitial Ad Unit IDs
   static String get interstitialAdUnitId {
-    if (kIsWeb) {
-      return '';
+    if (kIsWeb) return '';
+
+    if (Platform.isAndroid) {
+      // TODO: Replace with your actual Android interstitial ad unit ID
+      return 'ca-app-pub-3940256099942544/1033173712'; // Test ID
+      // return 'ca-app-pub-XXXXXXXXXXXXXXXX/YYYYYYYYYY'; // Your actual ID
+    } else if (Platform.isIOS) {
+      // TODO: Replace with your actual iOS interstitial ad unit ID
+      return 'ca-app-pub-3940256099942544/4411468910'; // Test ID
+      // return 'ca-app-pub-XXXXXXXXXXXXXXXX/ZZZZZZZZZZ'; // Your actual ID
     }
     return '';
   }
 
-  static String get appOpenAdUnitId {
-    if (kIsWeb) {
-      return '';
-    }
-    return '';
-  }
-
+  // Rewarded Ad Unit IDs
   static String get rewardedAdUnitId {
-    if (kIsWeb) {
-      return '';
+    if (kIsWeb) return '';
+
+    if (Platform.isAndroid) {
+      // TODO: Replace with your actual Android rewarded ad unit ID
+      return 'ca-app-pub-3940256099942544/5224354917'; // Test ID
+      // return 'ca-app-pub-XXXXXXXXXXXXXXXX/YYYYYYYYYY'; // Your actual ID
+    } else if (Platform.isIOS) {
+      // TODO: Replace with your actual iOS rewarded ad unit ID
+      return 'ca-app-pub-3940256099942544/1712485313'; // Test ID
+      // return 'ca-app-pub-XXXXXXXXXXXXXXXX/ZZZZZZZZZZ'; // Your actual ID
+    }
+    return '';
+  }
+
+  // Native Ad Unit IDs
+  static String get nativeAdUnitId {
+    if (kIsWeb) return '';
+
+    if (Platform.isAndroid) {
+      // TODO: Replace with your actual Android native ad unit ID
+      return 'ca-app-pub-3940256099942544/2247696110'; // Test ID
+      // return 'ca-app-pub-XXXXXXXXXXXXXXXX/YYYYYYYYYY'; // Your actual ID
+    } else if (Platform.isIOS) {
+      // TODO: Replace with your actual iOS native ad unit ID
+      return 'ca-app-pub-3940256099942544/3986624511'; // Test ID
+      // return 'ca-app-pub-XXXXXXXXXXXXXXXX/ZZZZZZZZZZ'; // Your actual ID
+    }
+    return '';
+  }
+
+  // App Open Ad Unit IDs
+  static String get appOpenAdUnitId {
+    if (kIsWeb) return '';
+
+    if (Platform.isAndroid) {
+      // TODO: Replace with your actual Android app open ad unit ID
+      return 'ca-app-pub-3940256099942544/3419835294'; // Test ID
+      // return 'ca-app-pub-XXXXXXXXXXXXXXXX/YYYYYYYYYY'; // Your actual ID
+    } else if (Platform.isIOS) {
+      // TODO: Replace with your actual iOS app open ad unit ID
+      return 'ca-app-pub-3940256099942544/5662855259'; // Test ID
+      // return 'ca-app-pub-XXXXXXXXXXXXXXXX/ZZZZZZZZZZ'; // Your actual ID
     }
     return '';
   }
