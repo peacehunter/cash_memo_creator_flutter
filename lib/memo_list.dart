@@ -374,6 +374,33 @@ class MemoListScreenState extends State<MemoListScreen>
           ],
         ),
       ),
+      floatingActionButton: _tabController.index == 0
+          ? FloatingActionButton.extended(
+              onPressed: () async {
+                Memo? newMemo = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CashMemoEdit(autoGenerate: true),
+                  ),
+                );
+                if (newMemo != null) {
+                  setState(() => _memos.add(newMemo));
+                  saveMemos();
+                }
+              },
+              backgroundColor: AppColors.primary,
+              elevation: 4,
+              icon: const Icon(Icons.add_rounded, color: Colors.white),
+              label: const Text(
+                'Create Memo',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+              ),
+            )
+          : null,
     );
   }
 
@@ -730,70 +757,59 @@ class MemoListScreenState extends State<MemoListScreen>
   Widget _buildSavedMemosTab() {
     final localizations = _cachedLocalizations!;
 
-    return Column(
-      children: [
-        // Statistics Dashboard (only show if memos exist)
-        if (_memos.isNotEmpty)
-          StatisticsDashboard(memos: _memos),
+    if (_memos.isEmpty) {
+      return EmptyState(
+        icon: Icons.receipt_long_rounded,
+        title: 'No Memos Yet',
+        description: 'Create your first professional cash memo to get started with invoicing',
+        actionText: 'Create First Memo',
+        onAction: () async {
+          Memo? newMemo = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const CashMemoEdit(autoGenerate: true),
+            ),
+          );
+          if (newMemo != null) {
+            setState(() => _memos.add(newMemo));
+            saveMemos();
+          }
+        },
+      );
+    }
 
-        // Professional Create Button
-        ProfessionalCreateButton(
-          title: localizations.generateCashMemo,
-          subtitle: 'Generate professional invoices instantly',
-          onPressed: () async {
-            Memo? newMemo = await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const CashMemoEdit(autoGenerate: true),
-              ),
-            );
-            if (newMemo != null) {
-              setState(() => _memos.add(newMemo));
-              saveMemos();
-            }
-          },
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        // Statistics Dashboard as a sliver
+        SliverToBoxAdapter(
+          child: StatisticsDashboard(memos: _memos),
         ),
 
-        // Memos List or Empty State
-        _memos.isNotEmpty
-            ? Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                  itemCount: _memos.length,
-                  cacheExtent: 1000,
-                  physics: const BouncingScrollPhysics(),
-                  itemBuilder: (context, index) {
-                    final memo = _memos[index];
-                    return ProfessionalMemoCard(
-                      memo: memo,
-                      index: index,
-                      onEdit: _editMemo,
-                      onDelete: _deleteMemo,
-                      onPrint: _printMemo,
-                    );
-                  },
-                ),
-              )
-            : Expanded(
-                child: EmptyState(
-                  icon: Icons.receipt_long_rounded,
-                  title: 'No Memos Yet',
-                  description: 'Create your first professional cash memo to get started with invoicing',
-                  actionText: 'Create First Memo',
-                  onAction: () async {
-                    Memo? newMemo = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const CashMemoEdit(autoGenerate: true),
-                      ),
-                    );
-                    if (newMemo != null) {
-                      setState(() => _memos.add(newMemo));
-                      saveMemos();
-                    }
-                  },
-                ),
-              ),
+        // Memos List
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.md,
+            AppSpacing.lg,
+            100, // Extra padding at bottom for FAB
+          ),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final memo = _memos[index];
+                return ProfessionalMemoCard(
+                  memo: memo,
+                  index: index,
+                  onEdit: _editMemo,
+                  onDelete: _deleteMemo,
+                  onPrint: _printMemo,
+                );
+              },
+              childCount: _memos.length,
+            ),
+          ),
+        ),
       ],
     );
   }
