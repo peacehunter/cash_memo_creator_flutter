@@ -249,14 +249,16 @@ class _CashMemoEditState extends State<CashMemoEdit>
             .add(TextEditingController(text: product.quantity.toString()));
         _discountController
             .add(TextEditingController(text: product.discount.toString()));
+        // Load the discount type from the product (perPiece = percentage, solid = fixed amount)
+        _isProductDiscountPercent.add(product.discountType == DiscountType.perPiece);
       } else {
         // For new memos, use empty strings
         _priceControllers.add(TextEditingController(text: ''));
         _quantityControllers.add(TextEditingController(text: ''));
         _discountController.add(TextEditingController(text: ''));
+        // Initialize discount type as percentage by default for new products
+        _isProductDiscountPercent.add(true);
       }
-      // Initialize discount type as percentage by default
-      _isProductDiscountPercent.add(true);
     }
   }
 
@@ -314,6 +316,13 @@ class _CashMemoEditState extends State<CashMemoEdit>
     double finalTotal = discountedTotal + (discountedTotal * (vat / 100));
     String currentDate = DateTime.now().toLocal().toString().split(' ')[0];
 
+    // Update product discount types before saving (perPiece = percentage, solid = fixed amount)
+    for (int i = 0; i < products.length; i++) {
+      products[i].discountType = _isProductDiscountPercent[i]
+          ? DiscountType.perPiece
+          : DiscountType.solid;
+    }
+
     return Memo(
       companyName: companyName ?? '',
       products: products,
@@ -322,6 +331,9 @@ class _CashMemoEditState extends State<CashMemoEdit>
       customerName: customerNameController.text,
       customerAddress: customerAddressController.text,
       customerPhoneNumber: customerPhoneNumberController.text,
+      discount: discount,
+      vat: vat,
+      isPercentDiscount: isPercentDiscount,
       notes: notesController.text.isNotEmpty ? notesController.text : null,
       companyAddress: '',
       companyLogo: '',
@@ -448,7 +460,18 @@ class _CashMemoEditState extends State<CashMemoEdit>
       int selectedWatermarkOption,
       String? watermarkText,
       String? watermarkImagePath) async {
-    final pdf = pw.Document();
+    // Load Bengali font for proper rendering of Bengali characters (৳ symbol)
+    final fontData = await rootBundle.load('assets/fonts/NotoSansBengali.ttf');
+    final bengaliFont = pw.Font.ttf(fontData);
+
+    final pdf = pw.Document(
+      theme: pw.ThemeData.withFont(
+        base: bengaliFont,
+        bold: bengaliFont, // Use same font for bold to support Bengali characters
+        italic: bengaliFont, // Use same font for italic to support Bengali characters
+        boldItalic: bengaliFont, // Use same font for bold italic to support Bengali characters
+      ),
+    );
 
     // Load the logo from the saved path
     Uint8List? logoBytes = await loadLogo(companyLogoPath);
@@ -994,10 +1017,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
         children: [
           pw.Row(
             children: [
-              pw.Icon(
-                const pw.IconData(0xe873), // note icon
-                color: PdfColors.amber700,
-                size: 16,
+              pw.Text(
+                '✓',
+                style: const pw.TextStyle(
+                  fontSize: 16,
+                  color: PdfColors.amber700,
+                ),
               ),
               pw.SizedBox(width: 8),
               pw.Text(
@@ -1043,10 +1068,13 @@ class _CashMemoEditState extends State<CashMemoEdit>
         children: [
           pw.Row(
             children: [
-              pw.Icon(
-                const pw.IconData(0xe873), // note icon
-                color: PdfColors.blue700,
-                size: 16,
+              pw.Text(
+                '!',
+                style: pw.TextStyle(
+                  fontSize: 16,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.blue700,
+                ),
               ),
               pw.SizedBox(width: 8),
               pw.Text(

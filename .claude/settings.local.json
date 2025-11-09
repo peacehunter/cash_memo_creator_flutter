@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(flutter run)"
+      "Bash(flutter run)",
+      "Bash(nc:*)",
+      "Bash(flutter run:*)"
     ],
     "deny": [],
     "ask": []
