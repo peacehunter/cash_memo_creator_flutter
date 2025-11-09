@@ -656,7 +656,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
     return pw.Table(
       border: pw.TableBorder(
         horizontalInside: pw.BorderSide(color: PdfColors.grey200, width: 0.5),
-        verticalInside: pw.BorderSide(color: PdfColors.grey200, width: 0.5),
+        // Removed vertical borders to avoid boxes around digits
       ),
       children: [
         // Header Row
