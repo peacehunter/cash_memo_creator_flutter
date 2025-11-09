@@ -3264,6 +3264,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   quantityController: _quantityControllers[index],
                   discountController: _discountController[index],
                   isProductDiscountPercent: _isProductDiscountPercent[index],
+                  totalProducts: products.length,
                   onDebouncedUpdate: _debouncedUpdateProduct,
                   onRemove: (int removeIndex) {
                     setState(() {
@@ -3745,6 +3746,7 @@ class ProductItemWidget extends StatefulWidget {
   final Function(int) getCachedItemTotal;
   final VoidCallback onDiscountTypeToggle;
   final AppLocalizations localizations;
+  final int totalProducts;
 
   const ProductItemWidget({
     Key? key,
@@ -3760,6 +3762,7 @@ class ProductItemWidget extends StatefulWidget {
     required this.getCachedItemTotal,
     required this.onDiscountTypeToggle,
     required this.localizations,
+    required this.totalProducts,
   }) : super(key: key);
 
   @override
@@ -3772,8 +3775,14 @@ class _ProductItemWidgetState extends State<ProductItemWidget> {
   @override
   void initState() {
     super.initState();
-    // Expand the first product by default, or if the product has data
-    isExpanded = widget.index == 0 || widget.product.name.isNotEmpty || widget.product.price > 0 || widget.product.quantity > 0;
+    // Expand if:
+    // - First product (index 0)
+    // - Product has data (name, price, or quantity)
+    // - Last product AND empty (newly added)
+    bool isLastItem = widget.index == widget.totalProducts - 1;
+    bool hasData = widget.product.name.isNotEmpty || widget.product.price > 0 || widget.product.quantity > 0;
+
+    isExpanded = widget.index == 0 || hasData || (isLastItem && !hasData);
   }
 
   @override
