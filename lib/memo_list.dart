@@ -1,4 +1,4 @@
-import 'package:cash_memo_creator/src/stub_io.dart';
+import 'package:cash_memo_creator/src/stub_io.dart' as stub;
 import 'package:cash_memo_creator/widgets/professional_memo_card.dart';
 import 'package:cash_memo_creator/widgets/statistics_dashboard.dart';
 import 'package:flutter/foundation.dart';
@@ -37,7 +37,7 @@ class MemoListScreenState extends State<MemoListScreen>
   late TabController _tabController;
   // Use correct file entity for web
   // Use platform-specific file entity list
-  dynamic _pdfFiles = kIsWeb ? <WebFileEntity>[] : <FileSystemEntity>[];
+  dynamic _pdfFiles = kIsWeb ? <stub.WebFileEntity>[] : <FileSystemEntity>[];
   // Cache for formatted last-modified timestamps to avoid expensive I/O in every build
   Map<String, String> _pdfModifiedDates = {};
 
@@ -436,6 +436,9 @@ class MemoListScreenState extends State<MemoListScreen>
   }
 
   Future<void> _loadSavedPdfs() async {
+    // Web platform doesn't support file system operations
+    if (kIsWeb) return;
+
     Directory? pdfDirectory;
     if (Platform.isAndroid) {
       if (await AndroidAPILevel.getApiLevel() <= 29) {
@@ -448,9 +451,7 @@ class MemoListScreenState extends State<MemoListScreen>
             Directory("/storage/emulated/0/Documents/Invoice Generator");
       }
     } else {
-      pdfDirectory = kIsWeb
-          ? Directory("")
-          : await getApplicationDocumentsDirectory();
+      pdfDirectory = await getApplicationDocumentsDirectory();
     }
 
     if (pdfDirectory != null && await pdfDirectory.exists()) {
@@ -462,8 +463,8 @@ class MemoListScreenState extends State<MemoListScreen>
 
         setState(() {
           _pdfFiles = kIsWeb
-              ? List<WebFileEntity>.generate(
-                  filePaths.length, (_) => WebFileEntity())
+              ? List<stub.WebFileEntity>.generate(
+                  filePaths.length, (_) => stub.WebFileEntity())
               : filePaths.map((path) => File(path)).toList();
           _pdfModifiedDates = modDates;
         });
