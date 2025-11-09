@@ -2166,47 +2166,43 @@ class _CashMemoEditState extends State<CashMemoEdit>
           pw.Row(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Expanded(
-                child: pw.Container(
-                  padding: const pw.EdgeInsets.all(14),
-                  decoration: pw.BoxDecoration(
-                    color: PdfColors.grey50,
-                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
-                  ),
-                  child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text(
-                        'NOTES',
-                        style: pw.TextStyle(
-                          fontSize: 9,
-                          fontWeight: pw.FontWeight.bold,
-                          color: PdfColors.grey700,
-                          letterSpacing: 1,
+              // Notes section (only if notes exist)
+              if (notesController.text.isNotEmpty)
+                pw.Expanded(
+                  child: pw.Container(
+                    padding: const pw.EdgeInsets.all(14),
+                    decoration: pw.BoxDecoration(
+                      color: PdfColors.grey50,
+                      borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                    ),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          'NOTES',
+                          style: pw.TextStyle(
+                            fontSize: 9,
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.grey700,
+                            letterSpacing: 1,
+                          ),
                         ),
-                      ),
-                      pw.SizedBox(height: 6),
-                      pw.Text(
-                        'Thank you for your business. Payment is due within 30 days.',
-                        style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
-                      ),
-                    ],
+                        pw.SizedBox(height: 6),
+                        pw.Text(
+                          notesController.text,
+                          style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              pw.SizedBox(width: 20),
+              if (notesController.text.isNotEmpty) pw.SizedBox(width: 20),
               pw.Container(
                 width: 260,
                 child: buildModernPricingDetails(),
               ),
             ],
           ),
-
-          // Notes section (if exists)
-          if (buildNotesSection() != null) ...[
-            pw.SizedBox(height: 16),
-            buildNotesSection()!,
-          ],
         ],
       ),
     );
