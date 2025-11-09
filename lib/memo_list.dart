@@ -92,6 +92,8 @@ class MemoListScreenState extends State<MemoListScreen>
       if (_tabController.index == 1) {
         _loadSavedPdfs();
       }
+      // Force rebuild to show/hide FAB
+      setState(() {});
     });
   }
 
@@ -376,7 +378,7 @@ class MemoListScreenState extends State<MemoListScreen>
       floatingActionButton: _tabController.index == 0
           ? Padding(
               padding: EdgeInsets.only(
-                bottom: kIsWeb ? 0 : 60, // Add space above banner ad on mobile
+                bottom: kIsWeb ? 0 : 80, // Add space above banner ad on mobile
               ),
               child: FloatingActionButton.extended(
                 onPressed: () async {

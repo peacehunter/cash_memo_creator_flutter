@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
 import 'design_system.dart';
 import 'widgets/professional_widgets.dart';
 
@@ -15,9 +16,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _companyAddressController = TextEditingController();
   final TextEditingController _companyPhoneController = TextEditingController();
   final TextEditingController _companyEmailController = TextEditingController();
+  final TextEditingController _watermarkTextController = TextEditingController();
 
   bool _isLoading = true;
   bool _isSaving = false;
+  int _watermarkOption = 0; // 0: Text only, 1: Image only, 2: Both
+  String? _watermarkImagePath;
 
   @override
   void initState() {
@@ -33,6 +37,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _companyAddressController.text = prefs.getString('company_address') ?? '';
       _companyPhoneController.text = prefs.getString('company_phone') ?? '';
       _companyEmailController.text = prefs.getString('company_email') ?? '';
+      _watermarkTextController.text = prefs.getString('watermarkText') ?? '';
+      _watermarkImagePath = prefs.getString('watermarkImage');
+      _watermarkOption = prefs.getInt('watermarkOption') ?? 0;
     } catch (e) {
       _showSnackBar('Failed to load settings', isError: true);
     } finally {
@@ -48,6 +55,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await prefs.setString('company_address', _companyAddressController.text);
       await prefs.setString('company_phone', _companyPhoneController.text);
       await prefs.setString('company_email', _companyEmailController.text);
+      await prefs.setString('watermarkText', _watermarkTextController.text);
+      await prefs.setInt('watermarkOption', _watermarkOption);
+      if (_watermarkImagePath != null) {
+        await prefs.setString('watermarkImage', _watermarkImagePath!);
+      }
 
       _showSnackBar('Settings saved successfully');
       Navigator.pop(context);
@@ -55,6 +67,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _showSnackBar('Failed to save settings', isError: true);
     } finally {
       setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _pickWatermarkImage() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+
+      if (image != null) {
+        setState(() {
+          _watermarkImagePath = image.path;
+        });
+        _showSnackBar('Watermark image selected');
+      }
+    } catch (e) {
+      _showSnackBar('Failed to pick image', isError: true);
     }
   }
 
@@ -150,6 +178,137 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         icon: Icons.email_rounded,
                         keyboardType: TextInputType.emailAddress,
                       ),
+                    ],
+                  ),
+
+                  const SizedBox(height: AppSpacing.xxl),
+
+                  // Watermark Settings Section
+                  _buildSectionHeader(
+                    icon: Icons.branding_watermark_rounded,
+                    title: 'Watermark Settings',
+                    subtitle: 'Add watermark to your cash memos',
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+
+                  _buildSettingCard(
+                    children: [
+                      // Watermark Option Selector
+                      Text(
+                        'Watermark Type',
+                        style: AppTypography.labelMedium.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.neutral50,
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Column(
+                          children: [
+                            RadioListTile<int>(
+                              title: const Text('Text Only'),
+                              value: 0,
+                              groupValue: _watermarkOption,
+                              activeColor: AppColors.primary,
+                              onChanged: (value) {
+                                setState(() => _watermarkOption = value!);
+                              },
+                            ),
+                            const Divider(height: 1),
+                            RadioListTile<int>(
+                              title: const Text('Image Only'),
+                              value: 1,
+                              groupValue: _watermarkOption,
+                              activeColor: AppColors.primary,
+                              onChanged: (value) {
+                                setState(() => _watermarkOption = value!);
+                              },
+                            ),
+                            const Divider(height: 1),
+                            RadioListTile<int>(
+                              title: const Text('Both Text and Image'),
+                              value: 2,
+                              groupValue: _watermarkOption,
+                              activeColor: AppColors.primary,
+                              onChanged: (value) {
+                                setState(() => _watermarkOption = value!);
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Show text field if watermark includes text
+                      if (_watermarkOption == 0 || _watermarkOption == 2) ...[
+                        const SizedBox(height: AppSpacing.lg),
+                        _buildTextField(
+                          controller: _watermarkTextController,
+                          label: 'Watermark Text',
+                          hint: 'Enter watermark text (e.g., CONFIDENTIAL)',
+                          icon: Icons.text_fields_rounded,
+                        ),
+                      ],
+
+                      // Show image picker if watermark includes image
+                      if (_watermarkOption == 1 || _watermarkOption == 2) ...[
+                        const SizedBox(height: AppSpacing.lg),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Watermark Image',
+                              style: AppTypography.labelMedium.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.sm),
+                            InkWell(
+                              onTap: _pickWatermarkImage,
+                              borderRadius: BorderRadius.circular(AppRadius.md),
+                              child: Container(
+                                padding: const EdgeInsets.all(AppSpacing.lg),
+                                decoration: BoxDecoration(
+                                  color: AppColors.neutral50,
+                                  borderRadius: BorderRadius.circular(AppRadius.md),
+                                  border: Border.all(color: AppColors.border),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.image_rounded,
+                                      color: AppColors.primary,
+                                    ),
+                                    const SizedBox(width: AppSpacing.md),
+                                    Expanded(
+                                      child: Text(
+                                        _watermarkImagePath != null
+                                            ? 'Image selected'
+                                            : 'Tap to select watermark image',
+                                        style: AppTypography.bodyMedium.copyWith(
+                                          color: _watermarkImagePath != null
+                                              ? AppColors.textPrimary
+                                              : AppColors.textSecondary,
+                                        ),
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.arrow_forward_ios_rounded,
+                                      size: 16,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
 
@@ -337,6 +496,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _companyAddressController.dispose();
     _companyPhoneController.dispose();
     _companyEmailController.dispose();
+    _watermarkTextController.dispose();
     super.dispose();
   }
 }
