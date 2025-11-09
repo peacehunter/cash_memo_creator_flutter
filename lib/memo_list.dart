@@ -1,6 +1,5 @@
 import 'package:cash_memo_creator/src/stub_io.dart' as stub;
 import 'package:cash_memo_creator/widgets/professional_memo_card.dart';
-import 'package:cash_memo_creator/widgets/statistics_dashboard.dart';
 import 'package:flutter/foundation.dart';
 import 'web/web_memo_list_screen.dart';
 // dart:io is used only on non-web platforms
@@ -375,28 +374,33 @@ class MemoListScreenState extends State<MemoListScreen>
         ),
       ),
       floatingActionButton: _tabController.index == 0
-          ? FloatingActionButton.extended(
-              onPressed: () async {
-                Memo? newMemo = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const CashMemoEdit(autoGenerate: true),
+          ? Padding(
+              padding: EdgeInsets.only(
+                bottom: kIsWeb ? 0 : 60, // Add space above banner ad on mobile
+              ),
+              child: FloatingActionButton.extended(
+                onPressed: () async {
+                  Memo? newMemo = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CashMemoEdit(autoGenerate: true),
+                    ),
+                  );
+                  if (newMemo != null) {
+                    setState(() => _memos.add(newMemo));
+                    saveMemos();
+                  }
+                },
+                backgroundColor: AppColors.primary,
+                elevation: 4,
+                icon: const Icon(Icons.add_rounded, color: Colors.white),
+                label: const Text(
+                  'Create Memo',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
                   ),
-                );
-                if (newMemo != null) {
-                  setState(() => _memos.add(newMemo));
-                  saveMemos();
-                }
-              },
-              backgroundColor: AppColors.primary,
-              elevation: 4,
-              icon: const Icon(Icons.add_rounded, color: Colors.white),
-              label: const Text(
-                'Create Memo',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
                 ),
               ),
             )
@@ -778,39 +782,25 @@ class MemoListScreenState extends State<MemoListScreen>
       );
     }
 
-    return CustomScrollView(
+    return ListView.builder(
       physics: const BouncingScrollPhysics(),
-      slivers: [
-        // Statistics Dashboard as a sliver
-        SliverToBoxAdapter(
-          child: StatisticsDashboard(memos: _memos),
-        ),
-
-        // Memos List
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg,
-            AppSpacing.md,
-            AppSpacing.lg,
-            100, // Extra padding at bottom for FAB
-          ),
-          sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final memo = _memos[index];
-                return ProfessionalMemoCard(
-                  memo: memo,
-                  index: index,
-                  onEdit: _editMemo,
-                  onDelete: _deleteMemo,
-                  onPrint: _printMemo,
-                );
-              },
-              childCount: _memos.length,
-            ),
-          ),
-        ),
-      ],
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppSpacing.lg,
+        kIsWeb ? AppSpacing.xl : 140, // Extra padding for FAB + banner ad on mobile
+      ),
+      itemCount: _memos.length,
+      itemBuilder: (context, index) {
+        final memo = _memos[index];
+        return ProfessionalMemoCard(
+          memo: memo,
+          index: index,
+          onEdit: _editMemo,
+          onDelete: _deleteMemo,
+          onPrint: _printMemo,
+        );
+      },
     );
   }
 
