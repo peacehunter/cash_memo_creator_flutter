@@ -450,7 +450,7 @@ class MemoListScreenState extends State<MemoListScreen>
     } else {
       pdfDirectory = kIsWeb
           ? Directory("")
-          : (await getApplicationDocumentsDirectory()) as Directory;
+          : await getApplicationDocumentsDirectory();
     }
 
     if (pdfDirectory != null && await pdfDirectory.exists()) {
