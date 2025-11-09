@@ -29,7 +29,7 @@ class PdfPreviewScreenState extends State<PdfPreviewScreen> {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    final pdfHeight = screenHeight * 0.75; // Increased to 75% since button moved to AppBar
+    final pdfHeight = screenHeight * 0.55; // Adjusted for sticky button at bottom
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -74,49 +74,6 @@ class PdfPreviewScreenState extends State<PdfPreviewScreen> {
             ),
           ],
         ),
-        actions: [
-          // Save button always visible in AppBar
-          Container(
-            margin: const EdgeInsets.only(right: 12, top: 8, bottom: 8),
-            child: ElevatedButton.icon(
-              onPressed: () async {
-                PdfService().savePdf(
-                  widget.pdfData,
-                  "Invoice Generator",
-                  widget.fileName,
-                );
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Row(
-                      children: [
-                        const Icon(Icons.check_circle_rounded, color: Colors.white),
-                        const SizedBox(width: AppSpacing.sm),
-                        const Text('PDF saved successfully!'),
-                      ],
-                    ),
-                    backgroundColor: AppColors.secondary,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.download_rounded, size: 18),
-              label: const Text('Save PDF'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                elevation: 2,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -222,6 +179,71 @@ class PdfPreviewScreenState extends State<PdfPreviewScreen> {
               ),
             ),
           ),
+
+          // Sticky Save Button - Always visible at bottom
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              child: SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    PdfService().savePdf(
+                      widget.pdfData,
+                      "Invoice Generator",
+                      widget.fileName,
+                    );
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Row(
+                          children: [
+                            const Icon(Icons.check_circle_rounded, color: Colors.white),
+                            const SizedBox(width: AppSpacing.sm),
+                            const Text('PDF saved successfully!'),
+                          ],
+                        ),
+                        backgroundColor: AppColors.secondary,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.download_rounded, size: 24),
+                  label: Text(
+                    'Save PDF',
+                    style: AppTypography.h3.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 4,
+                    shadowColor: AppColors.primary.withOpacity(0.4),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
           // Banner ad at bottom
           if (kIsWeb == false) MyBannerAdWidget(),
         ],
