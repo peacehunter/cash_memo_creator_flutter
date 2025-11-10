@@ -3037,7 +3037,13 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   final templateId = template['id'] as int;
                   final isPremium = TemplateManager.isPremiumTemplate(templateId);
 
-                  return Container(
+                  return FutureBuilder<int>(
+                    future: isPremium ? TemplateManager.getRemainingUses(templateId) : Future.value(-1),
+                    builder: (context, snapshot) {
+                      final remainingUses = snapshot.data ?? 0;
+                      final isUnlocked = remainingUses > 0;
+
+                      return Container(
                     margin: const EdgeInsets.only(bottom: 10),
                     decoration: BoxDecoration(
                       border: Border.all(
@@ -3092,8 +3098,9 @@ class _CashMemoEditState extends State<CashMemoEdit>
                                 print('📋 [MemoEdit] Unlock result: $unlocked');
 
                                 if (unlocked) {
-                                  // Success! Generate cash memo
-                                  print('📋 [MemoEdit] ✅ Template unlocked! Generating cash memo...');
+                                  // Success! Consume a use and generate cash memo
+                                  print('📋 [MemoEdit] ✅ Template unlocked! Consuming use and generating cash memo...');
+                                  await TemplateManager.consumeTemplateUse(templateId);
                                   if (mounted) {
                                     generateCashMemo(
                                       localizations,
@@ -3116,6 +3123,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
                           // Free template or unlocked premium - proceed directly
                           print('📋 [MemoEdit] Proceeding with template $templateId (free or already unlocked)');
                           Navigator.of(context).pop();
+
+                          // Consume a use if it's a premium template
+                          if (isPremium) {
+                            await TemplateManager.consumeTemplateUse(templateId);
+                          }
+
                           generateCashMemo(
                             localizations,
                             templateId,
@@ -3174,25 +3187,26 @@ class _CashMemoEditState extends State<CashMemoEdit>
                                             ),
                                             decoration: BoxDecoration(
                                               gradient: LinearGradient(
-                                                colors: [
-                                                  Colors.purple.shade400,
-                                                  Colors.blue.shade400,
-                                                ],
+                                                colors: isUnlocked
+                                                    ? [Colors.green.shade400, Colors.teal.shade400]
+                                                    : [Colors.purple.shade400, Colors.blue.shade400],
                                               ),
                                               borderRadius: BorderRadius.circular(4),
                                             ),
                                             child: Row(
                                               mainAxisSize: MainAxisSize.min,
-                                              children: const [
+                                              children: [
                                                 Icon(
-                                                  Icons.lock_rounded,
+                                                  isUnlocked ? Icons.check_circle : Icons.lock_rounded,
                                                   size: 10,
                                                   color: Colors.white,
                                                 ),
-                                                SizedBox(width: 2),
+                                                const SizedBox(width: 2),
                                                 Text(
-                                                  'PRO',
-                                                  style: TextStyle(
+                                                  isUnlocked
+                                                      ? '$remainingUses left'
+                                                      : 'PRO',
+                                                  style: const TextStyle(
                                                     fontSize: 9,
                                                     fontWeight: FontWeight.bold,
                                                     color: Colors.white,
@@ -3217,11 +3231,11 @@ class _CashMemoEditState extends State<CashMemoEdit>
                               ),
                               // Arrow or Lock icon
                               Icon(
-                                isPremium
+                                isPremium && !isUnlocked
                                     ? Icons.lock_outline_rounded
                                     : Icons.arrow_forward_ios_rounded,
                                 size: 16,
-                                color: isPremium
+                                color: isPremium && !isUnlocked
                                     ? Colors.purple.shade400
                                     : Colors.grey.shade400,
                               ),
@@ -3230,6 +3244,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                         ),
                       ),
                     ),
+                      );
+                    },
                   );
                 }).toList(),
               ),

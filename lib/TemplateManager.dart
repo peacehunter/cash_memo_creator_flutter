@@ -6,19 +6,60 @@ class TemplateManager {
   // Templates 5, 6, 7, 8 are premium (require watching ad to unlock)
   static const List<int> premiumTemplates = [5, 6, 7, 8];
 
+  // Number of uses per ad watch
+  static const int usesPerUnlock = 3;
+
   // Check if a template is premium
   static bool isPremiumTemplate(int templateId) {
     return premiumTemplates.contains(templateId);
   }
 
-  // Check if a template is unlocked
+  // Check if a template is unlocked (with usage-based expiry)
   static Future<bool> isTemplateUnlocked(int templateId) async {
     if (!isPremiumTemplate(templateId)) {
       return true; // Free templates are always unlocked
     }
 
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool('template_unlocked_$templateId') ?? false;
+    final remainingUses = prefs.getInt('template_remaining_uses_$templateId') ?? 0;
+
+    return remainingUses > 0;
+  }
+
+  // Get remaining uses for unlocked template
+  static Future<int> getRemainingUses(int templateId) async {
+    if (!isPremiumTemplate(templateId)) {
+      return -1; // Free templates have unlimited uses
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('template_remaining_uses_$templateId') ?? 0;
+  }
+
+  // Consume one use of a template
+  static Future<void> consumeTemplateUse(int templateId) async {
+    if (!isPremiumTemplate(templateId)) {
+      return; // Free templates don't need consumption tracking
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final remainingUses = prefs.getInt('template_remaining_uses_$templateId') ?? 0;
+
+    if (remainingUses > 0) {
+      final newCount = remainingUses - 1;
+      await prefs.setInt('template_remaining_uses_$templateId', newCount);
+      print('🔓 [TemplateManager] Template $templateId consumed. Remaining: $newCount uses');
+
+      // Show feedback to user
+      if (newCount == 0) {
+        print('🔓 [TemplateManager] Template $templateId uses exhausted. Watch ad to unlock again.');
+      }
+    }
+  }
+
+  // Format remaining uses as string
+  static String formatRemainingUses(int uses) {
+    return uses == 1 ? '1 use left' : '$uses uses left';
   }
 
   // Unlock a template by watching rewarded ad
@@ -40,9 +81,10 @@ class TemplateManager {
       print('🔓 [TemplateManager] 3 failures detected, showing fallback dialog');
       final shouldUnlockAnyway = await _showFallbackDialog(context, templateId);
       if (shouldUnlockAnyway) {
-        await prefs.setBool('template_unlocked_$templateId', true);
+        // Give 3 uses via fallback
+        await prefs.setInt('template_remaining_uses_$templateId', usesPerUnlock);
         await prefs.remove('template_failed_attempts_$templateId');
-        print('🔓 [TemplateManager] Template unlocked via fallback');
+        print('🔓 [TemplateManager] Template unlocked via fallback ($usesPerUnlock uses)');
         return true;
       }
       print('🔓 [TemplateManager] User declined fallback unlock');
@@ -140,15 +182,15 @@ class TemplateManager {
     print('🔓 [TemplateManager] Ad completed. Reward earned: $rewardEarned');
 
     if (rewardEarned) {
-      // Save unlock status and reset failed attempts
-      await prefs.setBool('template_unlocked_$templateId', true);
+      // Give 3 uses
+      await prefs.setInt('template_remaining_uses_$templateId', usesPerUnlock);
       await prefs.remove('template_failed_attempts_$templateId');
-      print('🔓 [TemplateManager] ✅ Template $templateId unlocked successfully!');
+      print('🔓 [TemplateManager] ✅ Template $templateId unlocked successfully! ($usesPerUnlock uses)');
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('✓ Template unlocked successfully!'),
+            content: Text('✓ Template unlocked! 3 uses available'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
           ),
@@ -269,14 +311,42 @@ class TemplateManager {
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.blue.shade200),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.play_circle, color: Colors.blue, size: 32),
-                  SizedBox(width: 12),
+                  const Icon(Icons.play_circle, color: Colors.blue, size: 32),
+                  const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      'Watch a short video to unlock this template forever!',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Watch a short video to unlock',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade100,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.confirmation_number, size: 14, color: Colors.green.shade800),
+                              const SizedBox(width: 4),
+                              Text(
+                                '3 uses',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green.shade800,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
