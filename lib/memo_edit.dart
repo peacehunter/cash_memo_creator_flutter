@@ -489,7 +489,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
   }
 
 // Call this function when you want to generate the PDF and show the ad
-  void generateCashMemo(
+  Future<void> generateCashMemo(
       localizations,
       int selectedTemplate,
       int selectedWatermarkOption,
@@ -515,69 +515,76 @@ class _CashMemoEditState extends State<CashMemoEdit>
     String currentDate =
         DateTime.now().toLocal().toString().split(' ')[0]; // Format: YYYY-MM-DD
 
-    // Add pages to the PDF
+    // Add pages to the PDF with MultiPage for overflow handling
+    pw.Widget templateWidget;
+
+    switch (selectedTemplate) {
+      case 1:
+        templateWidget = buildTemplate1(logoBytes, currentDate);
+        break;
+      case 2:
+        templateWidget = buildTemplate2(logoBytes, currentDate);
+        break;
+      case 3:
+        templateWidget = buildTemplate3(logoBytes, currentDate);
+        break;
+      case 4:
+        templateWidget = buildTemplate4(logoBytes, currentDate);
+        break;
+      case 5:
+        templateWidget = buildTemplate5(logoBytes, currentDate);
+        break;
+      case 6:
+        templateWidget = buildTemplate6(logoBytes, currentDate);
+        break;
+      case 7:
+        templateWidget = buildTemplate7(logoBytes, currentDate);
+        break;
+      case 8:
+        templateWidget = buildTemplate8(logoBytes, currentDate);
+        break;
+      default:
+        templateWidget = buildTemplate1(logoBytes, currentDate);
+    }
+
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
         build: (pw.Context context) {
-          pw.Widget templateWidget;
-
-          switch (selectedTemplate) {
-            case 1:
-              templateWidget = buildTemplate1(logoBytes, currentDate);
-              break;
-            case 2:
-              templateWidget = buildTemplate2(logoBytes, currentDate);
-              break;
-            case 3:
-              templateWidget = buildTemplate3(logoBytes, currentDate);
-              break;
-            case 4:
-              templateWidget = buildTemplate4(logoBytes, currentDate);
-              break;
-            case 5:
-              templateWidget = buildTemplate5(logoBytes, currentDate);
-              break;
-            case 6:
-              templateWidget = buildTemplate6(logoBytes, currentDate);
-              break;
-            case 7:
-              templateWidget = buildTemplate7(logoBytes, currentDate);
-              break;
-            case 8:
-              templateWidget = buildTemplate8(logoBytes, currentDate);
-              break;
-            default:
-              templateWidget = buildTemplate1(logoBytes, currentDate);
-          }
-
           return pw.DefaultTextStyle.merge(
-              style: const pw.TextStyle(lineSpacing: 2),
-              child: pw.Stack(
-                children: [
-                  waterMarkWidget(selectedWatermarkOption, watermarkText,
-                      watermarkImagePath),
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      templateWidget,
-                      pw.Expanded(child: pw.Container()),
-                      // Professional signature section
-                      buildSignatureSection(),
-                      if (nbMessage != null && nbMessage!.isNotEmpty) ...[
-                        pw.SizedBox(height: 20),
-                        buildNBMessage(),
-                      ],
+            style: const pw.TextStyle(lineSpacing: 2),
+            child: pw.Stack(
+              children: [
+                waterMarkWidget(selectedWatermarkOption, watermarkText,
+                    watermarkImagePath),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    templateWidget,
+                    pw.Spacer(),
+                    // Professional signature section
+                    buildSignatureSection(),
+                    if (nbMessage != null && nbMessage!.isNotEmpty) ...[
+                      pw.SizedBox(height: 20),
+                      buildNBMessage(),
                     ],
-                  ),
-                ],
-              ));
+                  ],
+                ),
+              ],
+            ),
+          );
         },
       ),
     );
 
     final pdfData = await pdf.save(); // Save PDF as byte array
     String fileName = generateFileName(customerNameController.text);
+
+    // Check if widget is still mounted before navigating
+    if (!mounted) {
+      print('⚠️ [MemoEdit] Widget unmounted, cannot navigate to PDF preview');
+      return;
+    }
 
     // Show the ad and navigate to PdfPreviewScreen based on callbacks
     generateCashMemoAndShowAd(pdfData, fileName);
@@ -1189,7 +1196,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
 // Template 4: Modern Accent (Modernized - formerly Borderless)
   pw.Widget buildTemplate4(Uint8List? logoBytes, String currentDate) {
     return pw.Container(
-      padding: const pw.EdgeInsets.all(24),
+      padding: const pw.EdgeInsets.all(12), // Reduced padding for MultiPage
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
@@ -1533,7 +1540,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
 // Template 1: Professional Classic (Modernized)
   pw.Widget buildTemplate1(Uint8List? logoBytes, String currentDate) {
     return pw.Container(
-      padding: const pw.EdgeInsets.all(24),
+      padding: const pw.EdgeInsets.all(12), // Reduced padding for MultiPage
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
@@ -1689,7 +1696,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
 // Template 2: Modern Elegance (Modernized)
   pw.Widget buildTemplate2(Uint8List? logoBytes, String currentDate) {
     return pw.Container(
-      padding: const pw.EdgeInsets.all(24),
+      padding: const pw.EdgeInsets.all(12), // Reduced padding for MultiPage
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
@@ -1912,7 +1919,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
 
         // Clean content
         pw.Container(
-          padding: const pw.EdgeInsets.all(28),
+          padding: const pw.EdgeInsets.all(12), // Reduced padding for MultiPage
           child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
@@ -2062,7 +2069,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
 // Template 5: Bold Gradient Header
   pw.Widget buildTemplate5(Uint8List? logoBytes, String currentDate) {
     return pw.Container(
-      padding: const pw.EdgeInsets.all(24),
+      padding: const pw.EdgeInsets.all(12), // Reduced padding for MultiPage
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
@@ -2225,7 +2232,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
 // Template 6: Executive Professional
   pw.Widget buildTemplate6(Uint8List? logoBytes, String currentDate) {
     return pw.Container(
-      padding: const pw.EdgeInsets.all(28),
+      padding: const pw.EdgeInsets.all(12), // Reduced padding for MultiPage
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
@@ -2412,7 +2419,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
 // Template 7: Creative Modern
   pw.Widget buildTemplate7(Uint8List? logoBytes, String currentDate) {
     return pw.Container(
-      padding: const pw.EdgeInsets.all(24),
+      padding: const pw.EdgeInsets.all(12), // Reduced padding for MultiPage
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
@@ -2626,7 +2633,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
 // Template 8: Elegant Minimalist
   pw.Widget buildTemplate8(Uint8List? logoBytes, String currentDate) {
     return pw.Container(
-      padding: const pw.EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+      padding: const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 12), // Reduced padding for MultiPage
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
@@ -3077,10 +3084,13 @@ class _CashMemoEditState extends State<CashMemoEdit>
 
                             if (!isUnlocked) {
                               // Close template selection dialog first
-                              Navigator.of(context).pop();
+                              if (context.mounted) {
+                                Navigator.of(context).pop();
+                              }
                               print('📋 [MemoEdit] Closed template selection, showing unlock dialog');
 
                               // Show unlock dialog
+                              if (!mounted) return;
                               bool shouldUnlock = await TemplateManager.showUnlockDialog(
                                 context,
                                 templateId,
@@ -3091,6 +3101,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
                               if (shouldUnlock) {
                                 // Attempt to unlock with rewarded ad
                                 print('📋 [MemoEdit] Calling unlockTemplate...');
+                                if (!mounted) return;
                                 bool unlocked = await TemplateManager.unlockTemplate(
                                   templateId,
                                   context,
@@ -3102,13 +3113,15 @@ class _CashMemoEditState extends State<CashMemoEdit>
                                   print('📋 [MemoEdit] ✅ Template unlocked! Consuming use and generating cash memo...');
                                   await TemplateManager.consumeTemplateUse(templateId);
                                   if (mounted) {
-                                    generateCashMemo(
+                                    await generateCashMemo(
                                       localizations,
                                       templateId,
                                       selectedWatermarkOption,
                                       watermarkText,
                                       watermarkImagePath,
                                     );
+                                  } else {
+                                    print('📋 [MemoEdit] ⚠️ Widget unmounted after ad, cannot generate PDF');
                                   }
                                 } else {
                                   print('📋 [MemoEdit] ❌ Template unlock failed. No cash memo generated.');
@@ -3122,20 +3135,24 @@ class _CashMemoEditState extends State<CashMemoEdit>
 
                           // Free template or unlocked premium - proceed directly
                           print('📋 [MemoEdit] Proceeding with template $templateId (free or already unlocked)');
-                          Navigator.of(context).pop();
+                          if (context.mounted) {
+                            Navigator.of(context).pop();
+                          }
 
                           // Consume a use if it's a premium template
                           if (isPremium) {
                             await TemplateManager.consumeTemplateUse(templateId);
                           }
 
-                          generateCashMemo(
-                            localizations,
-                            templateId,
-                            selectedWatermarkOption,
-                            watermarkText,
-                            watermarkImagePath,
-                          );
+                          if (mounted) {
+                            await generateCashMemo(
+                              localizations,
+                              templateId,
+                              selectedWatermarkOption,
+                              watermarkText,
+                              watermarkImagePath,
+                            );
+                          }
                         },
                         borderRadius: BorderRadius.circular(12),
                         child: Padding(

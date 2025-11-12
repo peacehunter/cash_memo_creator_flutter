@@ -3,7 +3,9 @@
     "allow": [
       "Bash(flutter run)",
       "Bash(nc:*)",
-      "Bash(flutter run:*)"
+      "Bash(flutter run:*)",
+      "Bash(flutter analyze:*)",
+      "Bash(flutter build:*)"
     ],
     "deny": [],
     "ask": []

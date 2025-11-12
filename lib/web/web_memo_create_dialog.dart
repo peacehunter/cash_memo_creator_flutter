@@ -3508,8 +3508,8 @@ class _WebMemoCreateDialogState extends State<WebMemoCreateDialog> {
                                     pdfContent = pw.Text('Template: $template');
                                 }
                                 doc.addPage(
-                                  pw.Page(
-                                    build: (pw.Context context) => pdfContent,
+                                  pw.MultiPage(
+                                    build: (pw.Context context) => [pdfContent],
                                   ),
                                 );
                                 await Printing.layoutPdf(
