@@ -62,7 +62,7 @@ class TemplateManager {
     return uses == 1 ? '1 use left' : '$uses uses left';
   }
 
-  // Unlock a template by watching rewarded ad
+  // Unlock a template by watching rewarded ad (now uses preloaded ad)
   static Future<bool> unlockTemplate(
     int templateId,
     BuildContext context,
@@ -91,89 +91,90 @@ class TemplateManager {
       return false;
     }
 
-    // Show loading dialog
-    print('🔓 [TemplateManager] Showing loading dialog');
-    if (context.mounted) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const AlertDialog(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Loading ad...'),
-            ],
-          ),
-        ),
-      );
-    }
+    // Check if ad is already preloaded
+    if (!rewardedAdManager.isAdLoaded) {
+      print('🔓 [TemplateManager] Ad not preloaded, loading now...');
 
-    // Load the ad
-    bool adLoaded = false;
-    bool loadFailed = false;
-    String? loadError;
-
-    print('🔓 [TemplateManager] Starting ad load...');
-    rewardedAdManager.loadRewardedAd(
-      onAdLoaded: () {
-        print('🔓 [TemplateManager] ✅ Ad loaded successfully!');
-        adLoaded = true;
-        if (context.mounted) {
-          Navigator.pop(context); // Close loading dialog
-        }
-      },
-      onAdFailedToLoad: (error) {
-        print('🔓 [TemplateManager] ❌ Ad failed to load: $error');
-        loadFailed = true;
-        loadError = error.toString();
-        if (context.mounted) {
-          Navigator.pop(context); // Close loading dialog
-        }
-      },
-    );
-
-    // Wait for ad to load (max 8 seconds)
-    int waitTime = 0;
-    while (!adLoaded && !loadFailed && waitTime < 8000) {
-      await Future.delayed(const Duration(milliseconds: 500));
-      waitTime += 500;
-      if (waitTime % 2000 == 0) {
-        print('🔓 [TemplateManager] Waiting for ad... ${waitTime}ms elapsed');
-      }
-    }
-
-    // Close loading dialog if still open
-    if (context.mounted && !adLoaded && !loadFailed) {
-      print('🔓 [TemplateManager] ⏱️ Timeout waiting for ad');
-      Navigator.pop(context);
-    }
-
-    if (!adLoaded || loadFailed) {
-      print('🔓 [TemplateManager] Ad load failed. Error: $loadError');
-      // Increment failed attempts
-      await prefs.setInt('template_failed_attempts_$templateId', failedAttempts + 1);
-
+      // Show loading dialog
       if (context.mounted) {
-        final remaining = 3 - (failedAttempts + 1);
-        if (remaining > 0) {
-          _showErrorDialog(
-            context,
-            'Failed to load ad. Please check your internet connection.\n\n'
-            'Attempts remaining: $remaining\n\n'
-            'Debug: ${loadError ?? "Timeout"}',
-          );
-        } else {
-          _showErrorDialog(
-            context,
-            'Ad loading failed multiple times. You can now unlock this template for free!',
-          );
-        }
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const AlertDialog(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Loading ad...'),
+              ],
+            ),
+          ),
+        );
       }
-      rewardedAdManager.dispose();
-      print('🔓 [TemplateManager] Returning false (ad failed to load)');
-      return false;
+
+      // Load the ad
+      bool adLoaded = false;
+      bool loadFailed = false;
+      String? loadError;
+
+      rewardedAdManager.loadRewardedAd(
+        onAdLoaded: () {
+          print('🔓 [TemplateManager] ✅ Ad loaded successfully!');
+          adLoaded = true;
+          if (context.mounted) {
+            Navigator.pop(context); // Close loading dialog
+          }
+        },
+        onAdFailedToLoad: (error) {
+          print('🔓 [TemplateManager] ❌ Ad failed to load: $error');
+          loadFailed = true;
+          loadError = error.toString();
+          if (context.mounted) {
+            Navigator.pop(context); // Close loading dialog
+          }
+        },
+      );
+
+      // Wait for ad to load (max 8 seconds)
+      int waitTime = 0;
+      while (!adLoaded && !loadFailed && waitTime < 8000) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        waitTime += 500;
+      }
+
+      // Close loading dialog if still open
+      if (context.mounted && !adLoaded && !loadFailed) {
+        print('🔓 [TemplateManager] ⏱️ Timeout waiting for ad');
+        Navigator.pop(context);
+      }
+
+      if (!adLoaded || loadFailed) {
+        print('🔓 [TemplateManager] Ad load failed. Error: $loadError');
+        // Increment failed attempts
+        await prefs.setInt('template_failed_attempts_$templateId', failedAttempts + 1);
+
+        if (context.mounted) {
+          final remaining = 3 - (failedAttempts + 1);
+          if (remaining > 0) {
+            _showErrorDialog(
+              context,
+              'Failed to load ad. Please check your internet connection.\n\n'
+              'Attempts remaining: $remaining\n\n'
+              'Debug: ${loadError ?? "Timeout"}',
+            );
+          } else {
+            _showErrorDialog(
+              context,
+              'Ad loading failed multiple times. You can now unlock this template for free!',
+            );
+          }
+        }
+        print('🔓 [TemplateManager] Returning false (ad failed to load)');
+        return false;
+      }
+    } else {
+      print('🔓 [TemplateManager] ✅ Using preloaded ad (instant show)');
     }
 
     // Show the ad and wait for completion
@@ -209,7 +210,6 @@ class TemplateManager {
       }
     }
 
-    rewardedAdManager.dispose();
     print('🔓 [TemplateManager] Unlock process complete. Returning: $rewardEarned');
     return rewardEarned;
   }

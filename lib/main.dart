@@ -7,6 +7,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'admob_ads/AppOpenAdManager.dart';
+import 'admob_ads/RewardedAdManager.dart';
 
 import 'CheckRouteObserver.dart';
 import 'SettingsPage.dart';
@@ -86,6 +87,8 @@ class CashMemoAppState extends State<CashMemoApp> with WidgetsBindingObserver {
     loadLanguagePreference();
     if (!kIsWeb) {
       analytics = FirebaseAnalytics.instance;
+      // Initialize and preload rewarded ads for instant showing
+      RewardedAdManager().initialize(autoReload: true);
     }
     WidgetsBinding.instance.addObserver(this);
     // Preload an App Open Ad

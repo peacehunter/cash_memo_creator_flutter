@@ -581,6 +581,18 @@ class MemoListScreenState extends State<MemoListScreen>
 
         final pdfFiles = snapshot.data ?? [];
 
+        // Sort PDF files by last modified date (newest first)
+        if (pdfFiles.isNotEmpty) {
+          pdfFiles.sort((a, b) {
+            final aFile = File(a.path);
+            final bFile = File(b.path);
+            final aLastModified = aFile.lastModifiedSync();
+            final bLastModified = bFile.lastModifiedSync();
+            // Sort in descending order (newest first)
+            return bLastModified.compareTo(aLastModified);
+          });
+        }
+
         return Container(
           padding: const EdgeInsets.all(12.0),
           child: pdfFiles.isNotEmpty
@@ -831,10 +843,13 @@ class MemoListScreenState extends State<MemoListScreen>
       );
     }
 
+    // Reverse the memos list to show latest first
+    final reversedMemos = _memos.reversed.toList();
+
     // Calculate total items including native ads (one ad every 5 items)
     final int adFrequency = 5;
-    final int totalAds = _memos.isEmpty ? 0 : (_memos.length / adFrequency).floor();
-    final int totalItems = _memos.length + totalAds;
+    final int totalAds = reversedMemos.isEmpty ? 0 : (reversedMemos.length / adFrequency).floor();
+    final int totalItems = reversedMemos.length + totalAds;
 
     return ListView.builder(
       physics: const BouncingScrollPhysics(),
@@ -851,11 +866,13 @@ class MemoListScreenState extends State<MemoListScreen>
         }
 
         // Show memo card
-        if (adjustedIndex < _memos.length) {
-          final memo = _memos[adjustedIndex];
+        if (adjustedIndex < reversedMemos.length) {
+          final memo = reversedMemos[adjustedIndex];
+          // Calculate the actual index in the original _memos list
+          final actualIndex = _memos.length - 1 - adjustedIndex;
           return ProfessionalMemoCard(
             memo: memo,
-            index: adjustedIndex,
+            index: actualIndex,
             onEdit: _editMemo,
             onDelete: _deleteMemo,
             onPrint: _printMemo,

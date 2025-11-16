@@ -5,53 +5,112 @@ import 'AdHelper.dart';
 class RewardedAdManager {
   RewardedAd? _rewardedAd;
   bool _isAdLoaded = false;
+  bool _isLoading = false;
+  bool _autoReload = true;
+
+  // Singleton pattern for global preloading
+  static final RewardedAdManager _instance = RewardedAdManager._internal();
+  factory RewardedAdManager() => _instance;
+  RewardedAdManager._internal();
+
+  // Initialize and preload ad
+  void initialize({bool autoReload = true}) {
+    _autoReload = autoReload;
+    print('📺 [RewardedAdManager] Initializing with autoReload: $autoReload');
+    preloadAd();
+  }
+
+  // Preload ad (can be called manually or automatically)
+  void preloadAd() {
+    if (_isLoading || _isAdLoaded) {
+      print('📺 [RewardedAdManager] Already loading or loaded, skipping preload');
+      return;
+    }
+    print('📺 [RewardedAdManager] Starting preload...');
+    loadRewardedAd();
+  }
 
   // Load rewarded ad
   void loadRewardedAd({Function? onAdLoaded, Function? onAdFailedToLoad}) {
+    if (_isLoading) {
+      print('📺 [RewardedAdManager] Ad is already being loaded, skipping...');
+      return;
+    }
+
+    _isLoading = true;
+    print('📺 [RewardedAdManager] Loading rewarded ad...');
+
     RewardedAd.load(
       adUnitId: AdHelper.rewardedAdUnitId,
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (RewardedAd ad) {
-          print('Rewarded ad loaded successfully.');
+          print('📺 [RewardedAdManager] ✅ Rewarded ad loaded successfully.');
           _rewardedAd = ad;
           _isAdLoaded = true;
+          _isLoading = false;
           _setFullScreenContentCallback();
           if (onAdLoaded != null) {
             onAdLoaded();
           }
         },
         onAdFailedToLoad: (LoadAdError error) {
-          print('Rewarded ad failed to load: $error');
+          print('📺 [RewardedAdManager] ❌ Rewarded ad failed to load: $error');
           _isAdLoaded = false;
+          _isLoading = false;
           _rewardedAd = null;
           if (onAdFailedToLoad != null) {
             onAdFailedToLoad(error);
+          }
+
+          // Retry after 30 seconds if autoReload is enabled
+          if (_autoReload) {
+            print('📺 [RewardedAdManager] Will retry loading in 30 seconds...');
+            Future.delayed(const Duration(seconds: 30), () {
+              if (!_isAdLoaded && !_isLoading) {
+                preloadAd();
+              }
+            });
           }
         },
       ),
     );
   }
 
-  // Set full screen callbacks
+  // Set full screen callbacks with auto-reload
   void _setFullScreenContentCallback() {
     if (_rewardedAd == null) return;
 
     _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
       onAdShowedFullScreenContent: (RewardedAd ad) {
-        print('Rewarded ad showed full screen content.');
+        print('📺 [RewardedAdManager] Ad showed full screen content.');
       },
       onAdDismissedFullScreenContent: (RewardedAd ad) {
-        print('Rewarded ad dismissed.');
+        print('📺 [RewardedAdManager] Ad dismissed.');
         ad.dispose();
         _rewardedAd = null;
         _isAdLoaded = false;
+
+        // Automatically preload next ad if autoReload is enabled
+        if (_autoReload) {
+          print('📺 [RewardedAdManager] Auto-reloading next ad...');
+          Future.delayed(const Duration(seconds: 1), () {
+            preloadAd();
+          });
+        }
       },
       onAdFailedToShowFullScreenContent: (RewardedAd ad, AdError error) {
-        print('Rewarded ad failed to show: $error');
+        print('📺 [RewardedAdManager] ❌ Ad failed to show: $error');
         ad.dispose();
         _rewardedAd = null;
         _isAdLoaded = false;
+
+        // Preload next ad on failure too
+        if (_autoReload) {
+          Future.delayed(const Duration(seconds: 1), () {
+            preloadAd();
+          });
+        }
       },
     );
   }
