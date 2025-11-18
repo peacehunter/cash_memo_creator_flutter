@@ -77,16 +77,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
   // Flag to prevent multiple template dialog shows
   bool _hasShownTemplateDialog = false;
 
-  int selectedWatermarkOption = 2; // Example default value
-  String? watermarkImagePath; // Path to the watermark image
-
   late bool isPercentDiscount;
   double discount = 0.0;
   double vat = 0.0;
   String? companyName;
   String? companyAddress;
   String? companyLogoPath;
-  String? watermarkText;
   String? nbMessage;
   String? specialNote;
   bool specialNoteEnabled = false;
@@ -233,8 +229,6 @@ class _CashMemoEditState extends State<CashMemoEdit>
     print("widget.memo value : ${widget.memo}");
     // Check if we need to automatically generate the memo
 
-    print("Water mark option :$selectedWatermarkOption");
-
     //  savePdf();
     // Initialize products with existing memo data or create a new one
     products = widget.memo?.products.isNotEmpty == true
@@ -252,8 +246,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
         TextEditingController(text: widget.memo?.customerAddress ?? '');
     customerPhoneNumberController =
         TextEditingController(text: widget.memo?.customerPhoneNumber ?? '');
-    notesController =
-        TextEditingController(text: widget.memo?.notes ?? '');
+    notesController = TextEditingController(text: widget.memo?.notes ?? '');
 
     isPercentDiscount = widget.memo?.isPercentDiscount ?? true;
 
@@ -302,7 +295,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
         _discountController
             .add(TextEditingController(text: product.discount.toString()));
         // Load the discount type from the product (perPiece = percentage, solid = fixed amount)
-        _isProductDiscountPercent.add(product.discountType == DiscountType.perPiece);
+        _isProductDiscountPercent
+            .add(product.discountType == DiscountType.perPiece);
       } else {
         // For new memos, use empty strings
         _priceControllers.add(TextEditingController(text: ''));
@@ -345,10 +339,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
           prefs.getString('company_name') ?? localizations.pdf_company_name;
       companyAddress = prefs.getString('company_address') ?? '';
       companyLogoPath = prefs.getString('companyLogo') ?? '';
-      watermarkText = prefs.getString('watermarkText') ?? '';
-      watermarkImagePath = prefs.getString('watermarkImage') ?? '';
       nbMessage = prefs.getString('nbMessage') ?? '';
-      selectedWatermarkOption = prefs.getInt('watermarkOption') ?? 0;
       specialNoteEnabled = prefs.getBool('special_note_enabled') ?? false;
       specialNote = prefs.getString('special_note') ?? '';
       isLoadingCompanyInfo = false;
@@ -491,10 +482,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
 // Call this function when you want to generate the PDF and show the ad
   Future<void> generateCashMemo(
       localizations,
-      int selectedTemplate,
-      int selectedWatermarkOption,
-      String? watermarkText,
-      String? watermarkImagePath) async {
+      int selectedTemplate) async {
     // Load Bengali font for proper rendering of Bengali characters (৳ symbol)
     final fontData = await rootBundle.load('assets/fonts/NotoSansBengali.ttf');
     final bengaliFont = pw.Font.ttf(fontData);
@@ -502,9 +490,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
     final pdf = pw.Document(
       theme: pw.ThemeData.withFont(
         base: bengaliFont,
-        bold: bengaliFont, // Use same font for bold to support Bengali characters
-        italic: bengaliFont, // Use same font for italic to support Bengali characters
-        boldItalic: bengaliFont, // Use same font for bold italic to support Bengali characters
+        bold:
+            bengaliFont, // Use same font for bold to support Bengali characters
+        italic:
+            bengaliFont, // Use same font for italic to support Bengali characters
+        boldItalic:
+            bengaliFont, // Use same font for bold italic to support Bengali characters
       ),
     );
 
@@ -569,20 +560,14 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   margin: const pw.EdgeInsets.only(top: 8, right: 0),
                   child: pw.Text(
                     'Page ${context.pageNumber} of ${context.pagesCount}',
-                    style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600),
+                    style: const pw.TextStyle(
+                        fontSize: 9, color: PdfColors.grey600),
                   ),
                 ),
               ],
             ],
           );
         },
-        header: selectedWatermarkOption != 0 ? (pw.Context context) {
-          return pw.Opacity(
-            opacity: 0.1,
-            child: waterMarkWidget(selectedWatermarkOption, watermarkText,
-                watermarkImagePath),
-          );
-        } : null,
       ),
     );
 
@@ -608,7 +593,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
 // Professional signature section
   pw.Widget buildSignatureSection() {
     return pw.Padding(
-      padding: const pw.EdgeInsets.only(top: 30, left: 24, right: 24, bottom: 20),
+      padding:
+          const pw.EdgeInsets.only(top: 30, left: 24, right: 24, bottom: 20),
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         crossAxisAlignment: pw.CrossAxisAlignment.end,
@@ -685,93 +671,6 @@ class _CashMemoEditState extends State<CashMemoEdit>
         ),
       ],
     );
-  }
-
-  pw.Widget waterMarkWidget(int selectedWatermarkOption, String? watermarkText,
-      String? watermarkImagePath) {
-    // On web, watermark image is not supported due to lack of File API.
-    if (kIsWeb) {
-      // On web, only text watermark is supported. No File can be referenced here.
-      if (selectedWatermarkOption == 0 || selectedWatermarkOption == 2) {
-        return pw.Positioned.fill(
-          child: pw.Opacity(
-            opacity: 0.1,
-            child: pw.Center(
-              child: pw.Text(
-                (watermarkText ?? ''),
-                style: pw.TextStyle(
-                  fontSize: 72,
-                  fontWeight: pw.FontWeight.bold,
-                  color: PdfColors.grey,
-                ),
-                textAlign: pw.TextAlign.center,
-              ),
-            ),
-          ),
-        );
-      } else {
-        return pw.Container();
-      }
-    } else {
-      // Native platforms: allow file/image watermarks as before (safe to use File here)
-      return pw.Positioned.fill(
-        child: pw.Opacity(
-          opacity: 0.1,
-          child: pw.Stack(
-            children: [
-              // Both text and image
-              if (selectedWatermarkOption == 2 &&
-                  watermarkImagePath != null &&
-                  File(watermarkImagePath).existsSync()) ...[
-                pw.Center(
-                  child: pw.Image(
-                    pw.MemoryImage(Uint8List.fromList(
-                        File(watermarkImagePath).readAsBytesSync())),
-                    fit: pw.BoxFit.contain,
-                  ),
-                ),
-                pw.Center(
-                  child: pw.Text(
-                    (watermarkText ?? ''),
-                    style: pw.TextStyle(
-                        fontSize: 72,
-                        fontWeight: pw.FontWeight.bold,
-                        color: PdfColors.grey),
-                    textAlign: pw.TextAlign.center,
-                  ),
-                ),
-              ],
-              // Only text
-              if (selectedWatermarkOption == 0) ...[
-                pw.Center(
-                  child: pw.Text(
-                    (watermarkText ?? ''),
-                    style: pw.TextStyle(
-                        fontSize: 72,
-                        fontWeight: pw.FontWeight.bold,
-                        color: PdfColors.grey),
-                    textAlign: pw.TextAlign.center,
-                  ),
-                ),
-              ],
-              // Only image
-              if (selectedWatermarkOption == 1 &&
-                  watermarkImagePath != null &&
-                  File(watermarkImagePath).existsSync()) ...[
-                pw.Center(
-                  child: pw.Image(
-                    pw.MemoryImage(Uint8List.fromList(
-                        File(watermarkImagePath).readAsBytesSync())),
-                    fit: pw.BoxFit.contain,
-                  ),
-                ),
-              ],
-              // Option 3: none
-            ],
-          ),
-        ),
-      );
-    }
   }
 
 // Modern Helper Functions for Templates
@@ -898,7 +797,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                 padding: const pw.EdgeInsets.all(10),
                 child: pw.Text(
                   discountDisplay,
-                  style: const pw.TextStyle(fontSize: 10, color: PdfColors.red700),
+                  style:
+                      const pw.TextStyle(fontSize: 10, color: PdfColors.red700),
                   textAlign: pw.TextAlign.right,
                 ),
               ),
@@ -927,7 +827,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
         pw.Container(
           padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 4),
           decoration: const pw.BoxDecoration(
-            border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey800, width: 2)),
+            border: pw.Border(
+                bottom: pw.BorderSide(color: PdfColors.grey800, width: 2)),
           ),
           child: pw.Row(
             children: [
@@ -999,7 +900,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
           return pw.Container(
             padding: const pw.EdgeInsets.symmetric(vertical: 10, horizontal: 4),
             decoration: const pw.BoxDecoration(
-              border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey200, width: 0.5)),
+              border: pw.Border(
+                  bottom: pw.BorderSide(color: PdfColors.grey200, width: 0.5)),
             ),
             child: pw.Row(
               children: [
@@ -1007,13 +909,15 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   flex: 3,
                   child: pw.Text(
                     product.name,
-                    style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey900),
+                    style: const pw.TextStyle(
+                        fontSize: 10, color: PdfColors.grey900),
                   ),
                 ),
                 pw.Expanded(
                   child: pw.Text(
                     '৳${product.price.toStringAsFixed(2)}',
-                    style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+                    style: const pw.TextStyle(
+                        fontSize: 10, color: PdfColors.grey700),
                     textAlign: pw.TextAlign.right,
                   ),
                 ),
@@ -1021,7 +925,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                 pw.Expanded(
                   child: pw.Text(
                     '${product.quantity}',
-                    style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+                    style: const pw.TextStyle(
+                        fontSize: 10, color: PdfColors.grey700),
                     textAlign: pw.TextAlign.center,
                   ),
                 ),
@@ -1057,9 +962,15 @@ class _CashMemoEditState extends State<CashMemoEdit>
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: [
-          _buildModernPricingRow('Subtotal', '৳${getMemoizedSubtotal().toStringAsFixed(2)}', false),
+          _buildModernPricingRow('Subtotal',
+              '৳${getMemoizedSubtotal().toStringAsFixed(2)}', false),
           pw.SizedBox(height: 6),
-          _buildModernPricingRow('Discount', isPercentDiscount ? '${discountController.text}%' : '৳${discountController.text}', false),
+          _buildModernPricingRow(
+              'Discount',
+              isPercentDiscount
+                  ? '${discountController.text}%'
+                  : '৳${discountController.text}',
+              false),
           pw.SizedBox(height: 6),
           _buildModernPricingRow('VAT/Tax', '${vatController.text}%', false),
           pw.SizedBox(height: 10),
@@ -1068,7 +979,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
             color: PdfColors.grey400,
           ),
           pw.SizedBox(height: 10),
-          _buildModernPricingRow('TOTAL', '৳${getMemoizedTotal().toStringAsFixed(2)}', true),
+          _buildModernPricingRow(
+              'TOTAL', '৳${getMemoizedTotal().toStringAsFixed(2)}', true),
         ],
       ),
     );
@@ -1249,10 +1161,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
                 pw.Container(
                   decoration: pw.BoxDecoration(
                     border: pw.Border.all(color: PdfColors.purple200, width: 2),
-                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
+                    borderRadius:
+                        const pw.BorderRadius.all(pw.Radius.circular(10)),
                   ),
                   padding: const pw.EdgeInsets.all(6),
-                  child: pw.Image(pw.MemoryImage(logoBytes), width: 50, height: 50),
+                  child: pw.Image(pw.MemoryImage(logoBytes),
+                      width: 50, height: 50),
                 ),
             ],
           ),
@@ -1268,8 +1182,10 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   padding: const pw.EdgeInsets.all(14),
                   decoration: pw.BoxDecoration(
                     color: PdfColors.purple50,
-                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
-                    border: pw.Border.all(color: PdfColors.purple100, width: 1.5),
+                    borderRadius:
+                        const pw.BorderRadius.all(pw.Radius.circular(10)),
+                    border:
+                        pw.Border.all(color: PdfColors.purple100, width: 1.5),
                   ),
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -1325,7 +1241,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   padding: const pw.EdgeInsets.all(14),
                   decoration: pw.BoxDecoration(
                     color: PdfColors.grey50,
-                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
+                    borderRadius:
+                        const pw.BorderRadius.all(pw.Radius.circular(10)),
                     border: pw.Border.all(color: PdfColors.grey200, width: 1.5),
                   ),
                   child: pw.Column(
@@ -1488,7 +1405,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
           double discountedTotal = productTotal - discountAmount;
 
           return pw.Container(
-            padding: const pw.EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            padding:
+                const pw.EdgeInsets.symmetric(vertical: 10, horizontal: 12),
             decoration: pw.BoxDecoration(
               color: index.isEven ? PdfColors.white : PdfColors.grey50,
             ),
@@ -1498,13 +1416,15 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   flex: 3,
                   child: pw.Text(
                     product.name,
-                    style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey900),
+                    style: const pw.TextStyle(
+                        fontSize: 10, color: PdfColors.grey900),
                   ),
                 ),
                 pw.Expanded(
                   child: pw.Text(
                     '৳${product.price.toStringAsFixed(2)}',
-                    style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey800),
+                    style: const pw.TextStyle(
+                        fontSize: 10, color: PdfColors.grey800),
                     textAlign: pw.TextAlign.right,
                   ),
                 ),
@@ -1512,7 +1432,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                 pw.Expanded(
                   child: pw.Text(
                     '${product.quantity}',
-                    style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey800),
+                    style: const pw.TextStyle(
+                        fontSize: 10, color: PdfColors.grey800),
                     textAlign: pw.TextAlign.center,
                   ),
                 ),
@@ -1539,7 +1460,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
           height: 2,
           decoration: const pw.BoxDecoration(
             color: PdfColors.purple200,
-            borderRadius: pw.BorderRadius.vertical(bottom: pw.Radius.circular(8)),
+            borderRadius:
+                pw.BorderRadius.vertical(bottom: pw.Radius.circular(8)),
           ),
         ),
       ],
@@ -1596,7 +1518,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   padding: const pw.EdgeInsets.all(16),
                   decoration: pw.BoxDecoration(
                     color: PdfColors.grey100,
-                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                    borderRadius:
+                        const pw.BorderRadius.all(pw.Radius.circular(8)),
                   ),
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -1612,7 +1535,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                       ),
                       pw.SizedBox(height: 8),
                       if (logoBytes != null) ...[
-                        pw.Image(pw.MemoryImage(logoBytes), width: 40, height: 40),
+                        pw.Image(pw.MemoryImage(logoBytes),
+                            width: 40, height: 40),
                         pw.SizedBox(height: 8),
                       ],
                       pw.Text(
@@ -1625,7 +1549,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                       pw.SizedBox(height: 4),
                       pw.Text(
                         companyAddress ?? '',
-                        style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey800),
+                        style: const pw.TextStyle(
+                            fontSize: 11, color: PdfColors.grey800),
                       ),
                     ],
                   ),
@@ -1639,7 +1564,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   padding: const pw.EdgeInsets.all(16),
                   decoration: pw.BoxDecoration(
                     color: PdfColors.grey100,
-                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                    borderRadius:
+                        const pw.BorderRadius.all(pw.Radius.circular(8)),
                   ),
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -1664,12 +1590,14 @@ class _CashMemoEditState extends State<CashMemoEdit>
                       pw.SizedBox(height: 4),
                       pw.Text(
                         customerAddressController.text,
-                        style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey800),
+                        style: const pw.TextStyle(
+                            fontSize: 11, color: PdfColors.grey800),
                       ),
                       pw.SizedBox(height: 2),
                       pw.Text(
                         'Phone: ${customerPhoneNumberController.text}',
-                        style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey800),
+                        style: const pw.TextStyle(
+                            fontSize: 11, color: PdfColors.grey800),
                       ),
                     ],
                   ),
@@ -1731,11 +1659,14 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   if (logoBytes != null) ...[
                     pw.Container(
                       decoration: pw.BoxDecoration(
-                        border: pw.Border.all(color: PdfColors.green600, width: 2),
-                        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                        border:
+                            pw.Border.all(color: PdfColors.green600, width: 2),
+                        borderRadius:
+                            const pw.BorderRadius.all(pw.Radius.circular(8)),
                       ),
                       padding: const pw.EdgeInsets.all(8),
-                      child: pw.Image(pw.MemoryImage(logoBytes), width: 50, height: 50),
+                      child: pw.Image(pw.MemoryImage(logoBytes),
+                          width: 50, height: 50),
                     ),
                     pw.SizedBox(height: 12),
                   ],
@@ -1750,7 +1681,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   pw.SizedBox(height: 4),
                   pw.Text(
                     companyAddress ?? '',
-                    style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey700),
+                    style: const pw.TextStyle(
+                        fontSize: 11, color: PdfColors.grey700),
                   ),
                 ],
               ),
@@ -1770,10 +1702,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   ),
                   pw.SizedBox(height: 12),
                   pw.Container(
-                    padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const pw.EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
                     decoration: pw.BoxDecoration(
                       color: PdfColors.green50,
-                      borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+                      borderRadius:
+                          const pw.BorderRadius.all(pw.Radius.circular(6)),
                       border: pw.Border.all(color: PdfColors.green200),
                     ),
                     child: pw.Text(
@@ -1814,11 +1748,13 @@ class _CashMemoEditState extends State<CashMemoEdit>
                 pw.Row(
                   children: [
                     pw.Expanded(
-                      child: _buildInfoRow('Name:', customerNameController.text),
+                      child:
+                          _buildInfoRow('Name:', customerNameController.text),
                     ),
                     pw.SizedBox(width: 16),
                     pw.Expanded(
-                      child: _buildInfoRow('Phone:', customerPhoneNumberController.text),
+                      child: _buildInfoRow(
+                          'Phone:', customerPhoneNumberController.text),
                     ),
                   ],
                 ),
@@ -1842,7 +1778,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   padding: const pw.EdgeInsets.all(12),
                   decoration: pw.BoxDecoration(
                     color: PdfColors.grey50,
-                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                    borderRadius:
+                        const pw.BorderRadius.all(pw.Radius.circular(8)),
                   ),
                   child: pw.Text(
                     'Thank you for your business!',
@@ -1905,29 +1842,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
 
 // Template 3: Minimalist Clean (Modernized)
   pw.Widget buildTemplate3(Uint8List? logoBytes, String currentDate) {
-    return pw.Stack(
-      children: [
-        // Subtle watermark
-        if (watermarkText != null && watermarkText!.isNotEmpty)
-          pw.Positioned.fill(
-            child: pw.Opacity(
-              opacity: 0.05,
-              child: pw.Center(
-                child: pw.Text(
-                  watermarkText!,
-                  style: pw.TextStyle(
-                    fontSize: 80,
-                    fontWeight: pw.FontWeight.bold,
-                    color: PdfColors.grey600,
-                  ),
-                  textAlign: pw.TextAlign.center,
-                ),
-              ),
-            ),
-          ),
-
-        // Clean content
-        pw.Container(
+    return pw.Container(
           padding: const pw.EdgeInsets.all(12), // Reduced padding for MultiPage
           child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -1937,7 +1852,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                 child: pw.Column(
                   children: [
                     if (logoBytes != null) ...[
-                      pw.Image(pw.MemoryImage(logoBytes), width: 60, height: 60),
+                      pw.Image(pw.MemoryImage(logoBytes),
+                          width: 60, height: 60),
                       pw.SizedBox(height: 12),
                     ],
                     pw.Text(
@@ -2070,8 +1986,6 @@ class _CashMemoEditState extends State<CashMemoEdit>
               ],
             ],
           ),
-        ),
-      ],
     );
   }
 
@@ -2114,10 +2028,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
                       ),
                     ),
                     pw.Container(
-                      padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const pw.EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       decoration: const pw.BoxDecoration(
                         color: PdfColors.red900,
-                        borderRadius: pw.BorderRadius.all(pw.Radius.circular(20)),
+                        borderRadius:
+                            pw.BorderRadius.all(pw.Radius.circular(20)),
                       ),
                       child: pw.Text(
                         currentDate,
@@ -2155,12 +2071,14 @@ class _CashMemoEditState extends State<CashMemoEdit>
                     ),
                     pw.SizedBox(height: 6),
                     if (logoBytes != null) ...[
-                      pw.Image(pw.MemoryImage(logoBytes), width: 45, height: 45),
+                      pw.Image(pw.MemoryImage(logoBytes),
+                          width: 45, height: 45),
                       pw.SizedBox(height: 8),
                     ],
                     pw.Text(
                       companyAddress ?? '',
-                      style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey800),
+                      style: const pw.TextStyle(
+                          fontSize: 11, color: PdfColors.grey800),
                     ),
                   ],
                 ),
@@ -2193,12 +2111,14 @@ class _CashMemoEditState extends State<CashMemoEdit>
                     pw.SizedBox(height: 4),
                     pw.Text(
                       customerAddressController.text,
-                      style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey800),
+                      style: const pw.TextStyle(
+                          fontSize: 11, color: PdfColors.grey800),
                     ),
                     pw.SizedBox(height: 2),
                     pw.Text(
                       'Phone: ${customerPhoneNumberController.text}',
-                      style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey800),
+                      style: const pw.TextStyle(
+                          fontSize: 11, color: PdfColors.grey800),
                     ),
                   ],
                 ),
@@ -2254,10 +2174,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
                 pw.Container(
                   decoration: pw.BoxDecoration(
                     border: pw.Border.all(color: PdfColors.blue900, width: 3),
-                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(12)),
+                    borderRadius:
+                        const pw.BorderRadius.all(pw.Radius.circular(12)),
                   ),
                   padding: const pw.EdgeInsets.all(10),
-                  child: pw.Image(pw.MemoryImage(logoBytes), width: 60, height: 60),
+                  child: pw.Image(pw.MemoryImage(logoBytes),
+                      width: 60, height: 60),
                 ),
               pw.SizedBox(width: 20),
 
@@ -2277,7 +2199,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                     pw.SizedBox(height: 6),
                     pw.Text(
                       companyAddress ?? '',
-                      style: const pw.TextStyle(fontSize: 12, color: PdfColors.grey700),
+                      style: const pw.TextStyle(
+                          fontSize: 12, color: PdfColors.grey700),
                     ),
                   ],
                 ),
@@ -2285,10 +2208,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
 
               // Invoice badge
               pw.Container(
-                padding: const pw.EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding:
+                    const pw.EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 decoration: pw.BoxDecoration(
                   color: PdfColors.blue900,
-                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                  borderRadius:
+                      const pw.BorderRadius.all(pw.Radius.circular(8)),
                 ),
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.end,
@@ -2305,7 +2230,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                     pw.SizedBox(height: 4),
                     pw.Text(
                       currentDate,
-                      style: const pw.TextStyle(fontSize: 10, color: PdfColors.white),
+                      style: const pw.TextStyle(
+                          fontSize: 10, color: PdfColors.white),
                     ),
                   ],
                 ),
@@ -2353,7 +2279,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                 pw.SizedBox(height: 4),
                 pw.Text(
                   customerAddressController.text,
-                  style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey800),
+                  style: const pw.TextStyle(
+                      fontSize: 11, color: PdfColors.grey800),
                 ),
                 pw.SizedBox(height: 4),
                 pw.Text(
@@ -2384,7 +2311,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                     padding: const pw.EdgeInsets.all(14),
                     decoration: pw.BoxDecoration(
                       color: PdfColors.grey50,
-                      borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                      borderRadius:
+                          const pw.BorderRadius.all(pw.Radius.circular(8)),
                     ),
                     child: pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -2401,7 +2329,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                         pw.SizedBox(height: 6),
                         pw.Text(
                           notesController.text,
-                          style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+                          style: const pw.TextStyle(
+                              fontSize: 10, color: PdfColors.grey700),
                         ),
                       ],
                     ),
@@ -2461,9 +2390,11 @@ class _CashMemoEditState extends State<CashMemoEdit>
                             padding: const pw.EdgeInsets.all(8),
                             decoration: const pw.BoxDecoration(
                               color: PdfColors.white,
-                              borderRadius: pw.BorderRadius.all(pw.Radius.circular(10)),
+                              borderRadius:
+                                  pw.BorderRadius.all(pw.Radius.circular(10)),
                             ),
-                            child: pw.Image(pw.MemoryImage(logoBytes), width: 40, height: 40),
+                            child: pw.Image(pw.MemoryImage(logoBytes),
+                                width: 40, height: 40),
                           ),
                           pw.SizedBox(height: 10),
                         ],
@@ -2481,7 +2412,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                       padding: const pw.EdgeInsets.all(16),
                       decoration: pw.BoxDecoration(
                         color: PdfColors.white,
-                        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(12)),
+                        borderRadius:
+                            const pw.BorderRadius.all(pw.Radius.circular(12)),
                       ),
                       child: pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.end,
@@ -2498,7 +2430,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                           pw.SizedBox(height: 6),
                           pw.Text(
                             currentDate,
-                            style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey700),
+                            style: const pw.TextStyle(
+                                fontSize: 11, color: PdfColors.grey700),
                           ),
                         ],
                       ),
@@ -2519,7 +2452,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   padding: const pw.EdgeInsets.all(16),
                   decoration: pw.BoxDecoration(
                     border: pw.Border.all(color: PdfColors.orange200, width: 2),
-                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
+                    borderRadius:
+                        const pw.BorderRadius.all(pw.Radius.circular(10)),
                   ),
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -2549,7 +2483,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                       pw.SizedBox(height: 8),
                       pw.Text(
                         companyAddress ?? '',
-                        style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey800),
+                        style: const pw.TextStyle(
+                            fontSize: 11, color: PdfColors.grey800),
                       ),
                     ],
                   ),
@@ -2561,8 +2496,10 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   padding: const pw.EdgeInsets.all(16),
                   decoration: pw.BoxDecoration(
                     color: PdfColors.orange50,
-                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
-                    border: pw.Border.all(color: PdfColors.orange100, width: 1.5),
+                    borderRadius:
+                        const pw.BorderRadius.all(pw.Radius.circular(10)),
+                    border:
+                        pw.Border.all(color: PdfColors.orange100, width: 1.5),
                   ),
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -2601,12 +2538,14 @@ class _CashMemoEditState extends State<CashMemoEdit>
                       pw.SizedBox(height: 3),
                       pw.Text(
                         customerAddressController.text,
-                        style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey800),
+                        style: const pw.TextStyle(
+                            fontSize: 10, color: PdfColors.grey800),
                       ),
                       pw.SizedBox(height: 2),
                       pw.Text(
                         customerPhoneNumberController.text,
-                        style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey800),
+                        style: const pw.TextStyle(
+                            fontSize: 10, color: PdfColors.grey800),
                       ),
                     ],
                   ),
@@ -2642,7 +2581,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
 // Template 8: Elegant Minimalist
   pw.Widget buildTemplate8(Uint8List? logoBytes, String currentDate) {
     return pw.Container(
-      padding: const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 12), // Reduced padding for MultiPage
+      padding: const pw.EdgeInsets.symmetric(
+          horizontal: 16, vertical: 12), // Reduced padding for MultiPage
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
@@ -2682,7 +2622,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                         pw.SizedBox(height: 4),
                         pw.Text(
                           companyAddress ?? '',
-                          style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey600),
+                          style: const pw.TextStyle(
+                              fontSize: 11, color: PdfColors.grey600),
                         ),
                       ],
                     ),
@@ -2702,7 +2643,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                 children: [
                   pw.Text(
                     'Invoice Date',
-                    style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
+                    style: const pw.TextStyle(
+                        fontSize: 10, color: PdfColors.grey600),
                   ),
                   pw.SizedBox(height: 4),
                   pw.Text(
@@ -2716,10 +2658,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
                 ],
               ),
               pw.Container(
-                padding: const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding:
+                    const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: pw.BoxDecoration(
                   border: pw.Border.all(color: PdfColors.teal600, width: 2),
-                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                  borderRadius:
+                      const pw.BorderRadius.all(pw.Radius.circular(8)),
                 ),
                 child: pw.Text(
                   'CASH MEMO',
@@ -2751,7 +2695,10 @@ class _CashMemoEditState extends State<CashMemoEdit>
               children: [
                 pw.Text(
                   'BILLING DETAILS',
-                  style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600, letterSpacing: 1.2),
+                  style: const pw.TextStyle(
+                      fontSize: 9,
+                      color: PdfColors.grey600,
+                      letterSpacing: 1.2),
                 ),
                 pw.SizedBox(height: 10),
                 pw.Text(
@@ -2765,12 +2712,14 @@ class _CashMemoEditState extends State<CashMemoEdit>
                 pw.SizedBox(height: 4),
                 pw.Text(
                   customerAddressController.text,
-                  style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey700),
+                  style: const pw.TextStyle(
+                      fontSize: 11, color: PdfColors.grey700),
                 ),
                 pw.SizedBox(height: 3),
                 pw.Text(
                   'Phone: ${customerPhoneNumberController.text}',
-                  style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey700),
+                  style: const pw.TextStyle(
+                      fontSize: 11, color: PdfColors.grey700),
                 ),
               ],
             ),
@@ -2824,7 +2773,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
   // ============================================================================
 
   // Template 1 Multipage: Professional Classic
-  List<pw.Widget> buildTemplate1Multipage(Uint8List? logoBytes, String currentDate) {
+  List<pw.Widget> buildTemplate1Multipage(
+      Uint8List? logoBytes, String currentDate) {
     return [
       // Header with gradient effect simulation using colored box
       pw.Container(
@@ -2898,7 +2848,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   pw.SizedBox(height: 4),
                   pw.Text(
                     companyAddress ?? '',
-                    style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey800),
+                    style: const pw.TextStyle(
+                        fontSize: 11, color: PdfColors.grey800),
                   ),
                 ],
               ),
@@ -2937,12 +2888,14 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   pw.SizedBox(height: 4),
                   pw.Text(
                     customerAddressController.text,
-                    style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey800),
+                    style: const pw.TextStyle(
+                        fontSize: 11, color: PdfColors.grey800),
                   ),
                   pw.SizedBox(height: 2),
                   pw.Text(
                     'Phone: ${customerPhoneNumberController.text}',
-                    style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey800),
+                    style: const pw.TextStyle(
+                        fontSize: 11, color: PdfColors.grey800),
                   ),
                 ],
               ),
@@ -2984,7 +2937,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
   }
 
   // Template 2 Multipage: Modern Elegance
-  List<pw.Widget> buildTemplate2Multipage(Uint8List? logoBytes, String currentDate) {
+  List<pw.Widget> buildTemplate2Multipage(
+      Uint8List? logoBytes, String currentDate) {
     return [
       // Top Bar with accent color
       pw.Container(
@@ -3009,10 +2963,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
                 pw.Container(
                   decoration: pw.BoxDecoration(
                     border: pw.Border.all(color: PdfColors.green600, width: 2),
-                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                    borderRadius:
+                        const pw.BorderRadius.all(pw.Radius.circular(8)),
                   ),
                   padding: const pw.EdgeInsets.all(8),
-                  child: pw.Image(pw.MemoryImage(logoBytes), width: 50, height: 50),
+                  child: pw.Image(pw.MemoryImage(logoBytes),
+                      width: 50, height: 50),
                 ),
                 pw.SizedBox(height: 12),
               ],
@@ -3027,7 +2983,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
               pw.SizedBox(height: 4),
               pw.Text(
                 companyAddress ?? '',
-                style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey700),
+                style:
+                    const pw.TextStyle(fontSize: 11, color: PdfColors.grey700),
               ),
             ],
           ),
@@ -3037,10 +2994,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
             crossAxisAlignment: pw.CrossAxisAlignment.end,
             children: [
               pw.Container(
-                padding: const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding:
+                    const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: pw.BoxDecoration(
                   color: PdfColors.green600,
-                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+                  borderRadius:
+                      const pw.BorderRadius.all(pw.Radius.circular(6)),
                 ),
                 child: pw.Text(
                   'CASH MEMO',
@@ -3143,7 +3102,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
   }
 
   // Template 3 Multipage: Minimalist Clean
-  List<pw.Widget> buildTemplate3Multipage(Uint8List? logoBytes, String currentDate) {
+  List<pw.Widget> buildTemplate3Multipage(
+      Uint8List? logoBytes, String currentDate) {
     return [
       // Simple header with logo
       pw.Row(
@@ -3168,7 +3128,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                 pw.SizedBox(height: 4),
                 pw.Text(
                   companyAddress ?? '',
-                  style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey600),
+                  style: const pw.TextStyle(
+                      fontSize: 11, color: PdfColors.grey600),
                 ),
               ],
             ),
@@ -3188,7 +3149,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
               pw.SizedBox(height: 4),
               pw.Text(
                 currentDate,
-                style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey600),
+                style:
+                    const pw.TextStyle(fontSize: 11, color: PdfColors.grey600),
               ),
             ],
           ),
@@ -3278,7 +3240,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
   }
 
   // Template 4 Multipage: Modern Accent
-  List<pw.Widget> buildTemplate4Multipage(Uint8List? logoBytes, String currentDate) {
+  List<pw.Widget> buildTemplate4Multipage(
+      Uint8List? logoBytes, String currentDate) {
     return [
       // Side accent bar
       pw.Row(
@@ -3489,7 +3452,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
   }
 
   // Template 5 Multipage: Bold Gradient (Premium)
-  List<pw.Widget> buildTemplate5Multipage(Uint8List? logoBytes, String currentDate) {
+  List<pw.Widget> buildTemplate5Multipage(
+      Uint8List? logoBytes, String currentDate) {
     return [
       // Bold gradient header (simulated with red background)
       pw.Container(
@@ -3508,10 +3472,12 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   pw.Container(
                     decoration: pw.BoxDecoration(
                       border: pw.Border.all(color: PdfColors.white, width: 3),
-                      borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
+                      borderRadius:
+                          const pw.BorderRadius.all(pw.Radius.circular(10)),
                     ),
                     padding: const pw.EdgeInsets.all(6),
-                    child: pw.Image(pw.MemoryImage(logoBytes), width: 50, height: 50),
+                    child: pw.Image(pw.MemoryImage(logoBytes),
+                        width: 50, height: 50),
                   ),
                 pw.SizedBox(width: 16),
                 pw.Expanded(
@@ -3529,7 +3495,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                       pw.SizedBox(height: 4),
                       pw.Text(
                         companyAddress ?? '',
-                        style: const pw.TextStyle(fontSize: 11, color: PdfColors.white),
+                        style: const pw.TextStyle(
+                            fontSize: 11, color: PdfColors.white),
                       ),
                     ],
                   ),
@@ -3645,7 +3612,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
   }
 
   // Template 6 Multipage: Executive Professional (Premium)
-  List<pw.Widget> buildTemplate6Multipage(Uint8List? logoBytes, String currentDate) {
+  List<pw.Widget> buildTemplate6Multipage(
+      Uint8List? logoBytes, String currentDate) {
     return [
       // Executive header with logo and details side by side
       pw.Row(
@@ -3680,7 +3648,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                 pw.SizedBox(height: 6),
                 pw.Text(
                   companyAddress ?? '',
-                  style: const pw.TextStyle(fontSize: 12, color: PdfColors.grey700),
+                  style: const pw.TextStyle(
+                      fontSize: 12, color: PdfColors.grey700),
                 ),
               ],
             ),
@@ -3688,7 +3657,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
 
           // Invoice badge
           pw.Container(
-            padding: const pw.EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            padding:
+                const pw.EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: pw.BoxDecoration(
               color: PdfColors.blue900,
               borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
@@ -3708,7 +3678,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                 pw.SizedBox(height: 4),
                 pw.Text(
                   currentDate,
-                  style: const pw.TextStyle(fontSize: 10, color: PdfColors.white),
+                  style:
+                      const pw.TextStyle(fontSize: 10, color: PdfColors.white),
                 ),
               ],
             ),
@@ -3804,7 +3775,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
   }
 
   // Template 7 Multipage: Creative Modern (Premium)
-  List<pw.Widget> buildTemplate7Multipage(Uint8List? logoBytes, String currentDate) {
+  List<pw.Widget> buildTemplate7Multipage(
+      Uint8List? logoBytes, String currentDate) {
     return [
       // Creative top section with diagonal accent
       pw.Stack(
@@ -3835,9 +3807,11 @@ class _CashMemoEditState extends State<CashMemoEdit>
                         padding: const pw.EdgeInsets.all(8),
                         decoration: const pw.BoxDecoration(
                           color: PdfColors.white,
-                          borderRadius: pw.BorderRadius.all(pw.Radius.circular(10)),
+                          borderRadius:
+                              pw.BorderRadius.all(pw.Radius.circular(10)),
                         ),
-                        child: pw.Image(pw.MemoryImage(logoBytes), width: 40, height: 40),
+                        child: pw.Image(pw.MemoryImage(logoBytes),
+                            width: 40, height: 40),
                       ),
                       pw.SizedBox(height: 10),
                     ],
@@ -3855,7 +3829,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   padding: const pw.EdgeInsets.all(16),
                   decoration: pw.BoxDecoration(
                     color: PdfColors.white,
-                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(12)),
+                    borderRadius:
+                        const pw.BorderRadius.all(pw.Radius.circular(12)),
                   ),
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.end,
@@ -3872,7 +3847,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                       pw.SizedBox(height: 6),
                       pw.Text(
                         currentDate,
-                        style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey700),
+                        style: const pw.TextStyle(
+                            fontSize: 11, color: PdfColors.grey700),
                       ),
                     ],
                   ),
@@ -3923,7 +3899,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   pw.SizedBox(height: 8),
                   pw.Text(
                     companyAddress ?? '',
-                    style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey800),
+                    style: const pw.TextStyle(
+                        fontSize: 11, color: PdfColors.grey800),
                   ),
                 ],
               ),
@@ -3975,12 +3952,14 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   pw.SizedBox(height: 3),
                   pw.Text(
                     customerAddressController.text,
-                    style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey800),
+                    style: const pw.TextStyle(
+                        fontSize: 10, color: PdfColors.grey800),
                   ),
                   pw.SizedBox(height: 2),
                   pw.Text(
                     customerPhoneNumberController.text,
-                    style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey800),
+                    style: const pw.TextStyle(
+                        fontSize: 10, color: PdfColors.grey800),
                   ),
                 ],
               ),
@@ -4022,7 +4001,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
   }
 
   // Template 8 Multipage: Elegant Minimalist (Premium)
-  List<pw.Widget> buildTemplate8Multipage(Uint8List? logoBytes, String currentDate) {
+  List<pw.Widget> buildTemplate8Multipage(
+      Uint8List? logoBytes, String currentDate) {
     return [
       // Elegant header with thin accent line
       pw.Column(
@@ -4060,7 +4040,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                     pw.SizedBox(height: 4),
                     pw.Text(
                       companyAddress ?? '',
-                      style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey600),
+                      style: const pw.TextStyle(
+                          fontSize: 11, color: PdfColors.grey600),
                     ),
                   ],
                 ),
@@ -4080,7 +4061,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
             children: [
               pw.Text(
                 'Invoice Date',
-                style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
+                style:
+                    const pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
               ),
               pw.SizedBox(height: 4),
               pw.Text(
@@ -4094,7 +4076,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
             ],
           ),
           pw.Container(
-            padding: const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding:
+                const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: pw.BoxDecoration(
               border: pw.Border.all(color: PdfColors.teal600, width: 2),
               borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
@@ -4129,7 +4112,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
           children: [
             pw.Text(
               'BILLING DETAILS',
-              style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600, letterSpacing: 1.2),
+              style: const pw.TextStyle(
+                  fontSize: 9, color: PdfColors.grey600, letterSpacing: 1.2),
             ),
             pw.SizedBox(height: 10),
             pw.Text(
@@ -4274,7 +4258,11 @@ class _CashMemoEditState extends State<CashMemoEdit>
       crossAxisAlignment: pw.CrossAxisAlignment.end,
       children: [
         buildPricingRow('Subtotal', getMemoizedSubtotal().toStringAsFixed(2)),
-        buildPricingRow('Discount', isPercentDiscount ? '${discountController.text}%' : '৳${discountController.text}'),
+        buildPricingRow(
+            'Discount',
+            isPercentDiscount
+                ? '${discountController.text}%'
+                : '৳${discountController.text}'),
         buildPricingRow('Vat/Tax', '${vatController.text}%'),
         pw.Divider(),
         buildPricingRow('Total', getMemoizedTotal().toStringAsFixed(2)),
@@ -4429,7 +4417,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
               const Text('Select Template'),
             ],
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
           content: SizedBox(
             width: 500,
             child: SingleChildScrollView(
@@ -4437,225 +4426,254 @@ class _CashMemoEditState extends State<CashMemoEdit>
                 mainAxisSize: MainAxisSize.min,
                 children: templates.map((template) {
                   final templateId = template['id'] as int;
-                  final isPremium = TemplateManager.isPremiumTemplate(templateId);
+                  final isPremium =
+                      TemplateManager.isPremiumTemplate(templateId);
 
                   return FutureBuilder<int>(
-                    future: isPremium ? TemplateManager.getRemainingUses(templateId) : Future.value(-1),
+                    future: isPremium
+                        ? TemplateManager.getRemainingUses(templateId)
+                        : Future.value(-1),
                     builder: (context, snapshot) {
                       final remainingUses = snapshot.data ?? 0;
                       final isUnlocked = remainingUses > 0;
 
                       return Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: isPremium
-                            ? Colors.purple.shade200
-                            : Colors.grey.shade300,
-                        width: isPremium ? 2.0 : 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: (isPremium
-                              ? Colors.purple
-                              : Colors.grey
-                          ).withOpacity(0.1),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
+                        margin: const EdgeInsets.only(bottom: 10),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: isPremium
+                                ? Colors.purple.shade200
+                                : Colors.grey.shade300,
+                            width: isPremium ? 2.0 : 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: (isPremium ? Colors.purple : Colors.grey)
+                                  .withOpacity(0.1),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () async {
-                          print('📋 [MemoEdit] Template $templateId selected. Premium: $isPremium');
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () async {
+                              print(
+                                  '📋 [MemoEdit] Template $templateId selected. Premium: $isPremium');
 
-                          // Check if template is premium and locked
-                          if (isPremium) {
-                            bool isUnlocked = await TemplateManager.isTemplateUnlocked(templateId);
-                            print('📋 [MemoEdit] Template $templateId unlock status: $isUnlocked');
+                              // Check if template is premium and locked
+                              if (isPremium) {
+                                bool isUnlocked =
+                                    await TemplateManager.isTemplateUnlocked(
+                                        templateId);
+                                print(
+                                    '📋 [MemoEdit] Template $templateId unlock status: $isUnlocked');
 
-                            if (!isUnlocked) {
-                              // Close template selection dialog first
+                                if (!isUnlocked) {
+                                  // Close template selection dialog first
+                                  if (context.mounted) {
+                                    Navigator.of(context).pop();
+                                  }
+                                  print(
+                                      '📋 [MemoEdit] Closed template selection, showing unlock dialog');
+
+                                  // Show unlock dialog
+                                  if (!mounted) return;
+                                  bool shouldUnlock =
+                                      await TemplateManager.showUnlockDialog(
+                                    context,
+                                    templateId,
+                                    template['name'] as String,
+                                  );
+                                  print(
+                                      '📋 [MemoEdit] User wants to unlock: $shouldUnlock');
+
+                                  if (shouldUnlock) {
+                                    // Attempt to unlock with rewarded ad
+                                    print(
+                                        '📋 [MemoEdit] Calling unlockTemplate...');
+                                    if (!mounted) return;
+                                    bool unlocked =
+                                        await TemplateManager.unlockTemplate(
+                                      templateId,
+                                      context,
+                                    );
+                                    print(
+                                        '📋 [MemoEdit] Unlock result: $unlocked');
+
+                                    if (unlocked) {
+                                      // Success! Consume a use and generate cash memo
+                                      print(
+                                          '📋 [MemoEdit] ✅ Template unlocked! Consuming use and generating cash memo...');
+                                      await TemplateManager.consumeTemplateUse(
+                                          templateId);
+                                      if (mounted) {
+                                        await generateCashMemo(
+                                          localizations,
+                                          templateId,
+                                        );
+                                      } else {
+                                        print(
+                                            '📋 [MemoEdit] ⚠️ Widget unmounted after ad, cannot generate PDF');
+                                      }
+                                    } else {
+                                      print(
+                                          '📋 [MemoEdit] ❌ Template unlock failed. No cash memo generated.');
+                                    }
+                                  } else {
+                                    print(
+                                        '📋 [MemoEdit] User cancelled unlock dialog');
+                                  }
+                                  return;
+                                }
+                              }
+
+                              // Free template or unlocked premium - proceed directly
+                              print(
+                                  '📋 [MemoEdit] Proceeding with template $templateId (free or already unlocked)');
                               if (context.mounted) {
                                 Navigator.of(context).pop();
                               }
-                              print('📋 [MemoEdit] Closed template selection, showing unlock dialog');
 
-                              // Show unlock dialog
-                              if (!mounted) return;
-                              bool shouldUnlock = await TemplateManager.showUnlockDialog(
-                                context,
-                                templateId,
-                                template['name'] as String,
-                              );
-                              print('📋 [MemoEdit] User wants to unlock: $shouldUnlock');
-
-                              if (shouldUnlock) {
-                                // Attempt to unlock with rewarded ad
-                                print('📋 [MemoEdit] Calling unlockTemplate...');
-                                if (!mounted) return;
-                                bool unlocked = await TemplateManager.unlockTemplate(
-                                  templateId,
-                                  context,
-                                );
-                                print('📋 [MemoEdit] Unlock result: $unlocked');
-
-                                if (unlocked) {
-                                  // Success! Consume a use and generate cash memo
-                                  print('📋 [MemoEdit] ✅ Template unlocked! Consuming use and generating cash memo...');
-                                  await TemplateManager.consumeTemplateUse(templateId);
-                                  if (mounted) {
-                                    await generateCashMemo(
-                                      localizations,
-                                      templateId,
-                                      selectedWatermarkOption,
-                                      watermarkText,
-                                      watermarkImagePath,
-                                    );
-                                  } else {
-                                    print('📋 [MemoEdit] ⚠️ Widget unmounted after ad, cannot generate PDF');
-                                  }
-                                } else {
-                                  print('📋 [MemoEdit] ❌ Template unlock failed. No cash memo generated.');
-                                }
-                              } else {
-                                print('📋 [MemoEdit] User cancelled unlock dialog');
+                              // Consume a use if it's a premium template
+                              if (isPremium) {
+                                await TemplateManager.consumeTemplateUse(
+                                    templateId);
                               }
-                              return;
-                            }
-                          }
 
-                          // Free template or unlocked premium - proceed directly
-                          print('📋 [MemoEdit] Proceeding with template $templateId (free or already unlocked)');
-                          if (context.mounted) {
-                            Navigator.of(context).pop();
-                          }
-
-                          // Consume a use if it's a premium template
-                          if (isPremium) {
-                            await TemplateManager.consumeTemplateUse(templateId);
-                          }
-
-                          if (mounted) {
-                            await generateCashMemo(
-                              localizations,
-                              templateId,
-                              selectedWatermarkOption,
-                              watermarkText,
-                              watermarkImagePath,
-                            );
-                          }
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: Padding(
-                          padding: const EdgeInsets.all(14),
-                          child: Row(
-                            children: [
-                              // Icon
-                              Container(
-                                width: 50,
-                                height: 50,
-                                decoration: BoxDecoration(
-                                  color: (template['color'] as Color).withOpacity(0.15),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: (template['color'] as Color).withOpacity(0.3),
-                                    width: 1.5,
-                                  ),
-                                ),
-                                child: Icon(
-                                  template['icon'] as IconData,
-                                  color: template['color'] as Color,
-                                  size: 26,
-                                ),
-                              ),
-                              const SizedBox(width: 14),
-                              // Text
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            template['name'] as String,
-                                            style: TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.grey.shade900,
-                                            ),
-                                          ),
-                                        ),
-                                        if (isPremium) ...[
-                                          const SizedBox(width: 6),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 6,
-                                              vertical: 2,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              gradient: LinearGradient(
-                                                colors: isUnlocked
-                                                    ? [Colors.green.shade400, Colors.teal.shade400]
-                                                    : [Colors.purple.shade400, Colors.blue.shade400],
-                                              ),
-                                              borderRadius: BorderRadius.circular(4),
-                                            ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Icon(
-                                                  isUnlocked ? Icons.check_circle : Icons.lock_rounded,
-                                                  size: 10,
-                                                  color: Colors.white,
-                                                ),
-                                                const SizedBox(width: 2),
-                                                Text(
-                                                  isUnlocked
-                                                      ? '$remainingUses left'
-                                                      : 'PRO',
-                                                  style: const TextStyle(
-                                                    fontSize: 9,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Colors.white,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      template['description'] as String,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey.shade600,
+                              if (mounted) {
+                                await generateCashMemo(
+                                  localizations,
+                                  templateId,
+                                );
+                              }
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Padding(
+                              padding: const EdgeInsets.all(14),
+                              child: Row(
+                                children: [
+                                  // Icon
+                                  Container(
+                                    width: 50,
+                                    height: 50,
+                                    decoration: BoxDecoration(
+                                      color: (template['color'] as Color)
+                                          .withOpacity(0.15),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: (template['color'] as Color)
+                                            .withOpacity(0.3),
+                                        width: 1.5,
                                       ),
                                     ),
-                                  ],
-                                ),
+                                    child: Icon(
+                                      template['icon'] as IconData,
+                                      color: template['color'] as Color,
+                                      size: 26,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  // Text
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                template['name'] as String,
+                                                style: TextStyle(
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.grey.shade900,
+                                                ),
+                                              ),
+                                            ),
+                                            if (isPremium) ...[
+                                              const SizedBox(width: 6),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  horizontal: 6,
+                                                  vertical: 2,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  gradient: LinearGradient(
+                                                    colors: isUnlocked
+                                                        ? [
+                                                            Colors
+                                                                .green.shade400,
+                                                            Colors.teal.shade400
+                                                          ]
+                                                        : [
+                                                            Colors.purple
+                                                                .shade400,
+                                                            Colors.blue.shade400
+                                                          ],
+                                                  ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      isUnlocked
+                                                          ? Icons.check_circle
+                                                          : Icons.lock_rounded,
+                                                      size: 10,
+                                                      color: Colors.white,
+                                                    ),
+                                                    const SizedBox(width: 2),
+                                                    Text(
+                                                      isUnlocked
+                                                          ? '$remainingUses left'
+                                                          : 'PRO',
+                                                      style: const TextStyle(
+                                                        fontSize: 9,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: Colors.white,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          template['description'] as String,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey.shade600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  // Arrow or Lock icon
+                                  Icon(
+                                    isPremium && !isUnlocked
+                                        ? Icons.lock_outline_rounded
+                                        : Icons.arrow_forward_ios_rounded,
+                                    size: 16,
+                                    color: isPremium && !isUnlocked
+                                        ? Colors.purple.shade400
+                                        : Colors.grey.shade400,
+                                  ),
+                                ],
                               ),
-                              // Arrow or Lock icon
-                              Icon(
-                                isPremium && !isUnlocked
-                                    ? Icons.lock_outline_rounded
-                                    : Icons.arrow_forward_ios_rounded,
-                                size: 16,
-                                color: isPremium && !isUnlocked
-                                    ? Colors.purple.shade400
-                                    : Colors.grey.shade400,
-                              ),
-                            ],
+                            ),
                           ),
                         ),
-                      ),
-                    ),
                       );
                     },
                   );
@@ -4695,7 +4713,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
           elevation: 0,
           backgroundColor: AppColors.white,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
+            icon: const Icon(Icons.arrow_back_rounded,
+                color: AppColors.textPrimary),
             onPressed: () {
               Memo memo = saveMemo();
               Navigator.pop(context, memo);
@@ -4711,7 +4730,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   borderRadius: BorderRadius.circular(AppRadius.md),
                   boxShadow: AppShadows.sm,
                 ),
-                child: const Icon(Icons.receipt_long_rounded, color: Colors.white, size: 20),
+                child: const Icon(Icons.receipt_long_rounded,
+                    color: Colors.white, size: 20),
               ),
               const SizedBox(width: 12),
               Column(
@@ -4737,173 +4757,172 @@ class _CashMemoEditState extends State<CashMemoEdit>
           ),
         ),
         body: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                  child: SingleChildScrollView(
-                controller: _scrollController,
-                physics: const BouncingScrollPhysics(),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal:
-                        MediaQuery.of(context).size.width > 600 ? 32.0 : 16.0,
-                    vertical: 16.0,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Compact Company Header Card
-                      Container(
-                        margin: const EdgeInsets.only(bottom: AppSpacing.lg),
-                        padding: const EdgeInsets.all(AppSpacing.lg),
-                        decoration: BoxDecoration(
-                          color: AppColors.white,
-                          borderRadius: BorderRadius.circular(AppRadius.lg),
-                          border: Border.all(color: AppColors.border),
-                          boxShadow: AppShadows.sm,
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                gradient: AppGradients.primary,
-                                borderRadius: BorderRadius.circular(AppRadius.md),
-                                boxShadow: AppShadows.sm,
-                              ),
-                              child: const Icon(
-                                Icons.business_rounded,
-                                size: 24,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.md),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Creating for',
-                                    style: AppTypography.caption.copyWith(
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  isLoadingCompanyInfo
-                                      ? const SizedBox(
-                                          height: 20,
-                                          width: 20,
-                                          child: CircularProgressIndicator(strokeWidth: 2),
-                                        )
-                                      : Text(
-                                          companyName ?? 'Company Name',
-                                          style: AppTypography.h3.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                            color: AppColors.textPrimary,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      _buildCustomerDetails(localizations),
-                      const SizedBox(height: 20),
-                      _buildProductList(localizations),
-                      const SizedBox(height: 20),
-                      // Modern Add Product Button
-                      Container(
-                        margin: EdgeInsets.symmetric(
-                          horizontal:
-                              MediaQuery.of(context).size.width > 600 ? 24 : 16,
-                        ),
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            addProduct();
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              _scrollController.animateTo(
-                                _scrollController.position.maxScrollExtent,
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeOut,
-                              );
-                            });
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(localizations.product_added),
-                                backgroundColor: Colors.green.shade600,
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.add_shopping_cart),
-                          label: const Text("Add New Item"),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green.shade600,
-                            foregroundColor: Colors.white,
-                            elevation: 2,
-                            shadowColor: Colors.green.shade200,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 16,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            minimumSize: const Size(double.infinity, 56),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      _buildDiscountAndVatFields(localizations),
-                      const SizedBox(height: 24),
-                      // Modern Create Cash Memo Button
-                      Container(
-                        margin: EdgeInsets.symmetric(
-                          horizontal:
-                              MediaQuery.of(context).size.width > 600 ? 24 : 16,
-                        ),
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            Memo memo = saveMemo();
-                            _showTemplateSelectionDialog(
-                                context, localizations);
-                          },
-                          icon: const Icon(Icons.receipt_long),
-                          label: Text(localizations.create_cash_memo_label),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue.shade600,
-                            foregroundColor: Colors.white,
-                            elevation: 3,
-                            shadowColor: Colors.blue.shade200,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 18,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            minimumSize: const Size(double.infinity, 60),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                    ],
-                  ),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+                child: SingleChildScrollView(
+              controller: _scrollController,
+              physics: const BouncingScrollPhysics(),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal:
+                      MediaQuery.of(context).size.width > 600 ? 32.0 : 16.0,
+                  vertical: 16.0,
                 ),
-              )),
-              const SizedBox(height: 10), // Add some space before the banner
-              // Banner ad widget at the bottom
-            ],
-          ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Compact Company Header Card
+                    Container(
+                      margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      decoration: BoxDecoration(
+                        color: AppColors.white,
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        border: Border.all(color: AppColors.border),
+                        boxShadow: AppShadows.sm,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              gradient: AppGradients.primary,
+                              borderRadius: BorderRadius.circular(AppRadius.md),
+                              boxShadow: AppShadows.sm,
+                            ),
+                            child: const Icon(
+                              Icons.business_rounded,
+                              size: 24,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Creating for',
+                                  style: AppTypography.caption.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                isLoadingCompanyInfo
+                                    ? const SizedBox(
+                                        height: 20,
+                                        width: 20,
+                                        child: CircularProgressIndicator(
+                                            strokeWidth: 2),
+                                      )
+                                    : Text(
+                                        companyName ?? 'Company Name',
+                                        style: AppTypography.h3.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.textPrimary,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    _buildCustomerDetails(localizations),
+                    const SizedBox(height: 20),
+                    _buildProductList(localizations),
+                    const SizedBox(height: 20),
+                    // Modern Add Product Button
+                    Container(
+                      margin: EdgeInsets.symmetric(
+                        horizontal:
+                            MediaQuery.of(context).size.width > 600 ? 24 : 16,
+                      ),
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          addProduct();
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            _scrollController.animateTo(
+                              _scrollController.position.maxScrollExtent,
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeOut,
+                            );
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(localizations.product_added),
+                              backgroundColor: Colors.green.shade600,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.add_shopping_cart),
+                        label: const Text("Add New Item"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green.shade600,
+                          foregroundColor: Colors.white,
+                          elevation: 2,
+                          shadowColor: Colors.green.shade200,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 16,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          minimumSize: const Size(double.infinity, 56),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    _buildDiscountAndVatFields(localizations),
+                    const SizedBox(height: 24),
+                    // Modern Create Cash Memo Button
+                    Container(
+                      margin: EdgeInsets.symmetric(
+                        horizontal:
+                            MediaQuery.of(context).size.width > 600 ? 24 : 16,
+                      ),
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Memo memo = saveMemo();
+                          _showTemplateSelectionDialog(context, localizations);
+                        },
+                        icon: const Icon(Icons.receipt_long),
+                        label: Text(localizations.create_cash_memo_label),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue.shade600,
+                          foregroundColor: Colors.white,
+                          elevation: 3,
+                          shadowColor: Colors.blue.shade200,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 18,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          minimumSize: const Size(double.infinity, 60),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            )),
+            const SizedBox(height: 10), // Add some space before the banner
+            // Banner ad widget at the bottom
+          ],
         ),
-      );
-
+      ),
+    );
   }
 
   Widget _buildCustomerDetails(localizations) {
@@ -5054,7 +5073,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(color: Colors.blue.shade400, width: 2),
               ),
-              prefixIcon: Icon(Icons.note_alt_outlined, color: Colors.blue.shade600),
+              prefixIcon:
+                  Icon(Icons.note_alt_outlined, color: Colors.blue.shade600),
               contentPadding:
                   const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
               hintText: 'Add any additional notes or remarks here...',
@@ -5837,7 +5857,9 @@ class _ProductItemWidgetState extends State<ProductItemWidget> {
     // - Product has data (name, price, or quantity)
     // - Last product AND empty (newly added)
     bool isLastItem = widget.index == widget.totalProducts - 1;
-    bool hasData = widget.product.name.isNotEmpty || widget.product.price > 0 || widget.product.quantity > 0;
+    bool hasData = widget.product.name.isNotEmpty ||
+        widget.product.price > 0 ||
+        widget.product.quantity > 0;
 
     isExpanded = widget.index == 0 || hasData || (isLastItem && !hasData);
   }
