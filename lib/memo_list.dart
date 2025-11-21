@@ -964,7 +964,7 @@ class MemoListScreenState extends State<MemoListScreen>
 
   Future<void> _printMemo(int index) async {
     final memo = _memos[index];
-    await Navigator.push(
+    Memo? updatedMemo = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => CashMemoEdit(
@@ -974,6 +974,10 @@ class MemoListScreenState extends State<MemoListScreen>
         ),
       ),
     );
+    if (updatedMemo != null) {
+      setState(() => _memos[index] = updatedMemo);
+      saveMemos();
+    }
   }
 }
 
