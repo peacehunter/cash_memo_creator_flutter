@@ -2,7 +2,7 @@ name: cash_memo_creator
 description: "Create a cash memo with few clicks"
 publish_to: 'none'
 
-version: 1.2.8+38
+version: 1.3.1+41
 
 environment:
   sdk: ^3.5.3
@@ -25,6 +25,8 @@ dependencies:
   permission_handler: ^12.0.1
   flutter_pdfview: ^1.3.3
   share_plus: ^12.0.0
+  in_app_purchase: ^3.2.3
+  in_app_purchase_android: ^0.4.0+10
   google_mobile_ads: ^6.0.0
   firebase_analytics: ^12.0.2
   firebase_crashlytics: ^5.0.2
@@ -35,6 +37,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  win_plugin_link_repair: ^0.1.1
 
 flutter:
   uses-material-design: true

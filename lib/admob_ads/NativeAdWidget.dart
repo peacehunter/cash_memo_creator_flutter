@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'AdHelper.dart';
+import '../services/subscription_service.dart';
 
 class NativeAdWidget extends StatefulWidget {
   final TemplateType templateType;
@@ -21,10 +22,18 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
   @override
   void initState() {
     super.initState();
+    SubscriptionService.instance.addListener(_onSubscriptionChanged);
     _loadAd();
   }
 
+  void _onSubscriptionChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   void _loadAd() {
+    if (SubscriptionService.instance.isProUser) return;
     _nativeAd = NativeAd(
       adUnitId: AdHelper.nativeAdUnitId,
       listener: NativeAdListener(
@@ -78,7 +87,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_isAdLoaded || _nativeAd == null) {
+    if (SubscriptionService.instance.isProUser || !_isAdLoaded || _nativeAd == null) {
       return const SizedBox.shrink();
     }
 
@@ -106,6 +115,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
 
   @override
   void dispose() {
+    SubscriptionService.instance.removeListener(_onSubscriptionChanged);
     _nativeAd?.dispose();
     super.dispose();
   }

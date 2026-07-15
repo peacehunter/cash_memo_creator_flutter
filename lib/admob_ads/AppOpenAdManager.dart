@@ -1,5 +1,6 @@
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'AdHelper.dart';
+import '../services/subscription_service.dart';
 
 class AppOpenAdManager {
   // Singleton pattern
@@ -17,6 +18,7 @@ class AppOpenAdManager {
 
   // Load app open ad
   void loadAd() {
+    if (SubscriptionService.instance.isProUser) return;
     AppOpenAd.load(
       adUnitId: AdHelper.appOpenAdUnitId,
       request: const AdRequest(),
@@ -47,6 +49,7 @@ class AppOpenAdManager {
 
   // Show app open ad if available
   void showAdIfAvailable() {
+    if (SubscriptionService.instance.isProUser) return;
     if (!isAdAvailable) {
       print('App open ad not available or expired. Loading new ad...');
       loadAd();

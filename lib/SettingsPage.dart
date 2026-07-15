@@ -599,8 +599,26 @@ class _SettingsPageState extends State<SettingsPage>
                         )
                       : ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: Image.file(File(logoPath!),
-                              height: 120, fit: BoxFit.contain),
+                          child: Image.file(
+                            File(logoPath!),
+                            height: 120,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.broken_image_outlined,
+                                      size: 48, color: Colors.red.shade300),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    '${localizations.no_logo} (Failed to load)',
+                                    style: TextStyle(
+                                        color: Colors.red.shade600, fontSize: 13),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
                         ),
                 ),
                 const SizedBox(height: 20),

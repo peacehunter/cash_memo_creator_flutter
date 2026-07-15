@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'admob_ads/RewardedAdManager.dart';
+import 'services/subscription_service.dart';
 
 class TemplateManager {
   // Templates 5, 6, 7, 8 are premium (require watching ad to unlock)
@@ -19,6 +20,9 @@ class TemplateManager {
     if (!isPremiumTemplate(templateId)) {
       return true; // Free templates are always unlocked
     }
+    if (SubscriptionService.instance.isProUser) {
+      return true; // Pro users have all templates unlocked
+    }
 
     final prefs = await SharedPreferences.getInstance();
     final remainingUses = prefs.getInt('template_remaining_uses_$templateId') ?? 0;
@@ -28,6 +32,9 @@ class TemplateManager {
 
   // Get remaining uses for unlocked template
   static Future<int> getRemainingUses(int templateId) async {
+    if (SubscriptionService.instance.isProUser) {
+      return -1; // Pro users have unlimited uses
+    }
     if (!isPremiumTemplate(templateId)) {
       return -1; // Free templates have unlimited uses
     }
@@ -38,6 +45,9 @@ class TemplateManager {
 
   // Consume one use of a template
   static Future<void> consumeTemplateUse(int templateId) async {
+    if (SubscriptionService.instance.isProUser) {
+      return; // Pro users don't consume uses
+    }
     if (!isPremiumTemplate(templateId)) {
       return; // Free templates don't need consumption tracking
     }
@@ -67,6 +77,9 @@ class TemplateManager {
     int templateId,
     BuildContext context,
   ) async {
+    if (SubscriptionService.instance.isProUser) {
+      return true;
+    }
     print('🔓 [TemplateManager] Starting unlock process for template $templateId');
 
     final rewardedAdManager = RewardedAdManager();

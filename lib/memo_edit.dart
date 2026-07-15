@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 // dart:io is used only on non-web platforms
 import 'dart:io' if (dart.library.html) 'src/stub_io.dart';
@@ -16,6 +17,7 @@ import 'PdfViewerScreen.dart';
 import 'Memo.dart';
 import 'l10n/gen_l10n/app_localizations.dart';
 import 'design_system.dart';
+import 'services/subscription_service.dart';
 import 'widgets/professional_widgets.dart';
 import 'TemplateManager.dart';
 
@@ -87,6 +89,15 @@ class _CashMemoEditState extends State<CashMemoEdit>
   String? specialNote;
   bool specialNoteEnabled = false;
   bool isLoadingCompanyInfo = true;
+
+  String currencySymbol = '৳';
+  String _paymentStatus = 'Unpaid';
+  DateTime? _dueDate;
+  bool _saveCustomerToDirectory = false;
+  List<Map<String, dynamic>> _productCatalog = [];
+  List<Map<String, dynamic>> _customerDirectory = [];
+  bool _showCustomerSuggestions = false;
+  List<Map<String, dynamic>> _matchingCustomers = [];
 
   @override
   void dispose() {
@@ -249,6 +260,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
     notesController = TextEditingController(text: widget.memo?.notes ?? '');
 
     isPercentDiscount = widget.memo?.isPercentDiscount ?? true;
+    _paymentStatus = widget.memo?.paymentStatus ?? 'Unpaid';
+    _dueDate = widget.memo?.dueDate != null ? DateTime.tryParse(widget.memo!.dueDate!) : null;
 
     // Add focus listeners to clear "0" or "0.0" when user taps on discount/vat fields
     discountFocusNode.addListener(() {
@@ -333,8 +346,26 @@ class _CashMemoEditState extends State<CashMemoEdit>
 
   Future<void> loadCompanyInfo(localizations) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
+    
+    final String? catalogJson = prefs.getString('product_catalog');
+    List<Map<String, dynamic>> catalog = [];
+    if (catalogJson != null) {
+      try {
+        final List<dynamic> decoded = jsonDecode(catalogJson);
+        catalog = decoded.map((item) => Map<String, dynamic>.from(item)).toList();
+      } catch (_) {}
+    }
+
+    final String? directoryJson = prefs.getString('customer_directory');
+    List<Map<String, dynamic>> directory = [];
+    if (directoryJson != null) {
+      try {
+        final List<dynamic> decoded = jsonDecode(directoryJson);
+        directory = decoded.map((item) => Map<String, dynamic>.from(item)).toList();
+      } catch (_) {}
+    }
+
     setState(() {
-      // Use new keys from settings_screen.dart
       companyName =
           prefs.getString('company_name') ?? localizations.pdf_company_name;
       companyAddress = prefs.getString('company_address') ?? '';
@@ -342,6 +373,9 @@ class _CashMemoEditState extends State<CashMemoEdit>
       nbMessage = prefs.getString('nbMessage') ?? '';
       specialNoteEnabled = prefs.getBool('special_note_enabled') ?? false;
       specialNote = prefs.getString('special_note') ?? '';
+      currencySymbol = prefs.getString('currency_symbol') ?? '৳';
+      _productCatalog = catalog;
+      _customerDirectory = directory;
       isLoadingCompanyInfo = false;
     });
   }
@@ -366,6 +400,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
           : DiscountType.solid;
     }
 
+    _saveCustomerIfNeeded();
+
     return Memo(
       companyName: companyName ?? '',
       products: products,
@@ -380,6 +416,149 @@ class _CashMemoEditState extends State<CashMemoEdit>
       notes: notesController.text.isNotEmpty ? notesController.text : null,
       companyAddress: '',
       companyLogo: '',
+      paymentStatus: _paymentStatus,
+      dueDate: _dueDate != null ? DateFormat('yyyy-MM-dd').format(_dueDate!) : null,
+    );
+  }
+
+  void _saveCustomerIfNeeded() async {
+    if (_saveCustomerToDirectory && customerNameController.text.trim().isNotEmpty) {
+      final name = customerNameController.text.trim();
+      final phone = customerPhoneNumberController.text.trim();
+      final address = customerAddressController.text.trim();
+      
+      final prefs = await SharedPreferences.getInstance();
+      final String? directoryJson = prefs.getString('customer_directory');
+      List<Map<String, dynamic>> directory = [];
+      if (directoryJson != null) {
+        try {
+          final List<dynamic> decoded = jsonDecode(directoryJson);
+          directory = decoded.map((item) => Map<String, dynamic>.from(item)).toList();
+        } catch (_) {}
+      }
+      
+      final exists = directory.any((c) => c['name']?.toLowerCase() == name.toLowerCase());
+      if (!exists) {
+        directory.add({
+          'name': name,
+          'phone': phone,
+          'address': address,
+        });
+        await prefs.setString('customer_directory', jsonEncode(directory));
+      }
+    }
+  }
+
+  Widget _buildInvoiceDetails(AppLocalizations localizations) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade200,
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+        border: Border.all(
+          color: Colors.grey.shade100,
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.indigo.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.receipt_outlined,
+                  color: Colors.indigo.shade600,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Text(
+                'Invoice Settings',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              const Text('Payment Status: ', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Spacer(),
+              DropdownButton<String>(
+                value: _paymentStatus,
+                items: <String>['Paid', 'Unpaid', 'Overdue'].map((String val) {
+                  return DropdownMenuItem<String>(
+                    value: val,
+                    child: Text(val, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  );
+                }).toList(),
+                onChanged: (newVal) {
+                  if (newVal != null) {
+                    setState(() {
+                      _paymentStatus = newVal;
+                    });
+                  }
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              const Text('Due Date: ', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Spacer(),
+              TextButton.icon(
+                icon: const Icon(Icons.calendar_today),
+                label: Text(
+                  _dueDate == null
+                      ? 'Select Date'
+                      : DateFormat('yyyy-MM-dd').format(_dueDate!),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                onPressed: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _dueDate ?? DateTime.now(),
+                    firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                    lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+                  );
+                  if (picked != null) {
+                    setState(() {
+                      _dueDate = picked;
+                    });
+                  }
+                },
+              ),
+              if (_dueDate != null)
+                IconButton(
+                  icon: const Icon(Icons.clear, color: Colors.red),
+                  onPressed: () {
+                    setState(() {
+                      _dueDate = null;
+                    });
+                  },
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -454,8 +633,9 @@ class _CashMemoEditState extends State<CashMemoEdit>
       );
     }
 
+    final isPro = SubscriptionService.instance.isProUser;
     // Show ad every 3rd PDF generation
-    if (_pdfGenerationCount % 3 == 0) {
+    if (!isPro && _pdfGenerationCount % 3 == 0) {
       print('Showing interstitial ad (PDF generation #$_pdfGenerationCount)');
       _interstitialAdManager.showInterstitialAd(
         onAdClosed: () {
@@ -763,7 +943,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
 
           String discountDisplay = _isProductDiscountPercent[index]
               ? '${product.discount}%'
-              : '৳${product.discount.toStringAsFixed(2)}';
+              : '$currencySymbol${product.discount.toStringAsFixed(2)}';
 
           return pw.TableRow(
             decoration: pw.BoxDecoration(
@@ -780,7 +960,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
               pw.Padding(
                 padding: const pw.EdgeInsets.all(10),
                 child: pw.Text(
-                  '৳${product.price.toStringAsFixed(2)}',
+                  '$currencySymbol${product.price.toStringAsFixed(2)}',
                   style: const pw.TextStyle(fontSize: 10),
                   textAlign: pw.TextAlign.right,
                 ),
@@ -805,7 +985,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
               pw.Padding(
                 padding: const pw.EdgeInsets.all(10),
                 child: pw.Text(
-                  '৳${discountedTotal.toStringAsFixed(2)}',
+                  '$currencySymbol${discountedTotal.toStringAsFixed(2)}',
                   style: pw.TextStyle(
                     fontSize: 10,
                     fontWeight: pw.FontWeight.bold,
@@ -915,7 +1095,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
                 ),
                 pw.Expanded(
                   child: pw.Text(
-                    '৳${product.price.toStringAsFixed(2)}',
+                    '$currencySymbol${product.price.toStringAsFixed(2)}',
                     style: const pw.TextStyle(
                         fontSize: 10, color: PdfColors.grey700),
                     textAlign: pw.TextAlign.right,
@@ -934,7 +1114,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
                 pw.Expanded(
                   flex: 2,
                   child: pw.Text(
-                    '৳${discountedTotal.toStringAsFixed(2)}',
+                    '$currencySymbol${discountedTotal.toStringAsFixed(2)}',
                     style: pw.TextStyle(
                       fontSize: 10,
                       fontWeight: pw.FontWeight.bold,
@@ -963,13 +1143,13 @@ class _CashMemoEditState extends State<CashMemoEdit>
         crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: [
           _buildModernPricingRow('Subtotal',
-              '৳${getMemoizedSubtotal().toStringAsFixed(2)}', false),
+              '$currencySymbol${getMemoizedSubtotal().toStringAsFixed(2)}', false),
           pw.SizedBox(height: 6),
           _buildModernPricingRow(
               'Discount',
               isPercentDiscount
                   ? '${discountController.text}%'
-                  : '৳${discountController.text}',
+                  : '$currencySymbol${discountController.text}',
               false),
           pw.SizedBox(height: 6),
           _buildModernPricingRow('VAT/Tax', '${vatController.text}%', false),
@@ -980,7 +1160,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
           ),
           pw.SizedBox(height: 10),
           _buildModernPricingRow(
-              'TOTAL', '৳${getMemoizedTotal().toStringAsFixed(2)}', true),
+              'TOTAL', '$currencySymbol${getMemoizedTotal().toStringAsFixed(2)}', true),
         ],
       ),
     );
@@ -1422,7 +1602,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
                 ),
                 pw.Expanded(
                   child: pw.Text(
-                    '৳${product.price.toStringAsFixed(2)}',
+                    '$currencySymbol${product.price.toStringAsFixed(2)}',
                     style: const pw.TextStyle(
                         fontSize: 10, color: PdfColors.grey800),
                     textAlign: pw.TextAlign.right,
@@ -1441,7 +1621,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
                 pw.Expanded(
                   flex: 2,
                   child: pw.Text(
-                    '৳${discountedTotal.toStringAsFixed(2)}',
+                    '$currencySymbol${discountedTotal.toStringAsFixed(2)}',
                     style: pw.TextStyle(
                       fontSize: 10,
                       fontWeight: pw.FontWeight.bold,
@@ -4262,7 +4442,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
             'Discount',
             isPercentDiscount
                 ? '${discountController.text}%'
-                : '৳${discountController.text}'),
+                : '$currencySymbol${discountController.text}'),
         buildPricingRow('Vat/Tax', '${vatController.text}%'),
         pw.Divider(),
         buildPricingRow('Total', getMemoizedTotal().toStringAsFixed(2)),
@@ -4428,6 +4608,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   final templateId = template['id'] as int;
                   final isPremium =
                       TemplateManager.isPremiumTemplate(templateId);
+                  final isPro = SubscriptionService.instance.isProUser;
 
                   return FutureBuilder<int>(
                     future: isPremium
@@ -4435,16 +4616,18 @@ class _CashMemoEditState extends State<CashMemoEdit>
                         : Future.value(-1),
                     builder: (context, snapshot) {
                       final remainingUses = snapshot.data ?? 0;
-                      final isUnlocked = remainingUses > 0;
+                      final isUnlocked = isPro || remainingUses > 0;
 
                       return Container(
                         margin: const EdgeInsets.only(bottom: 10),
                         decoration: BoxDecoration(
                           border: Border.all(
-                            color: isPremium
-                                ? Colors.purple.shade200
-                                : Colors.grey.shade300,
-                            width: isPremium ? 2.0 : 1.5,
+                            color: isPro
+                                ? Colors.purple.shade300
+                                : (isPremium
+                                    ? Colors.purple.shade200
+                                    : Colors.grey.shade300),
+                            width: (isPro || isPremium) ? 2.0 : 1.5,
                           ),
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
@@ -4555,25 +4738,10 @@ class _CashMemoEditState extends State<CashMemoEdit>
                               padding: const EdgeInsets.all(14),
                               child: Row(
                                 children: [
-                                  // Icon
-                                  Container(
-                                    width: 50,
-                                    height: 50,
-                                    decoration: BoxDecoration(
-                                      color: (template['color'] as Color)
-                                          .withOpacity(0.15),
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(
-                                        color: (template['color'] as Color)
-                                            .withOpacity(0.3),
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    child: Icon(
-                                      template['icon'] as IconData,
-                                      color: template['color'] as Color,
-                                      size: 26,
-                                    ),
+                                  // Template Thumbnail
+                                  _TemplateThumbnail(
+                                    templateId: templateId,
+                                    primaryColor: template['color'] as Color,
                                   ),
                                   const SizedBox(width: 14),
                                   // Text
@@ -4604,17 +4772,20 @@ class _CashMemoEditState extends State<CashMemoEdit>
                                                 ),
                                                 decoration: BoxDecoration(
                                                   gradient: LinearGradient(
-                                                    colors: isUnlocked
+                                                    colors: isPro
                                                         ? [
-                                                            Colors
-                                                                .green.shade400,
-                                                            Colors.teal.shade400
+                                                            const Color(0xFF8B5CF6),
+                                                            const Color(0xFFEC4899),
                                                           ]
-                                                        : [
-                                                            Colors.purple
-                                                                .shade400,
-                                                            Colors.blue.shade400
-                                                          ],
+                                                        : (isUnlocked
+                                                            ? [
+                                                                Colors.green.shade400,
+                                                                Colors.teal.shade400
+                                                              ]
+                                                            : [
+                                                                Colors.purple.shade400,
+                                                                Colors.blue.shade400
+                                                              ]),
                                                   ),
                                                   borderRadius:
                                                       BorderRadius.circular(4),
@@ -4632,9 +4803,11 @@ class _CashMemoEditState extends State<CashMemoEdit>
                                                     ),
                                                     const SizedBox(width: 2),
                                                     Text(
-                                                      isUnlocked
-                                                          ? '$remainingUses left'
-                                                          : 'PRO',
+                                                      isPro
+                                                          ? 'UNLOCKED'
+                                                          : (isUnlocked
+                                                              ? '$remainingUses left'
+                                                              : 'PRO'),
                                                       style: const TextStyle(
                                                         fontSize: 9,
                                                         fontWeight:
@@ -4833,6 +5006,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                     ),
                     _buildCustomerDetails(localizations),
                     const SizedBox(height: 20),
+                    _buildInvoiceDetails(localizations),
+                    const SizedBox(height: 20),
                     _buildProductList(localizations),
                     const SizedBox(height: 20),
                     // Modern Add Product Button
@@ -4979,6 +5154,25 @@ class _CashMemoEditState extends State<CashMemoEdit>
           const SizedBox(height: 24),
           TextField(
             controller: customerNameController,
+            onChanged: (value) {
+              if (value.trim().isEmpty) {
+                setState(() {
+                  _showCustomerSuggestions = false;
+                  _matchingCustomers = [];
+                });
+              } else {
+                final matches = _customerDirectory
+                    .where((c) => c['name']
+                        .toString()
+                        .toLowerCase()
+                        .contains(value.toLowerCase()))
+                    .toList();
+                setState(() {
+                  _matchingCustomers = matches;
+                  _showCustomerSuggestions = true;
+                });
+              }
+            },
             decoration: InputDecoration(
               labelText: localizations.customer_name,
               labelStyle: TextStyle(color: Colors.blue.shade600),
@@ -5001,6 +5195,42 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
             ),
           ),
+          if (_showCustomerSuggestions && _matchingCustomers.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(top: 4, bottom: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.blue.shade100),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _matchingCustomers.length,
+                itemBuilder: (context, index) {
+                  final customer = _matchingCustomers[index];
+                  return ListTile(
+                    title: Text(customer['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text(customer['phone'] ?? ''),
+                    onTap: () {
+                      setState(() {
+                        customerNameController.text = customer['name'] ?? '';
+                        customerAddressController.text = customer['address'] ?? '';
+                        customerPhoneNumberController.text = customer['phone'] ?? '';
+                        _showCustomerSuggestions = false;
+                      });
+                    },
+                  );
+                },
+              ),
+            ),
           const SizedBox(height: 16),
           TextField(
             controller: customerAddressController,
@@ -5052,6 +5282,23 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
             ),
             keyboardType: TextInputType.phone,
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Checkbox(
+                value: _saveCustomerToDirectory,
+                onChanged: (val) {
+                  setState(() {
+                    _saveCustomerToDirectory = val ?? false;
+                  });
+                },
+              ),
+              const Text(
+                'Save customer details to directory',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           TextField(
@@ -5149,6 +5396,8 @@ class _CashMemoEditState extends State<CashMemoEdit>
                   isProductDiscountPercent: _isProductDiscountPercent[index],
                   totalProducts: products.length,
                   onDebouncedUpdate: _debouncedUpdateProduct,
+                  productCatalog: _productCatalog,
+                  currencySymbol: currencySymbol,
                   onRemove: (int removeIndex) {
                     setState(() {
                       // Cancel any pending timer for this product
@@ -5360,7 +5609,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
                           const SizedBox(width: 4),
                           Flexible(
                             child: Text(
-                              'Flat (৳)',
+                              'Flat ($currencySymbol)',
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -5483,7 +5732,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
                 ),
               ),
               Text(
-                '৳${getMemoizedSubtotal().toStringAsFixed(2)}',
+                '$currencySymbol${getMemoizedSubtotal().toStringAsFixed(2)}',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
@@ -5507,7 +5756,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
               Text(
                 isPercentDiscount
                     ? '${discountController.text}%'
-                    : '৳${discountController.text}',
+                    : '$currencySymbol${discountController.text}',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
@@ -5552,7 +5801,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
                 ),
               ),
               Text(
-                '৳${getMemoizedTotal().toStringAsFixed(2)}',
+                '$currencySymbol${getMemoizedTotal().toStringAsFixed(2)}',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -5736,7 +5985,7 @@ class _CashMemoEditState extends State<CashMemoEdit>
                           const SizedBox(width: 4),
                           Flexible(
                             child: Text(
-                              'Flat (৳)',
+                              'Flat ($currencySymbol)',
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -5824,6 +6073,8 @@ class ProductItemWidget extends StatefulWidget {
   final VoidCallback onDiscountTypeToggle;
   final AppLocalizations localizations;
   final int totalProducts;
+  final List<Map<String, dynamic>> productCatalog;
+  final String currencySymbol;
 
   const ProductItemWidget({
     Key? key,
@@ -5840,6 +6091,8 @@ class ProductItemWidget extends StatefulWidget {
     required this.onDiscountTypeToggle,
     required this.localizations,
     required this.totalProducts,
+    required this.productCatalog,
+    required this.currencySymbol,
   }) : super(key: key);
 
   @override
@@ -5848,14 +6101,12 @@ class ProductItemWidget extends StatefulWidget {
 
 class _ProductItemWidgetState extends State<ProductItemWidget> {
   late bool isExpanded;
+  bool _showSuggestions = false;
+  List<Map<String, dynamic>> _matchingProducts = [];
 
   @override
   void initState() {
     super.initState();
-    // Expand if:
-    // - First product (index 0)
-    // - Product has data (name, price, or quantity)
-    // - Last product AND empty (newly added)
     bool isLastItem = widget.index == widget.totalProducts - 1;
     bool hasData = widget.product.name.isNotEmpty ||
         widget.product.price > 0 ||
@@ -5885,7 +6136,6 @@ class _ProductItemWidgetState extends State<ProductItemWidget> {
       ),
       child: Column(
         children: [
-          // Header that can be tapped to expand/collapse
           InkWell(
             onTap: () {
               setState(() {
@@ -5943,7 +6193,7 @@ class _ProductItemWidgetState extends State<ProductItemWidget> {
                         if (widget.product.price > 0 ||
                             widget.product.quantity > 0)
                           Text(
-                            'Price: \$${widget.product.price.toStringAsFixed(2)} × ${widget.product.quantity}',
+                            'Price: ${widget.currencySymbol}${widget.product.price.toStringAsFixed(2)} × ${widget.product.quantity}',
                             style: TextStyle(
                               color: Colors.grey.shade600,
                               fontSize: 12,
@@ -5963,7 +6213,7 @@ class _ProductItemWidgetState extends State<ProductItemWidget> {
                         ),
                       ),
                       Text(
-                        '\$${widget.getCachedItemTotal(widget.index).toStringAsFixed(2)}',
+                        '${widget.currencySymbol}${widget.getCachedItemTotal(widget.index).toStringAsFixed(2)}',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Colors.green.shade700,
@@ -5981,7 +6231,6 @@ class _ProductItemWidgetState extends State<ProductItemWidget> {
               ),
             ),
           ),
-          // Expandable content
           if (isExpanded) _buildProductForm(),
         ],
       ),
@@ -5989,12 +6238,12 @@ class _ProductItemWidgetState extends State<ProductItemWidget> {
   }
 
   Widget _buildProductForm() {
+    final String discountTypeLabel = widget.isProductDiscountPercent ? '%' : ' ${widget.currencySymbol}';
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Product Name Field
           _buildTextField(
             controller: widget.nameController,
             label: widget.localizations.product_name,
@@ -6003,11 +6252,73 @@ class _ProductItemWidgetState extends State<ProductItemWidget> {
               widget.onDebouncedUpdate(widget.index, () {
                 widget.product.name = value;
               });
+              if (value.trim().isEmpty) {
+                setState(() {
+                  _showSuggestions = false;
+                  _matchingProducts = [];
+                });
+              } else {
+                final matches = widget.productCatalog
+                    .where((p) => p['name']
+                        .toString()
+                        .toLowerCase()
+                        .contains(value.toLowerCase()))
+                    .toList();
+                setState(() {
+                  _matchingProducts = matches;
+                  _showSuggestions = true;
+                });
+              }
             },
           ),
+          if (_showSuggestions && _matchingProducts.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(top: 4, bottom: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.green.shade100),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _matchingProducts.length,
+                itemBuilder: (context, index) {
+                  final prod = _matchingProducts[index];
+                  final String typeSfx = prod['discountType'] == 'Percent' ? '%' : ' ${widget.currencySymbol}';
+                  return ListTile(
+                    title: Text(prod['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text('Price: ${widget.currencySymbol}${prod['price']} | Discount: ${prod['discount']}$typeSfx'),
+                    onTap: () {
+                      setState(() {
+                        widget.nameController.text = prod['name'] ?? '';
+                        widget.priceController.text = prod['price']?.toString() ?? '';
+                        widget.discountController.text = prod['discount']?.toString() ?? '';
+                        
+                        widget.onDebouncedUpdate(widget.index, () {
+                          widget.product.name = prod['name'] ?? '';
+                          widget.product.price = (prod['price'] ?? 0.0).toDouble();
+                          widget.product.discount = (prod['discount'] ?? 0.0).toDouble();
+                          if ((prod['discountType'] == 'Percent') != widget.isProductDiscountPercent) {
+                            widget.onDiscountTypeToggle();
+                          }
+                        });
+                        
+                        _showSuggestions = false;
+                      });
+                    },
+                  );
+                },
+              ),
+            ),
           const SizedBox(height: 16),
-
-          // Price and Quantity Row
           Row(
             children: [
               Expanded(
@@ -6040,8 +6351,6 @@ class _ProductItemWidgetState extends State<ProductItemWidget> {
             ],
           ),
           const SizedBox(height: 16),
-
-          // Discount Section
           Row(
             children: [
               Expanded(
@@ -6059,8 +6368,7 @@ class _ProductItemWidgetState extends State<ProductItemWidget> {
               ),
               const SizedBox(width: 16),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade50,
                   borderRadius: BorderRadius.circular(12),
@@ -6087,8 +6395,61 @@ class _ProductItemWidgetState extends State<ProductItemWidget> {
             ],
           ),
           const SizedBox(height: 16),
-
-          // Remove Button
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () async {
+                final name = widget.nameController.text.trim();
+                final price = double.tryParse(widget.priceController.text) ?? 0.0;
+                final discount = double.tryParse(widget.discountController.text) ?? 0.0;
+                final discountType = widget.isProductDiscountPercent ? 'Percent' : 'Flat';
+                
+                if (name.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter a product name')),
+                  );
+                  return;
+                }
+                
+                final prefs = await SharedPreferences.getInstance();
+                final String? catalogJson = prefs.getString('product_catalog');
+                List<Map<String, dynamic>> catalog = [];
+                if (catalogJson != null) {
+                  final List<dynamic> decoded = jsonDecode(catalogJson);
+                  catalog = decoded.map((item) => Map<String, dynamic>.from(item)).toList();
+                }
+                
+                final exists = catalog.any((p) => p['name']?.toLowerCase() == name.toLowerCase());
+                if (!exists) {
+                  catalog.add({
+                    'name': name,
+                    'price': price,
+                    'discount': discount,
+                    'discountType': discountType,
+                  });
+                  await prefs.setString('product_catalog', jsonEncode(catalog));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Product saved to catalog!')),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Product already exists in catalog')),
+                  );
+                }
+              },
+              icon: const Icon(Icons.bookmark_add_outlined),
+              label: const Text("Save to Catalog"),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.green.shade700,
+                side: BorderSide(color: Colors.green.shade300),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -6149,4 +6510,326 @@ class _ProductItemWidgetState extends State<ProductItemWidget> {
       ),
     );
   }
+}
+
+/// A stylised miniature PDF-page thumbnail that represents each template's
+/// layout archetype. Rendered with CustomPaint so it is pixel-perfect at
+/// every size with zero asset dependencies.
+class _TemplateThumbnail extends StatelessWidget {
+  final int templateId;
+  final Color primaryColor;
+
+  const _TemplateThumbnail({
+    required this.templateId,
+    required this.primaryColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: 64,
+        height: 80,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: primaryColor.withOpacity(0.4), width: 1.5),
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color: primaryColor.withOpacity(0.2),
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: CustomPaint(
+          painter: _TemplateThumbnailPainter(
+            templateId: templateId,
+            primaryColor: primaryColor,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Draws a miniature cash-memo layout for the given template ID.
+class _TemplateThumbnailPainter extends CustomPainter {
+  final int templateId;
+  final Color primaryColor;
+
+  _TemplateThumbnailPainter({
+    required this.templateId,
+    required this.primaryColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    final pagePaint = Paint()..color = Colors.white;
+    canvas.drawRect(Rect.fromLTWH(0, 0, w, h), pagePaint);
+
+    switch (templateId) {
+      case 1: // Professional Classic — solid blue full-width header
+        _drawSolidHeader(canvas, w, h, headerH: h * 0.22);
+        _drawTextLines(canvas, w, h, top: h * 0.28, count: 2, color: Colors.grey.shade400);
+        _drawTable(canvas, w, h, top: h * 0.44, rows: 3, color: primaryColor);
+        _drawFooterBar(canvas, w, h, color: primaryColor.withOpacity(0.15));
+        break;
+
+      case 2: // Modern Elegance — left accent bar + green header
+        _drawSolidHeader(canvas, w, h, headerH: h * 0.20);
+        _drawLeftAccentBar(canvas, h, color: primaryColor);
+        _drawTextLines(canvas, w, h, top: h * 0.26, count: 2, color: Colors.grey.shade400);
+        _drawTable(canvas, w, h, top: h * 0.42, rows: 3, color: primaryColor);
+        break;
+
+      case 3: // Minimalist Clean — centered watermark circle + thin lines
+        _drawWatermarkCircle(canvas, w, h);
+        _drawThinDivider(canvas, w, h, y: h * 0.16);
+        _drawTextLines(canvas, w, h, top: h * 0.20, count: 2, color: Colors.grey.shade300);
+        _drawTable(canvas, w, h, top: h * 0.40, rows: 3, color: Colors.grey.shade400);
+        _drawThinDivider(canvas, w, h, y: h * 0.85);
+        break;
+
+      case 4: // Modern Accent — purple diagonal accent corner
+        _drawDiagonalCorner(canvas, w, h, color: primaryColor);
+        _drawTextLines(canvas, w, h, top: h * 0.22, count: 2, color: Colors.grey.shade400);
+        _drawBorderlessTable(canvas, w, h, top: h * 0.40, rows: 3, color: primaryColor);
+        break;
+
+      case 5: // Bold Gradient — red gradient header band
+        _drawGradientHeader(canvas, w, h, headerH: h * 0.25, color: primaryColor);
+        _drawTextLines(canvas, w, h, top: h * 0.30, count: 2, color: Colors.grey.shade400);
+        _drawTable(canvas, w, h, top: h * 0.46, rows: 2, color: primaryColor);
+        _drawBoldFooter(canvas, w, h, color: primaryColor);
+        break;
+
+      case 6: // Executive Professional — dark indigo header + side column
+        _drawSolidHeader(canvas, w, h, headerH: h * 0.28, shade: true);
+        _drawSideColumn(canvas, w, h, color: primaryColor.withOpacity(0.12));
+        _drawTextLines(canvas, w, h, top: h * 0.34, count: 2, color: Colors.grey.shade400);
+        _drawTable(canvas, w, h, top: h * 0.52, rows: 2, color: primaryColor);
+        break;
+
+      case 7: // Creative Modern — orange angled top band
+        _drawAngledHeader(canvas, w, h, color: primaryColor);
+        _drawTextLines(canvas, w, h, top: h * 0.30, count: 2, color: Colors.grey.shade400);
+        _drawBorderlessTable(canvas, w, h, top: h * 0.48, rows: 2, color: primaryColor);
+        break;
+
+      case 8: // Elegant Minimalist — teal double border + center logo dot
+        _drawDoubleBorder(canvas, w, h, color: primaryColor);
+        _drawCenterDot(canvas, w, h, color: primaryColor);
+        _drawTextLines(canvas, w, h, top: h * 0.28, count: 2, color: Colors.grey.shade400);
+        _drawTable(canvas, w, h, top: h * 0.46, rows: 2, color: primaryColor);
+        break;
+
+      default:
+        _drawSolidHeader(canvas, w, h, headerH: h * 0.22);
+        _drawTable(canvas, w, h, top: h * 0.40, rows: 3, color: primaryColor);
+    }
+  }
+
+  // --- shared drawing helpers ---
+
+  void _drawSolidHeader(Canvas c, double w, double h,
+      {double headerH = 0.22, bool shade = false}) {
+    final paint = Paint()
+      ..color = shade ? primaryColor.withOpacity(0.85) : primaryColor;
+    c.drawRect(Rect.fromLTWH(0, 0, w, headerH), paint);
+    // company name stub
+    final linePaint = Paint()
+      ..color = Colors.white.withOpacity(0.8)
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
+    c.drawLine(Offset(w * 0.12, headerH * 0.4), Offset(w * 0.72, headerH * 0.4), linePaint);
+    linePaint.color = Colors.white.withOpacity(0.5);
+    c.drawLine(Offset(w * 0.12, headerH * 0.65), Offset(w * 0.52, headerH * 0.65), linePaint);
+  }
+
+  void _drawGradientHeader(Canvas c, double w, double h,
+      {required double headerH, required Color color}) {
+    final paint = Paint()
+      ..shader = LinearGradient(
+        colors: [color, color.withOpacity(0.55)],
+      ).createShader(Rect.fromLTWH(0, 0, w, headerH));
+    c.drawRect(Rect.fromLTWH(0, 0, w, headerH), paint);
+    final linePaint = Paint()
+      ..color = Colors.white.withOpacity(0.9)
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
+    c.drawLine(Offset(w * 0.12, headerH * 0.38), Offset(w * 0.75, headerH * 0.38), linePaint);
+    linePaint.color = Colors.white.withOpacity(0.55);
+    c.drawLine(Offset(w * 0.12, headerH * 0.65), Offset(w * 0.5, headerH * 0.65), linePaint);
+  }
+
+  void _drawLeftAccentBar(Canvas c, double h, {required Color color}) {
+    final paint = Paint()..color = color;
+    c.drawRect(Rect.fromLTWH(0, 0, 3.5, h), paint);
+  }
+
+  void _drawTextLines(Canvas c, double w, double h,
+      {required double top, required int count, required Color color}) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.2
+      ..strokeCap = StrokeCap.round;
+    for (int i = 0; i < count; i++) {
+      final y = top + i * (h * 0.07);
+      final endX = i.isEven ? w * 0.75 : w * 0.55;
+      c.drawLine(Offset(w * 0.08, y), Offset(endX, y), paint);
+    }
+  }
+
+  void _drawTable(Canvas c, double w, double h,
+      {required double top, required int rows, required Color color}) {
+    final headerPaint = Paint()..color = color.withOpacity(0.18);
+    final rowPaint = Paint()..color = Colors.grey.shade100;
+    final borderPaint = Paint()
+      ..color = color.withOpacity(0.35)
+      ..strokeWidth = 0.8;
+    final rowH = h * 0.10;
+    // header
+    c.drawRect(Rect.fromLTWH(w * 0.06, top, w * 0.88, rowH), headerPaint);
+    // rows
+    for (int i = 1; i <= rows; i++) {
+      if (i.isEven) {
+        c.drawRect(Rect.fromLTWH(w * 0.06, top + i * rowH, w * 0.88, rowH), rowPaint);
+      }
+      c.drawLine(
+        Offset(w * 0.06, top + i * rowH),
+        Offset(w * 0.94, top + i * rowH),
+        borderPaint,
+      );
+    }
+    // outer border
+    c.drawRect(
+      Rect.fromLTWH(w * 0.06, top, w * 0.88, rowH * (rows + 1)),
+      Paint()
+        ..color = color.withOpacity(0.4)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.8,
+    );
+  }
+
+  void _drawBorderlessTable(Canvas c, double w, double h,
+      {required double top, required int rows, required Color color}) {
+    final dividerPaint = Paint()
+      ..color = color.withOpacity(0.3)
+      ..strokeWidth = 0.8;
+    final rowH = h * 0.09;
+    for (int i = 0; i <= rows; i++) {
+      c.drawLine(
+        Offset(w * 0.06, top + i * rowH),
+        Offset(w * 0.94, top + i * rowH),
+        dividerPaint,
+      );
+    }
+  }
+
+  void _drawFooterBar(Canvas c, double w, double h, {required Color color}) {
+    c.drawRect(Rect.fromLTWH(0, h * 0.88, w, h * 0.12), Paint()..color = color);
+  }
+
+  void _drawBoldFooter(Canvas c, double w, double h, {required Color color}) {
+    c.drawRect(Rect.fromLTWH(0, h * 0.87, w, h * 0.13), Paint()..color = color.withOpacity(0.85));
+  }
+
+  void _drawWatermarkCircle(Canvas c, double w, double h) {
+    c.drawCircle(
+      Offset(w / 2, h * 0.28),
+      w * 0.22,
+      Paint()
+        ..color = primaryColor.withOpacity(0.07)
+        ..style = PaintingStyle.fill,
+    );
+    c.drawCircle(
+      Offset(w / 2, h * 0.28),
+      w * 0.22,
+      Paint()
+        ..color = primaryColor.withOpacity(0.25)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.8,
+    );
+  }
+
+  void _drawThinDivider(Canvas c, double w, double h, {required double y}) {
+    c.drawLine(
+      Offset(w * 0.06, y),
+      Offset(w * 0.94, y),
+      Paint()
+        ..color = primaryColor.withOpacity(0.5)
+        ..strokeWidth = 0.8,
+    );
+  }
+
+  void _drawDiagonalCorner(Canvas c, double w, double h, {required Color color}) {
+    final path = Path()
+      ..moveTo(0, 0)
+      ..lineTo(w * 0.55, 0)
+      ..lineTo(0, h * 0.30)
+      ..close();
+    c.drawPath(path, Paint()..color = color);
+    // small stub lines in white on corner
+    final lp = Paint()
+      ..color = Colors.white.withOpacity(0.75)
+      ..strokeWidth = 1.2
+      ..strokeCap = StrokeCap.round;
+    c.drawLine(Offset(w * 0.05, h * 0.07), Offset(w * 0.30, h * 0.07), lp);
+    c.drawLine(Offset(w * 0.05, h * 0.14), Offset(w * 0.22, h * 0.14), lp);
+  }
+
+  void _drawAngledHeader(Canvas c, double w, double h, {required Color color}) {
+    final path = Path()
+      ..moveTo(0, 0)
+      ..lineTo(w, 0)
+      ..lineTo(w, h * 0.18)
+      ..lineTo(0, h * 0.28)
+      ..close();
+    c.drawPath(path, Paint()..color = color);
+    final lp = Paint()
+      ..color = Colors.white.withOpacity(0.85)
+      ..strokeWidth = 1.4
+      ..strokeCap = StrokeCap.round;
+    c.drawLine(Offset(w * 0.08, h * 0.09), Offset(w * 0.7, h * 0.09), lp);
+    lp.color = Colors.white.withOpacity(0.5);
+    c.drawLine(Offset(w * 0.08, h * 0.17), Offset(w * 0.48, h * 0.17), lp);
+  }
+
+  void _drawDoubleBorder(Canvas c, double w, double h, {required Color color}) {
+    c.drawRect(
+      Rect.fromLTWH(2, 2, w - 4, h - 4),
+      Paint()
+        ..color = color.withOpacity(0.5)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1,
+    );
+    c.drawRect(
+      Rect.fromLTWH(5, 5, w - 10, h - 10),
+      Paint()
+        ..color = color.withOpacity(0.25)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.6,
+    );
+  }
+
+  void _drawCenterDot(Canvas c, double w, double h, {required Color color}) {
+    c.drawCircle(
+      Offset(w / 2, h * 0.17),
+      5.5,
+      Paint()..color = color,
+    );
+  }
+
+  void _drawSideColumn(Canvas c, double w, double h, {required Color color}) {
+    c.drawRect(Rect.fromLTWH(w * 0.72, 0, w * 0.28, h), Paint()..color = color);
+  }
+
+  @override
+  bool shouldRepaint(_TemplateThumbnailPainter old) =>
+      old.templateId != templateId || old.primaryColor != primaryColor;
 }

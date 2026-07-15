@@ -16,6 +16,7 @@ import 'l10n/gen_l10n/app_localizations.dart';
 import 'memo_list.dart';
 import 'auth_gate.dart';
 import 'settings_screen.dart';
+import 'services/subscription_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 // Only include Firebase imports if not web
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -25,6 +26,10 @@ import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Subscription Service
+  await SubscriptionService.instance.initialize();
+
   FirebaseAnalytics? analytics;
   try {
     await Firebase.initializeApp(
@@ -85,14 +90,19 @@ class CashMemoAppState extends State<CashMemoApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     loadLanguagePreference();
+    final isPro = SubscriptionService.instance.isProUser;
     if (!kIsWeb) {
       analytics = FirebaseAnalytics.instance;
       // Initialize and preload rewarded ads for instant showing
-      RewardedAdManager().initialize(autoReload: true);
+      if (!isPro) {
+        RewardedAdManager().initialize(autoReload: true);
+      }
     }
     WidgetsBinding.instance.addObserver(this);
     // Preload an App Open Ad
-    AppOpenAdManager.instance.loadAd();
+    if (!isPro) {
+      AppOpenAdManager.instance.loadAd();
+    }
   }
 
   void _updateLocale(String languageCode) {
@@ -103,7 +113,7 @@ class CashMemoAppState extends State<CashMemoApp> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
+    if (state == AppLifecycleState.resumed && !SubscriptionService.instance.isProUser) {
       // Show App-open ad when app returns to foreground
       AppOpenAdManager.instance.showIfAvailable();
     }

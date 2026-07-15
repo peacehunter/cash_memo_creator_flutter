@@ -15,6 +15,8 @@ class Memo {
 
   String companyAddress; // Add this line
   String companyLogo; // Add this line (assuming it's a URL or file path)
+  String paymentStatus; // e.g., 'Paid', 'Unpaid', 'Overdue'
+  String? dueDate; // optional due date
 
   Memo({
     required this.companyAddress, // Add this line
@@ -33,6 +35,8 @@ class Memo {
     this.notes, // Optional notes
     this.id,
     this.userId,
+    this.paymentStatus = 'Unpaid',
+    this.dueDate,
   });
 
   // Convert Memo to JSON format for saving
@@ -51,6 +55,8 @@ class Memo {
       'companyAddress': companyAddress, // Save company address
       'companyLogo': companyLogo, // Save company logo
       'notes': notes ?? '', // Save notes
+      'paymentStatus': paymentStatus,
+      if (dueDate != null) 'dueDate': dueDate,
       if (id != null) 'id': id,
       if (userId != null) 'userId': userId,
     };
@@ -84,6 +90,8 @@ class Memo {
             json['companyAddress'] ?? '', // Handle null discount type
         companyLogo: json['companyLogo'] ?? '',
         notes: json['notes'] as String?,
+        paymentStatus: json['paymentStatus'] ?? 'Unpaid',
+        dueDate: json['dueDate'],
         id: json['id'],
         userId: json['userId']);
   }
