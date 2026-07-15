@@ -22,6 +22,11 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class MainActivity extends FlutterActivity {
     private static final String CHANNEL = "com.tuhin.cash_memo_creator";
@@ -57,6 +62,20 @@ public class MainActivity extends FlutterActivity {
 
                                 } else {
                                     result.error("INVALID_DATA", "PDF data, folder name, or file name is null", null);
+                                }
+                            } else if (call.method.equals("getSavedPdfs")) {
+                                String folderName = call.argument("folderName");
+                                if (folderName != null) {
+                                    getSavedPdfs(folderName, result);
+                                } else {
+                                    result.error("INVALID_DATA", "Folder name is null", null);
+                                }
+                            } else if (call.method.equals("deleteSavedPdf")) {
+                                String filePath = call.argument("filePath");
+                                if (filePath != null) {
+                                    deleteSavedPdf(filePath, result);
+                                } else {
+                                    result.error("INVALID_DATA", "File path is null", null);
                                 }
                             } else {
                                 result.notImplemented();
@@ -149,6 +168,117 @@ public class MainActivity extends FlutterActivity {
         } catch (IOException e) {
             e.printStackTrace();
             result.error("WRITE_ERROR", "Error while saving PDF", e.getMessage());
+        }
+    }
+
+    private void getSavedPdfs(String folderName, MethodChannel.Result result) {
+        List<Map<String, Object>> pdfList = new ArrayList<>();
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            Uri uri = MediaStore.Files.getContentUri("external");
+            String[] projection = new String[]{
+                    MediaStore.Files.FileColumns.DATA,
+                    MediaStore.Files.FileColumns.DISPLAY_NAME,
+                    MediaStore.Files.FileColumns.DATE_MODIFIED
+            };
+
+            String selection = MediaStore.Files.FileColumns.MIME_TYPE + " = ? AND " +
+                               MediaStore.Files.FileColumns.RELATIVE_PATH + " LIKE ?";
+            String[] selectionArgs = new String[]{
+                    PDF_MIME_TYPE,
+                    Environment.DIRECTORY_DOCUMENTS + "/" + folderName + "/%"
+            };
+
+            try (android.database.Cursor cursor = getContentResolver().query(
+                    uri,
+                    projection,
+                    selection,
+                    selectionArgs,
+                    MediaStore.Files.FileColumns.DATE_MODIFIED + " DESC"
+            )) {
+                if (cursor != null) {
+                    int dataIndex = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATA);
+                    int nameIndex = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DISPLAY_NAME);
+                    int dateModifiedIndex = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATE_MODIFIED);
+
+                    while (cursor.moveToNext()) {
+                        String path = cursor.getString(dataIndex);
+                        String name = cursor.getString(nameIndex);
+                        long dateModified = cursor.getLong(dateModifiedIndex) * 1000; // seconds to ms
+
+                        File file = new File(path);
+                        if (file.exists() && file.canRead()) {
+                            Map<String, Object> pdfMap = new HashMap<>();
+                            pdfMap.put("path", path);
+                            pdfMap.put("name", name);
+                            pdfMap.put("dateModified", dateModified);
+                            pdfList.add(pdfMap);
+                        }
+                    }
+                }
+                result.success(pdfList);
+            } catch (Exception e) {
+                result.error("QUERY_ERROR", "Failed to query MediaStore: " + e.getMessage(), null);
+            }
+        } else {
+            File directory = new File(Environment.getExternalStorageDirectory(), Environment.DIRECTORY_DOCUMENTS + "/" + folderName);
+            if (directory.exists() && directory.isDirectory()) {
+                File[] files = directory.listFiles((dir, name) -> name.toLowerCase().endsWith(".pdf"));
+                if (files != null) {
+                    Arrays.sort(files, (f1, f2) -> Long.compare(f2.lastModified(), f1.lastModified()));
+
+                    for (File file : files) {
+                        Map<String, Object> pdfMap = new HashMap<>();
+                        pdfMap.put("path", file.getAbsolutePath());
+                        pdfMap.put("name", file.getName());
+                        pdfMap.put("dateModified", file.lastModified());
+                        pdfList.add(pdfMap);
+                    }
+                }
+            }
+            result.success(pdfList);
+        }
+    }
+
+    private void deleteSavedPdf(String filePath, MethodChannel.Result result) {
+        File file = new File(filePath);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            Uri uri = MediaStore.Files.getContentUri("external");
+            String selection = MediaStore.Files.FileColumns.DATA + " = ?";
+            String[] selectionArgs = new String[]{filePath};
+
+            try {
+                int deletedCount = getContentResolver().delete(uri, selection, selectionArgs);
+                if (deletedCount > 0) {
+                    result.success(true);
+                } else {
+                    if (file.exists() && file.delete()) {
+                        result.success(true);
+                    } else {
+                        result.success(false);
+                    }
+                }
+            } catch (Exception e) {
+                try {
+                    if (file.exists() && file.delete()) {
+                        result.success(true);
+                    } else {
+                        result.success(false);
+                    }
+                } catch (Exception ex) {
+                    result.error("DELETE_ERROR", "Failed to delete: " + e.getMessage(), null);
+                }
+            }
+        } else {
+            if (file.exists()) {
+                if (file.delete()) {
+                    result.success(true);
+                } else {
+                    result.success(false);
+                }
+            } else {
+                result.success(true);
+            }
         }
     }
 }

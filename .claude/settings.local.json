@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter run)",
+      "Bash(nc:*)",
+      "Bash(flutter run:*)",
+      "Bash(flutter analyze:*)",
+      "Bash(flutter build:*)",
+      "Bash(flutter clean:*)",
+      "Bash(flutter pub get:*)",
+      "Bash(keytool -list -v -keystore:*)",
+      "Bash(git rev-list:*)",
+      "Bash(git log:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(keytool:*)",
+      "Bash(jarsigner:*)",
+      "Bash(test:*)",
+      "Bash(flutter pub upgrade:*)",
+      "Bash(timeout:*)",
+      "Bash(gradlew.bat bundleRelease:*)",
+      "Bash(where:*)",
+      "Bash(nul)",
+      "Bash(gradlew.bat:*)",
+      "Bash(findstr:*)",
+      "Bash(dir \"build\\app\\outputs\\bundle\\release\\app-release.aab\" 2)",
+      "Bash(dir:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

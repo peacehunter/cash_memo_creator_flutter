@@ -21,12 +21,9 @@ class _SettingsPageState extends State<SettingsPage>
   late TabController _tabController;
   late TextEditingController companyNameController;
   late TextEditingController companyAddressController;
-  late TextEditingController watermarkTextController;
   late TextEditingController
       nbController; // N.B. controller for special message
   String? logoPath;
-  String? watermarkImagePath;
-  int selectedWatermarkOption = 0; // 0: Text, 1: Image, 2: Both, 3: None
   String selectedLanguage = 'en'; // Default language
   var localizations;
 
@@ -35,10 +32,9 @@ class _SettingsPageState extends State<SettingsPage>
     super.initState();
     companyNameController = TextEditingController();
     companyAddressController = TextEditingController();
-    watermarkTextController = TextEditingController();
     nbController = TextEditingController(); // Initialize N.B. controller
     _tabController = TabController(
-        length: 4, vsync: this); // Update length to 4 for language tab
+        length: 3, vsync: this); // 3 tabs: Company Info, N.B., Language
     loadCompanyInfo();
     loadLanguagePreference(); // Load language preference
   }
@@ -48,23 +44,13 @@ class _SettingsPageState extends State<SettingsPage>
     String? name = prefs.getString('companyName');
     String? address = prefs.getString('companyAddress');
     String? logo = prefs.getString('companyLogo');
-    String? watermarkText = prefs.getString('watermarkText');
-    String? watermarkImage = prefs.getString('watermarkImage');
     String? nbMessage = prefs.getString('nbMessage'); // Load N.B. message
-    int? watermarkOption =
-        prefs.getInt('watermarkOption'); // Load watermark option
 
     if (name != null) companyNameController.text = name;
     if (address != null) companyAddressController.text = address;
-    if (watermarkText != null) watermarkTextController.text = watermarkText;
     if (nbMessage != null)
       nbController.text = nbMessage; // Set N.B. message text
     logoPath = logo;
-    watermarkImagePath = watermarkImage;
-
-    if (watermarkOption != null) {
-      selectedWatermarkOption = watermarkOption;
-    }
 
     setState(() {});
   }
@@ -81,11 +67,7 @@ class _SettingsPageState extends State<SettingsPage>
     await prefs.setString('companyName', companyNameController.text);
     await prefs.setString('companyAddress', companyAddressController.text);
     await prefs.setString('companyLogo', logoPath ?? '');
-    await prefs.setString('watermarkText', watermarkTextController.text);
-    await prefs.setString('watermarkImage', watermarkImagePath ?? '');
     await prefs.setString('nbMessage', nbController.text); // Save N.B. message
-    await prefs.setInt(
-        'watermarkOption', selectedWatermarkOption); // Save watermark option
     await prefs.setString(
         'appLanguage', selectedLanguage); // Save language preference
     ScaffoldMessenger.of(context)
@@ -111,29 +93,11 @@ class _SettingsPageState extends State<SettingsPage>
     }
   }
 
-  Future<void> pickWatermarkImage() async {
-    if (kIsWeb) {
-      // Web-specific stub: no image picker UX; maybe show toast/snackbar
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Image picking not supported on Web.')),
-      );
-      return;
-    } else {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-      if (image != null) {
-        setState(() {
-          watermarkImagePath = image.path;
-        });
-      }
-    }
-  }
 
   @override
   void dispose() {
     companyNameController.dispose();
     companyAddressController.dispose();
-    watermarkTextController.dispose();
     nbController.dispose(); // Dispose N.B. controller
     _tabController.dispose();
     super.dispose();
@@ -250,30 +214,6 @@ class _SettingsPageState extends State<SettingsPage>
                   mainAxisAlignment: MainAxisAlignment.center,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.water_drop_outlined, size: 18),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${localizations.watermark_tab_label}',
-                      style: const TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 0.2,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Tab(
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
                     const Icon(Icons.note_alt_outlined, size: 18),
                     const SizedBox(height: 2),
                     Text(
@@ -339,7 +279,6 @@ class _SettingsPageState extends State<SettingsPage>
                 controller: _tabController,
                 children: [
                   _buildCompanyInfoTab(),
-                  _buildWatermarkTab(),
                   _buildNBTab(),
                   _buildLanguageTab(),
                 ],
@@ -660,8 +599,26 @@ class _SettingsPageState extends State<SettingsPage>
                         )
                       : ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: Image.file(File(logoPath!),
-                              height: 120, fit: BoxFit.contain),
+                          child: Image.file(
+                            File(logoPath!),
+                            height: 120,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.broken_image_outlined,
+                                      size: 48, color: Colors.red.shade300),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    '${localizations.no_logo} (Failed to load)',
+                                    style: TextStyle(
+                                        color: Colors.red.shade600, fontSize: 13),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
                         ),
                 ),
                 const SizedBox(height: 20),
@@ -717,347 +674,6 @@ class _SettingsPageState extends State<SettingsPage>
             ),
           ),
           const SizedBox(height: 10),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWatermarkTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header Section
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Theme.of(context).colorScheme.secondary.withOpacity(0.1),
-                  Theme.of(context).colorScheme.tertiary.withOpacity(0.1)
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                  color:
-                      Theme.of(context).colorScheme.secondary.withOpacity(0.2)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Theme.of(context).colorScheme.secondary,
-                        Theme.of(context).colorScheme.tertiary
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.water_drop,
-                      color: Colors.white, size: 24),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    '${localizations.watermark_settings_label}',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.secondary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Watermark Text Card
-          Card(
-            elevation: 8,
-            shadowColor: Colors.black26,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.white, Colors.grey.shade50],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Theme.of(context).colorScheme.secondary,
-                              Theme.of(context).colorScheme.tertiary
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.text_fields,
-                            color: Colors.white, size: 20),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Watermark Text',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: Theme.of(context).colorScheme.secondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _buildInputField(
-                    label: '${localizations.watermark_text_label}',
-                    controller: watermarkTextController,
-                    icon: Icons.text_fields,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Watermark Image Card
-          Card(
-            elevation: 8,
-            shadowColor: Colors.black26,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.white, Colors.grey.shade50],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Theme.of(context).colorScheme.tertiary,
-                              Theme.of(context).colorScheme.primary
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.image,
-                            color: Colors.white, size: 20),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        '${localizations.watermark_image_label}',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: Theme.of(context).colorScheme.tertiary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: watermarkImagePath == null ||
-                            watermarkImagePath!.isEmpty
-                        ? Column(
-                            children: [
-                              Icon(Icons.image_not_supported,
-                                  size: 48, color: Colors.grey.shade400),
-                              const SizedBox(height: 8),
-                              Text(
-                                '${localizations.no_watermark_image_label}',
-                                style: TextStyle(
-                                    color: Colors.grey.shade600, fontSize: 14),
-                              ),
-                            ],
-                          )
-                        : ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.file(File(watermarkImagePath!),
-                                height: 120, fit: BoxFit.contain),
-                          ),
-                  ),
-                  const SizedBox(height: 20),
-                  Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF065f46),
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: ElevatedButton.icon(
-                      onPressed: pickWatermarkImage,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        foregroundColor: Colors.white,
-                        shadowColor: Colors.transparent,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 24, vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      icon: const Icon(Icons.upload,
-                          color: Colors.white, size: 20),
-                      label: Text(
-                        '${localizations.select_watermark_image_label}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Watermark Type Selection Card
-          Card(
-            elevation: 8,
-            shadowColor: Colors.black26,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.white, Colors.grey.shade50],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Theme.of(context).colorScheme.primary,
-                              Theme.of(context).colorScheme.secondary
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.tune,
-                            color: Colors.white, size: 20),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        '${localizations.select_watermark_type_label}',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _buildRadioOption(
-                    title: "${localizations.watermark_type_text_label}",
-                    value: 0,
-                    groupValue: selectedWatermarkOption,
-                    icon: Icons.text_fields,
-                    onChanged: (value) {
-                      setState(() {
-                        selectedWatermarkOption = value as int;
-                      });
-                    },
-                  ),
-                  _buildRadioOption(
-                    title: "${localizations.watermark_type_image_label}",
-                    value: 1,
-                    groupValue: selectedWatermarkOption,
-                    icon: Icons.image,
-                    onChanged: (value) {
-                      setState(() {
-                        selectedWatermarkOption = value as int;
-                      });
-                    },
-                  ),
-                  _buildRadioOption(
-                    title: "${localizations.watermark_type_both_label}",
-                    value: 2,
-                    groupValue: selectedWatermarkOption,
-                    icon: Icons.layers,
-                    onChanged: (value) {
-                      setState(() {
-                        selectedWatermarkOption = value as int;
-                      });
-                    },
-                  ),
-                  _buildRadioOption(
-                    title: "${localizations.watermark_type_none_label}",
-                    value: 3,
-                    groupValue: selectedWatermarkOption,
-                    icon: Icons.block,
-                    onChanged: (value) {
-                      setState(() {
-                        selectedWatermarkOption = value as int;
-                      });
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
         ],
       ),
     );

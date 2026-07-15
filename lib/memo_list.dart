@@ -1,7 +1,8 @@
-import 'package:cash_memo_creator/src/stub_io.dart';
+import 'package:cash_memo_creator/src/stub_io.dart' as stub;
 import 'package:cash_memo_creator/widgets/professional_memo_card.dart';
 import 'package:cash_memo_creator/widgets/statistics_dashboard.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'web/web_memo_list_screen.dart';
 // dart:io is used only on non-web platforms
 import 'dart:io' if (dart.library.html) 'src/stub_io.dart';
@@ -19,10 +20,16 @@ import 'package:flutter/foundation.dart';
 import 'Memo.dart';
 // import 'NativeAdContainer.dart'; // Removed
 import 'admob_ads/BannerAdWidget.dart'; // still imported, not used
+import 'admob_ads/NativeAdWidget.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'memo_edit.dart';
 import 'package:cash_memo_creator/l10n/gen_l10n/app_localizations.dart';
 import 'design_system.dart';
 import 'widgets/professional_widgets.dart';
+import 'services/subscription_service.dart';
+import 'widgets/premium_upgrade_sheet.dart';
+import 'widgets/privacy_policy_dialog.dart';
+import 'widgets/onboarding_overlay.dart';
 
 class MemoListScreen extends StatefulWidget {
   const MemoListScreen({super.key});
@@ -35,9 +42,10 @@ class MemoListScreenState extends State<MemoListScreen>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   List<Memo> _memos = [];
   late TabController _tabController;
+  String _currencySymbol = '৳';
   // Use correct file entity for web
   // Use platform-specific file entity list
-  dynamic _pdfFiles = kIsWeb ? <WebFileEntity>[] : <FileSystemEntity>[];
+  dynamic _pdfFiles = kIsWeb ? <stub.WebFileEntity>[] : <FileSystemEntity>[];
   // Cache for formatted last-modified timestamps to avoid expensive I/O in every build
   Map<String, String> _pdfModifiedDates = {};
 
@@ -82,27 +90,51 @@ class MemoListScreenState extends State<MemoListScreen>
   @override
   void initState() {
     super.initState();
+    SubscriptionService.instance.addListener(_onSubscriptionChanged);
     // Clear memoization caches on initialization
     _MemoizationCache.clearCache();
     loadMemos();
     _requestStoragePermission();
     WidgetsBinding.instance.addObserver(this);
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
 
     _tabController.addListener(() {
       if (_tabController.index == 1) {
         _loadSavedPdfs();
       }
+      // Force rebuild to show/hide FAB
+      setState(() {});
     });
+
+    // Show privacy policy and onboarding on first launch
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkFirstLaunch();
+    });
+  }
+
+  /// Sequentially shows the privacy policy dialog (if not accepted) and
+  /// then the onboarding tour (if not yet seen).
+  Future<void> _checkFirstLaunch() async {
+    if (!mounted) return;
+    final accepted = await showPrivacyPolicyIfNeeded(context);
+    if (!accepted || !mounted) return;
+    await showOnboardingIfNeeded(context);
   }
 
   @override
   void dispose() {
+    SubscriptionService.instance.removeListener(_onSubscriptionChanged);
     WidgetsBinding.instance.removeObserver(this);
     _tabController.dispose();
     // Clear memoization caches on disposal
     _MemoizationCache.clearCache();
     super.dispose();
+  }
+
+  void _onSubscriptionChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -125,15 +157,76 @@ class MemoListScreenState extends State<MemoListScreen>
         .toList();
   }
 
+  void _insertTestMemo() {
+    final sampleProducts = [
+      Product(name: 'Premium Leather Wallet', price: 1200.0, quantity: 2, discount: 50.0, discountType: DiscountType.solid),
+      Product(name: 'Stainless Steel Water Bottle', price: 850.0, quantity: 1, discount: 0.0),
+      Product(name: 'Wireless Bluetooth Earbuds', price: 3500.0, quantity: 1, discount: 10.0, discountType: DiscountType.perPiece),
+    ];
+
+    double subtotal = 0;
+    for (var p in sampleProducts) {
+      double itemTotal = p.price * p.quantity;
+      if (p.discount > 0) {
+        if (p.discountType == DiscountType.perPiece) {
+          itemTotal -= (p.discount * p.quantity);
+        } else {
+          itemTotal -= p.discount;
+        }
+      }
+      subtotal += itemTotal;
+    }
+
+    double discountVal = 10.0; // 10%
+    double discountAmount = subtotal * (discountVal / 100);
+    double afterDiscount = subtotal - discountAmount;
+    double vatVal = 5.0; // 5%
+    double vatAmount = afterDiscount * (vatVal / 100);
+    double totalVal = afterDiscount + vatAmount;
+
+    final testMemo = Memo(
+      companyName: 'Apex Retailers Ltd.',
+      companyAddress: '128 Commercial Road, Dhaka 1212',
+      companyLogo: '',
+      products: sampleProducts,
+      total: totalVal,
+      date: DateTime.now().toIso8601String(),
+      customerName: 'John Doe',
+      customerAddress: 'Suite 4B, Plaza Towers, Dhaka',
+      customerPhoneNumber: '+880 1712-345678',
+      discount: discountVal,
+      vat: vatVal,
+      isPercentDiscount: true,
+      notes: 'Thank you for shopping with us! Please note that items can be returned within 7 days in original packaging.',
+    );
+
+    setState(() {
+      _memos.add(testMemo);
+    });
+    saveMemos();
+  }
+
   void loadMemos() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     final memosJson = prefs.getString('memos');
+    final String currencySymbol = prefs.getString('currency_symbol') ?? '৳';
+
+    setState(() {
+      _currencySymbol = currencySymbol;
+    });
 
     if (memosJson != null) {
       final List<dynamic> memosList = jsonDecode(memosJson);
-      setState(() {
-        _memos = memosList.map((json) => Memo.fromJson(json)).toList();
-      });
+      final loadedMemos = memosList.map((json) => Memo.fromJson(json)).toList();
+      if (loadedMemos.isEmpty) {
+        _insertTestMemo();
+      } else {
+        setState(() {
+          _memos = loadedMemos;
+        });
+      }
+    } else {
+      _insertTestMemo();
     }
   }
 
@@ -166,76 +259,169 @@ class MemoListScreenState extends State<MemoListScreen>
     final localizations = _cachedLocalizations!;
     final theme = _cachedTheme!;
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.blue.shade700,
-        elevation: 4,
+        backgroundColor: AppColors.white,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Colors.black.withOpacity(0.05),
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color(0x33FFFFFF), // Colors.white.withOpacity(0.2)
-                borderRadius: BorderRadius.circular(12),
+                gradient: AppGradients.primary,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: const Icon(
-                Icons.receipt_long,
+                Icons.receipt_long_rounded,
                 color: Colors.white,
-                size: 24,
+                size: 22,
               ),
             ),
-            const SizedBox(width: 12),
-            Text(
-              localizations.savedMemos,
-              style: theme.textTheme.headlineMedium?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
+            const SizedBox(width: 14),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  localizations.savedMemos,
+                  style: AppTypography.h2.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                ),
+                Text(
+                  'Manage your invoices',
+                  style: AppTypography.labelSmall.copyWith(
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
-        centerTitle: true,
+        centerTitle: false,
         actions: [
           Container(
-            margin: const EdgeInsets.only(right: 16),
+            margin: const EdgeInsets.only(right: 12),
             decoration: BoxDecoration(
-              color: const Color(0x33FFFFFF), // Colors.white.withOpacity(0.2)
-              borderRadius: BorderRadius.circular(12),
+              color: AppColors.neutral100,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(color: AppColors.border),
             ),
             child: IconButton(
-              icon: const Icon(Icons.settings_rounded, color: Colors.white, size: 24),
+              icon: Icon(Icons.settings_rounded, color: AppColors.primary, size: 22),
               tooltip: 'Settings',
               onPressed: () {
                 Navigator.pushNamed(context, '/settings');
               },
             ),
           ),
+          // Premium Upgrade/Pro Badge Action
+          Builder(
+            builder: (context) {
+              final isPro = SubscriptionService.instance.isProUser;
+              if (isPro) {
+                return Container(
+                  margin: const EdgeInsets.only(right: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    gradient: AppGradients.premium,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFEC4899).withOpacity(0.3),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(Icons.workspace_premium_rounded, color: Colors.white, size: 16),
+                      SizedBox(width: 4),
+                      Text(
+                        'PRO',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              } else {
+                return Container(
+                  margin: const EdgeInsets.only(right: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade50,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(color: Colors.amber.shade200),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.workspace_premium_rounded, color: Colors.amber, size: 22),
+                    tooltip: 'Go Pro',
+                    onPressed: () {
+                      PremiumUpgradeSheet.show(context);
+                    },
+                  ),
+                );
+              }
+            },
+          ),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
+          preferredSize: const Size.fromHeight(64),
           child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             decoration: BoxDecoration(
-              color: const Color(0x26FFFFFF), // Colors.white.withOpacity(0.15)
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: const Color(0x4DFFFFFF), // Colors.white.withOpacity(0.3)
-                width: 1,
-              ),
+              color: AppColors.neutral50,
+              borderRadius: BorderRadius.circular(AppRadius.xl),
+              border: Border.all(color: AppColors.border, width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: TabBar(
               controller: _tabController,
-              labelColor: Colors.white,
-              unselectedLabelColor:
-                  const Color(0xB3FFFFFF), // Colors.white.withOpacity(0.7)
-              indicatorColor: Colors.white,
-              indicatorWeight: 3,
+              labelColor: AppColors.white,
+              unselectedLabelColor: AppColors.textSecondary,
+              indicator: BoxDecoration(
+                gradient: AppGradients.primary,
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              dividerColor: Colors.transparent,
               labelStyle: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
               ),
               unselectedLabelStyle: const TextStyle(
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w600,
                 fontSize: 14,
               ),
               tabs: [
@@ -246,14 +432,14 @@ class MemoListScreenState extends State<MemoListScreen>
                     children: [
                       const Icon(
                         Icons.receipt_long_rounded,
-                        size: 20,
+                        size: 18,
                       ),
                       const SizedBox(width: 8),
                       Flexible(
                         child: Text(
                           localizations.memosTab,
                           style: const TextStyle(
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w700,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -268,14 +454,36 @@ class MemoListScreenState extends State<MemoListScreen>
                     children: [
                       const Icon(
                         Icons.picture_as_pdf_rounded,
-                        size: 20,
+                        size: 18,
                       ),
                       const SizedBox(width: 8),
                       Flexible(
                         child: Text(
                           localizations.pdfTab,
                           style: const TextStyle(
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.analytics_rounded,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          'Analytics',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -301,6 +509,7 @@ class MemoListScreenState extends State<MemoListScreen>
                       children: [
                         _buildSavedMemosTab(),
                         kIsWeb ? _buildPdfWebWarningTab() : _buildShowPdfTab(),
+                        StatisticsDashboard(memos: _memos, currencySymbol: _currencySymbol),
                       ],
                     );
                   } catch (e) {
@@ -327,6 +536,92 @@ class MemoListScreenState extends State<MemoListScreen>
                 },
               ),
             ),
+
+            // Create Memo Banner Button (only on Memos tab)
+            if (_tabController.index == 0)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 12,
+                      offset: const Offset(0, -4),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () async {
+                      final subscriptionService = SubscriptionService.instance;
+                      final canCreate = await subscriptionService.canCreateMemo();
+                      if (!canCreate) {
+                        if (context.mounted) {
+                          PremiumUpgradeSheet.show(context);
+                        }
+                        return;
+                      }
+                      Memo? newMemo = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const CashMemoEdit(autoGenerate: true),
+                        ),
+                      );
+                      if (newMemo != null) {
+                        await subscriptionService.recordMemoCreation();
+                        setState(() => _memos.add(newMemo));
+                        saveMemos();
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      decoration: BoxDecoration(
+                        gradient: AppGradients.primary,
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(AppRadius.sm),
+                            ),
+                            child: const Icon(
+                              Icons.add_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'Create New Cash Memo',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
             // Only show ads on mobile (not web)
             if (!kIsWeb)
               SafeArea(
@@ -397,6 +692,39 @@ class MemoListScreenState extends State<MemoListScreen>
   }
 
   Future<void> _loadSavedPdfs() async {
+    // Web platform doesn't support file system operations
+    if (kIsWeb) return;
+
+    if (Platform.isAndroid) {
+      try {
+        final List<dynamic>? filesList = await const MethodChannel('com.tuhin.cash_memo_creator')
+            .invokeMethod('getSavedPdfs', {'folderName': 'Invoice Generator'});
+        
+        if (filesList != null) {
+          final List<File> files = [];
+          final Map<String, String> modDates = {};
+          
+          for (final item in filesList) {
+            final Map<dynamic, dynamic> map = item as Map<dynamic, dynamic>;
+            final String path = map['path'] as String;
+            final int dateModMillis = map['dateModified'] as int;
+            
+            final file = File(path);
+            files.add(file);
+            modDates[path] = _dateFormatter.format(DateTime.fromMillisecondsSinceEpoch(dateModMillis));
+          }
+          
+          setState(() {
+            _pdfFiles = files;
+            _pdfModifiedDates = modDates;
+          });
+          return;
+        }
+      } catch (e, stack) {
+        debugPrint("Error loading PDFs via MethodChannel: $e\n$stack");
+      }
+    }
+
     Directory? pdfDirectory;
     if (Platform.isAndroid) {
       if (await AndroidAPILevel.getApiLevel() <= 29) {
@@ -404,14 +732,9 @@ class MemoListScreenState extends State<MemoListScreen>
           pdfDirectory =
               Directory("/storage/emulated/0/Documents/Invoice Generator");
         }
-      } else {
-        pdfDirectory =
-            Directory("/storage/emulated/0/Documents/Invoice Generator");
       }
     } else {
-      pdfDirectory = kIsWeb
-          ? Directory("")
-          : (await getApplicationDocumentsDirectory()) as Directory;
+      pdfDirectory = await getApplicationDocumentsDirectory();
     }
 
     if (pdfDirectory != null && await pdfDirectory.exists()) {
@@ -422,27 +745,28 @@ class MemoListScreenState extends State<MemoListScreen>
         final modDates = result['modDates'] as Map<String, String>;
 
         setState(() {
-          _pdfFiles = kIsWeb
-              ? List<WebFileEntity>.generate(
-                  filePaths.length, (_) => WebFileEntity())
-              : filePaths.map((path) => File(path)).toList();
+          _pdfFiles = filePaths.map((path) => File(path)).toList();
           _pdfModifiedDates = modDates;
         });
       } catch (e) {
         // Fallback to main thread if isolate fails
-        final files = await pdfDirectory
-            .list()
-            .where((file) => file.path.endsWith('.pdf'))
-            .toList();
-        final modDates = <String, String>{};
-        for (final file in files) {
-          final last = File(file.path).lastModifiedSync();
-          modDates[file.path] = _dateFormatter.format(last);
+        try {
+          final files = await pdfDirectory
+              .list()
+              .where((file) => file.path.endsWith('.pdf'))
+              .toList();
+          final modDates = <String, String>{};
+          for (final file in files) {
+            final last = File(file.path).lastModifiedSync();
+            modDates[file.path] = _dateFormatter.format(last);
+          }
+          setState(() {
+            _pdfFiles = files;
+            _pdfModifiedDates = modDates;
+          });
+        } catch (ex, stack) {
+          debugPrint("Failed to list directory on fallback: $ex\n$stack");
         }
-        setState(() {
-          _pdfFiles = files;
-          _pdfModifiedDates = modDates;
-        });
       }
     }
   }
@@ -460,6 +784,18 @@ class MemoListScreenState extends State<MemoListScreen>
         }
 
         final pdfFiles = snapshot.data ?? [];
+
+        // Sort PDF files by last modified date (newest first)
+        if (pdfFiles.isNotEmpty) {
+          pdfFiles.sort((a, b) {
+            final aFile = File(a.path);
+            final bFile = File(b.path);
+            final aLastModified = aFile.lastModifiedSync();
+            final bLastModified = bFile.lastModifiedSync();
+            // Sort in descending order (newest first)
+            return bLastModified.compareTo(aLastModified);
+          });
+        }
 
         return Container(
           padding: const EdgeInsets.all(12.0),
@@ -646,40 +982,44 @@ class MemoListScreenState extends State<MemoListScreen>
   }
 
   void _deletePdfFile(FileSystemEntity file) async {
-    try {
-      final success = await Isolate.run(() => _deletePdfInIsolate(file.path));
+    if (kIsWeb) return;
 
-      if (success) {
-        _refreshPdfCache();
-        setState(() {
-          _pdfFiles.remove(file);
-          _pdfModifiedDates.remove(file.path);
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('PDF file deleted successfully.')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error deleting file')),
-        );
-      }
-    } catch (e) {
-      // Fallback to main thread if isolate fails
+    bool deleted = false;
+    if (Platform.isAndroid) {
       try {
-        await file.delete();
-        _refreshPdfCache();
-        setState(() {
-          _pdfFiles.remove(file);
-          _pdfModifiedDates.remove(file.path);
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('PDF file deleted successfully.')),
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error deleting file: $e')),
-        );
+        final success = await const MethodChannel('com.tuhin.cash_memo_creator')
+            .invokeMethod('deleteSavedPdf', {'filePath': file.path});
+        deleted = (success == true);
+      } catch (e, stack) {
+        debugPrint("Error deleting via MethodChannel: $e\n$stack");
       }
+    }
+
+    if (!deleted) {
+      try {
+        final success = await Isolate.run(() => _deletePdfInIsolate(file.path));
+        deleted = success;
+      } catch (e) {
+        try {
+          await file.delete();
+          deleted = true;
+        } catch (_) {}
+      }
+    }
+
+    if (deleted) {
+      _refreshPdfCache();
+      setState(() {
+        _pdfFiles.remove(file);
+        _pdfModifiedDates.remove(file.path);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('PDF file deleted successfully.')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error deleting file')),
+      );
     }
   }
 
@@ -690,71 +1030,94 @@ class MemoListScreenState extends State<MemoListScreen>
   Widget _buildSavedMemosTab() {
     final localizations = _cachedLocalizations!;
 
-    return Column(
-      children: [
-        // Statistics Dashboard (only show if memos exist)
-        if (_memos.isNotEmpty)
-          StatisticsDashboard(memos: _memos),
-
-        // Professional Create Button
-        ProfessionalCreateButton(
-          title: localizations.generateCashMemo,
-          subtitle: 'Generate professional invoices instantly',
-          onPressed: () async {
-            Memo? newMemo = await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const CashMemoEdit(autoGenerate: true),
-              ),
-            );
-            if (newMemo != null) {
-              setState(() => _memos.add(newMemo));
-              saveMemos();
+    if (_memos.isEmpty) {
+      return EmptyState(
+        icon: Icons.receipt_long_rounded,
+        title: 'No Memos Yet',
+        description: 'Create your first professional cash memo to get started with invoicing',
+        actionText: 'Create First Memo',
+        onAction: () async {
+          final subscriptionService = SubscriptionService.instance;
+          final canCreate = await subscriptionService.canCreateMemo();
+          if (!canCreate) {
+            if (context.mounted) {
+              PremiumUpgradeSheet.show(context);
             }
-          },
-        ),
+            return;
+          }
+          Memo? newMemo = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const CashMemoEdit(autoGenerate: true),
+            ),
+          );
+          if (newMemo != null) {
+            await subscriptionService.recordMemoCreation();
+            setState(() => _memos.add(newMemo));
+            saveMemos();
+          }
+        },
+      );
+    }
 
-        // Memos List or Empty State
-        _memos.isNotEmpty
-            ? Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                  itemCount: _memos.length,
-                  cacheExtent: 1000,
-                  physics: const BouncingScrollPhysics(),
-                  itemBuilder: (context, index) {
-                    final memo = _memos[index];
-                    return ProfessionalMemoCard(
-                      memo: memo,
-                      index: index,
-                      onEdit: _editMemo,
-                      onDelete: _deleteMemo,
-                      onPrint: _printMemo,
-                    );
-                  },
-                ),
-              )
-            : Expanded(
-                child: EmptyState(
-                  icon: Icons.receipt_long_rounded,
-                  title: 'No Memos Yet',
-                  description: 'Create your first professional cash memo to get started with invoicing',
-                  actionText: 'Create First Memo',
-                  onAction: () async {
-                    Memo? newMemo = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const CashMemoEdit(autoGenerate: true),
-                      ),
-                    );
-                    if (newMemo != null) {
-                      setState(() => _memos.add(newMemo));
-                      saveMemos();
-                    }
-                  },
-                ),
-              ),
-      ],
+    // Reverse the memos list to show latest first
+    final reversedMemos = _memos.reversed.toList();
+    final isPro = SubscriptionService.instance.isProUser;
+
+    if (isPro) {
+      return ListView.builder(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        itemCount: reversedMemos.length,
+        itemBuilder: (context, index) {
+          final memo = reversedMemos[index];
+          final actualIndex = _memos.length - 1 - index;
+          return ProfessionalMemoCard(
+            memo: memo,
+            index: actualIndex,
+            onEdit: _editMemo,
+            onDelete: _deleteMemo,
+            onPrint: _printMemo,
+          );
+        },
+      );
+    }
+
+    // Calculate total items including native ads (one ad every 5 items)
+    final int adFrequency = 5;
+    final int totalAds = reversedMemos.isEmpty ? 0 : (reversedMemos.length / adFrequency).floor();
+    final int totalItems = reversedMemos.length + totalAds;
+
+    return ListView.builder(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      itemCount: totalItems,
+      itemBuilder: (context, index) {
+        // Calculate if this position should show a native ad
+        final int adsBeforeIndex = (index / (adFrequency + 1)).floor();
+        final int adjustedIndex = index - adsBeforeIndex;
+
+        // Show native ad at every (adFrequency + 1) position
+        if ((index + 1) % (adFrequency + 1) == 0 && index > 0) {
+          return const NativeAdWidget(templateType: TemplateType.medium);
+        }
+
+        // Show memo card
+        if (adjustedIndex < reversedMemos.length) {
+          final memo = reversedMemos[adjustedIndex];
+          // Calculate the actual index in the original _memos list
+          final actualIndex = _memos.length - 1 - adjustedIndex;
+          return ProfessionalMemoCard(
+            memo: memo,
+            index: actualIndex,
+            onEdit: _editMemo,
+            onDelete: _deleteMemo,
+            onPrint: _printMemo,
+          );
+        }
+
+        return const SizedBox.shrink();
+      },
     );
   }
 
@@ -838,7 +1201,7 @@ class MemoListScreenState extends State<MemoListScreen>
 
   Future<void> _printMemo(int index) async {
     final memo = _memos[index];
-    await Navigator.push(
+    Memo? updatedMemo = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => CashMemoEdit(
@@ -848,6 +1211,10 @@ class MemoListScreenState extends State<MemoListScreen>
         ),
       ),
     );
+    if (updatedMemo != null) {
+      setState(() => _memos[index] = updatedMemo);
+      saveMemos();
+    }
   }
 }
 

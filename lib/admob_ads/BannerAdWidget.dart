@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import '../services/subscription_service.dart';
 
 class MyBannerAdWidget extends StatefulWidget {
   /// The requested size of the banner. Defaults to [AdSize.banner].
@@ -32,6 +33,9 @@ class _MyBannerAdWidgetState extends State<MyBannerAdWidget> {
 
   @override
   Widget build(BuildContext context) {
+    if (SubscriptionService.instance.isProUser) {
+      return const SizedBox.shrink();
+    }
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Column(
@@ -84,17 +88,26 @@ class _MyBannerAdWidgetState extends State<MyBannerAdWidget> {
   @override
   void initState() {
     super.initState();
+    SubscriptionService.instance.addListener(_onSubscriptionChanged);
     _loadAd();
   }
 
   @override
   void dispose() {
+    SubscriptionService.instance.removeListener(_onSubscriptionChanged);
     _bannerAd?.dispose();
     super.dispose();
   }
 
+  void _onSubscriptionChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   /// Loads a banner ad.
   void _loadAd() {
+    if (SubscriptionService.instance.isProUser) return;
     final bannerAd = BannerAd(
       size: widget.adSize,
       adUnitId: widget.adUnitId,

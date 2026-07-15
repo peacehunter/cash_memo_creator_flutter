@@ -126,6 +126,14 @@ class AppTypography {
   );
 
   // Label Styles
+  static const TextStyle labelMedium = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    height: 1.4,
+    letterSpacing: 0.3,
+    color: AppColors.textSecondary,
+  );
+
   static const TextStyle label = TextStyle(
     fontSize: 12,
     fontWeight: FontWeight.w600,
@@ -139,6 +147,14 @@ class AppTypography {
     fontWeight: FontWeight.w600,
     height: 1.4,
     letterSpacing: 0.8,
+    color: AppColors.textSecondary,
+  );
+
+  // Caption Style (small secondary text)
+  static const TextStyle caption = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w400,
+    height: 1.4,
     color: AppColors.textSecondary,
   );
 

@@ -20,12 +20,12 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8
+        jvmTarget = '11'
     }
 
     defaultConfig {
@@ -35,6 +35,13 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
+        // Support for 16KB page sizes
+        ndk {
+            abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86_64'
+        }
+
+        // Enable MultiDex for large apps
+        multiDexEnabled = true
     }
 
     signingConfigs {
@@ -45,15 +52,13 @@ android {
             storePassword = keystoreProperties['storePassword']
         }
     }
-    buildTypes {
-        release {
-            signingConfig = signingConfigs.release
-        }
-    }
 
     buildTypes {
         release {
             signingConfig = signingConfigs.release
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }

@@ -5,11 +5,28 @@ import '../design_system.dart';
 /// Professional Statistics Dashboard
 class StatisticsDashboard extends StatelessWidget {
   final List<Memo> memos;
+  final String currencySymbol;
 
-  const StatisticsDashboard({Key? key, required this.memos}) : super(key: key);
+  const StatisticsDashboard({
+    Key? key,
+    required this.memos,
+    this.currencySymbol = '৳',
+  }) : super(key: key);
 
   double get totalRevenue {
     return memos.fold(0.0, (sum, memo) => sum + memo.total);
+  }
+
+  double get paidRevenue {
+    return memos
+        .where((m) => m.paymentStatus == 'Paid')
+        .fold(0.0, (sum, memo) => sum + memo.total);
+  }
+
+  double get unpaidRevenue {
+    return memos
+        .where((m) => m.paymentStatus == 'Unpaid' || m.paymentStatus == 'Overdue')
+        .fold(0.0, (sum, memo) => sum + memo.total);
   }
 
   int get totalCustomers {
@@ -26,59 +43,86 @@ class StatisticsDashboard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Overview', style: AppTypography.h3),
-          const SizedBox(height: AppSpacing.lg),
-          Row(
-            children: [
-              Expanded(
-                child: _StatCard(
-                  icon: Icons.receipt_long_rounded,
-                  title: 'Total Memos',
-                  value: memos.length.toString(),
-                  color: AppColors.primary,
-                  trend: '+${memos.length}',
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Overview', style: AppTypography.h3),
+            const SizedBox(height: AppSpacing.lg),
+            Row(
+              children: [
+                Expanded(
+                  child: _StatCard(
+                    icon: Icons.receipt_long_rounded,
+                    title: 'Total Memos',
+                    value: memos.length.toString(),
+                    color: AppColors.primary,
+                    trend: '+${memos.length}',
+                  ),
                 ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: _StatCard(
-                  icon: Icons.attach_money_rounded,
-                  title: 'Revenue',
-                  value: '৳${totalRevenue.toStringAsFixed(0)}',
-                  color: AppColors.secondary,
-                  subtitle: 'Total',
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: _StatCard(
+                    icon: Icons.attach_money_rounded,
+                    title: 'Revenue',
+                    value: '$currencySymbol${totalRevenue.toStringAsFixed(0)}',
+                    color: AppColors.secondary,
+                    subtitle: 'Total',
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            children: [
-              Expanded(
-                child: _StatCard(
-                  icon: Icons.people_rounded,
-                  title: 'Customers',
-                  value: totalCustomers.toString(),
-                  color: AppColors.accent,
-                  subtitle: 'Unique',
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              children: [
+                Expanded(
+                  child: _StatCard(
+                    icon: Icons.people_rounded,
+                    title: 'Customers',
+                    value: totalCustomers.toString(),
+                    color: AppColors.accent,
+                    subtitle: 'Unique',
+                  ),
                 ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: _StatCard(
-                  icon: Icons.trending_up_rounded,
-                  title: 'Avg. Value',
-                  value: '৳${averageOrderValue.toStringAsFixed(0)}',
-                  color: AppColors.warning,
-                  subtitle: 'Per memo',
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: _StatCard(
+                    icon: Icons.trending_up_rounded,
+                    title: 'Avg. Value',
+                    value: '$currencySymbol${averageOrderValue.toStringAsFixed(0)}',
+                    color: AppColors.warning,
+                    subtitle: 'Per memo',
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              children: [
+                Expanded(
+                  child: _StatCard(
+                    icon: Icons.check_circle_rounded,
+                    title: 'Paid Revenue',
+                    value: '$currencySymbol${paidRevenue.toStringAsFixed(0)}',
+                    color: AppColors.success,
+                    subtitle: 'Collected',
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: _StatCard(
+                    icon: Icons.pending_rounded,
+                    title: 'Unpaid/Due',
+                    value: '$currencySymbol${unpaidRevenue.toStringAsFixed(0)}',
+                    color: AppColors.error,
+                    subtitle: 'Receivables',
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

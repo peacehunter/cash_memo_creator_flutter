@@ -10,6 +10,7 @@ class ProfessionalMemoCard extends StatelessWidget {
   final Function(int) onEdit;
   final Function(int) onDelete;
   final Function(int) onPrint;
+  final String currencySymbol;
 
   const ProfessionalMemoCard({
     Key? key,
@@ -18,6 +19,7 @@ class ProfessionalMemoCard extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
     required this.onPrint,
+    this.currencySymbol = '৳',
   }) : super(key: key);
 
   String _formatDate(String date) {
@@ -26,6 +28,18 @@ class ProfessionalMemoCard extends StatelessWidget {
       return DateFormat('MMM dd, yyyy').format(parsedDate);
     } catch (e) {
       return date;
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'Paid':
+        return AppColors.success;
+      case 'Overdue':
+        return AppColors.error;
+      case 'Unpaid':
+      default:
+        return AppColors.warning;
     }
   }
 
@@ -76,11 +90,41 @@ class ProfessionalMemoCard extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                memo.customerName,
-                                style: AppTypography.h3,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      memo.customerName,
+                                      style: AppTypography.h3,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: _getStatusColor(memo.paymentStatus)
+                                          .withOpacity(0.1),
+                                      borderRadius:
+                                          BorderRadius.circular(AppRadius.sm),
+                                      border: Border.all(
+                                          color: _getStatusColor(
+                                                  memo.paymentStatus)
+                                              .withOpacity(0.2)),
+                                    ),
+                                    child: Text(
+                                      memo.paymentStatus.toUpperCase(),
+                                      style: AppTypography.labelSmall.copyWith(
+                                        color: _getStatusColor(
+                                            memo.paymentStatus),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 9,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                               const SizedBox(height: 4),
                               Row(
@@ -135,7 +179,7 @@ class ProfessionalMemoCard extends StatelessWidget {
                           child: _InfoTile(
                             icon: Icons.attach_money_rounded,
                             label: 'Total Amount',
-                            value: '৳${memo.total.toStringAsFixed(2)}',
+                            value: '$currencySymbol${memo.total.toStringAsFixed(2)}',
                             color: AppColors.secondary,
                           ),
                         ),
@@ -144,7 +188,9 @@ class ProfessionalMemoCard extends StatelessWidget {
                         Expanded(
                           child: _InfoTile(
                             icon: Icons.calendar_today_rounded,
-                            label: 'Date',
+                            label: memo.dueDate != null && memo.dueDate!.isNotEmpty
+                                ? 'Due: ${_formatDate(memo.dueDate!)}'
+                                : 'Date',
                             value: memo.date != null && memo.date!.isNotEmpty
                                 ? _formatDate(memo.date!)
                                 : 'N/A',

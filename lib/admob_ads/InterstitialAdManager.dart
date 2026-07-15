@@ -1,11 +1,13 @@
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'AdHelper.dart';
+import '../services/subscription_service.dart';
 
 class InterstitialAdManager {
   InterstitialAd? _interstitialAd;
 
   // Method to load interstitial ad
   void loadInterstitialAd() {
+    if (SubscriptionService.instance.isProUser) return;
     InterstitialAd.load(
       adUnitId: AdHelper.interstitialAdUnitId, // Use AdHelper to get the correct ad unit ID
       request: AdRequest(),
@@ -52,6 +54,13 @@ class InterstitialAdManager {
     Function? onAdFailedToLoad,  // When the ad fails to load or show
     Function? onAdDismissed, // When the ad is dismissed after showing
   }) {
+    if (SubscriptionService.instance.isProUser) {
+      print('Interstitial ad skipped for Pro user.');
+      if (onAdFailedToLoad != null) {
+        onAdFailedToLoad('Pro user');
+      }
+      return;
+    }
     if (_interstitialAd != null) {
       _interstitialAd!.show().then((_) {
         if (onAdClosed != null) {
