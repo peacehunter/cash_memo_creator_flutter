@@ -56,6 +56,20 @@ class _PremiumUpgradeSheetState extends State<PremiumUpgradeSheet> {
   void initState() {
     super.initState();
     SubscriptionService.instance.addListener(_onSubscriptionChanged);
+    _loadLocalizedPrices();
+  }
+
+  Future<void> _loadLocalizedPrices() async {
+    final localizedPrices = await SubscriptionService.instance.fetchLocalizedPrices();
+    if (localizedPrices.isNotEmpty && mounted) {
+      setState(() {
+        for (int i = 0; i < _plans.length; i++) {
+          if (localizedPrices.containsKey(i)) {
+            _plans[i]['price'] = localizedPrices[i]!;
+          }
+        }
+      });
+    }
   }
 
   @override

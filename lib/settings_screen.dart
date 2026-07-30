@@ -261,29 +261,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           ),
                                         ),
                                         onPressed: () async {
-                                          showDialog(
-                                            context: context,
-                                            builder: (context) => AlertDialog(
-                                              title: const Text('Cancel Subscription?'),
-                                              content: const Text(
-                                                'This is a sandbox environment. Cancelling will revert your account to the Free Plan.',
-                                              ),
-                                              actions: [
-                                                TextButton(
-                                                  onPressed: () => Navigator.pop(context),
-                                                  child: const Text('Keep Pro'),
-                                                ),
-                                                TextButton(
-                                                  onPressed: () async {
-                                                    Navigator.pop(context);
-                                                    await SubscriptionService.instance.cancelSubscription();
-                                                  },
-                                                  child: const Text('Cancel Plan', style: TextStyle(color: Colors.red)),
-                                                ),
-                                              ],
-                                            ),
-                                          );
-                                        },
+                                           showDialog(
+                                             context: context,
+                                             builder: (context) => AlertDialog(
+                                               title: const Text('Cancel Subscription'),
+                                               content: Text(
+                                                 Platform.isAndroid
+                                                     ? 'Your subscription is managed through Google Play. You can cancel or change your plan at any time in the Google Play Store.'
+                                                     : Platform.isIOS
+                                                         ? 'Your subscription is managed through the Apple App Store. You can cancel or change your plan at any time in your App Store Account settings.'
+                                                         : 'Your subscription is managed through your app store. You can cancel or change your plan at any time in your store account settings.',
+                                               ),
+                                               actions: [
+                                                 TextButton(
+                                                   onPressed: () => Navigator.pop(context),
+                                                   child: const Text('Dismiss'),
+                                                 ),
+                                                 ElevatedButton(
+                                                   style: ElevatedButton.styleFrom(
+                                                     backgroundColor: const Color(0xFF8B5CF6),
+                                                     foregroundColor: Colors.white,
+                                                     shape: RoundedRectangleBorder(
+                                                       borderRadius: BorderRadius.circular(AppRadius.sm),
+                                                     ),
+                                                   ),
+                                                   onPressed: () async {
+                                                     Navigator.pop(context);
+                                                     await SubscriptionService.instance.redirectToStoreSubscriptions();
+                                                   },
+                                                   child: const Text('Manage Subscription'),
+                                                 ),
+                                               ],
+                                             ),
+                                           );
+                                         },
                                         icon: const Icon(Icons.cancel_rounded, size: 18),
                                         label: const Text('Cancel Subscription', style: TextStyle(fontWeight: FontWeight.bold)),
                                       ),
