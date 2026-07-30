@@ -30,6 +30,7 @@ import 'services/subscription_service.dart';
 import 'widgets/premium_upgrade_sheet.dart';
 import 'widgets/privacy_policy_dialog.dart';
 import 'widgets/onboarding_overlay.dart';
+import 'widgets/promotional_pro_dialog.dart';
 
 class MemoListScreen extends StatefulWidget {
   const MemoListScreen({super.key});
@@ -106,19 +107,24 @@ class MemoListScreenState extends State<MemoListScreen>
       setState(() {});
     });
 
-    // Show privacy policy and onboarding on first launch
+    // Show privacy policy, onboarding, and promotional Pro dialog on startup
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkFirstLaunch();
     });
   }
 
-  /// Sequentially shows the privacy policy dialog (if not accepted) and
-  /// then the onboarding tour (if not yet seen).
+  /// Sequentially shows the privacy policy dialog (if not accepted),
+  /// then the onboarding tour (if not yet seen), and then checks if the
+  /// promotional Pro subscription dialog should be displayed ("not always").
   Future<void> _checkFirstLaunch() async {
     if (!mounted) return;
     final accepted = await showPrivacyPolicyIfNeeded(context);
     if (!accepted || !mounted) return;
     await showOnboardingIfNeeded(context);
+
+    if (mounted) {
+      await showStartupProPromoIfNeeded(context);
+    }
   }
 
   @override

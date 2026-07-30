@@ -5,6 +5,7 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_android/billing_client_wrappers.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SubscriptionService extends ChangeNotifier {
   static final SubscriptionService _instance = SubscriptionService._internal();
@@ -121,6 +122,52 @@ class SubscriptionService extends ChangeNotifier {
     }
   }
 
+  /// Query and fetch localized price strings for each base plan index.
+  /// Matches target plan IDs and returns a mapping from plan index to localized price.
+  Future<Map<int, String>> fetchLocalizedPrices() async {
+    final Map<int, String> prices = {};
+    try {
+      final bool available = await _iap.isAvailable();
+      if (!available) {
+        debugPrint('💳 [SubscriptionService] Billing not available when fetching prices.');
+        return prices;
+      }
+
+      final ProductDetailsResponse response =
+          await _iap.queryProductDetails({_kProductId});
+
+      if (response.productDetails.isEmpty) {
+        debugPrint('💳 [SubscriptionService] No product details found for $_kProductId.');
+        return prices;
+      }
+
+      for (int i = 0; i < 3; i++) {
+        final String targetBasePlanId = _basePlanId(i);
+        if (Platform.isAndroid) {
+          for (final ProductDetails pd in response.productDetails) {
+            final GooglePlayProductDetails gpd = pd as GooglePlayProductDetails;
+            final List<SubscriptionOfferDetailsWrapper>? offers =
+                gpd.productDetails.subscriptionOfferDetails;
+            if (offers == null) continue;
+
+            final int idx = gpd.subscriptionIndex ?? 0;
+            if (idx < offers.length && offers[idx].basePlanId == targetBasePlanId) {
+              prices[i] = gpd.price;
+              debugPrint('💳 [SubscriptionService] Found localized price for $targetBasePlanId: ${gpd.price}');
+              break;
+            }
+          }
+        } else {
+          // Fallback / iOS
+          prices[i] = response.productDetails.first.price;
+        }
+      }
+    } catch (e) {
+      debugPrint('💳 [SubscriptionService] Error fetching localized prices: $e');
+    }
+    return prices;
+  }
+
   /// Restore previous purchases.
   Future<void> restorePurchases() async {
     debugPrint('💳 [SubscriptionService] Restoring purchases...');
@@ -134,6 +181,33 @@ class SubscriptionService extends ChangeNotifier {
     _isProUser = false;
     debugPrint('💳 [SubscriptionService] Subscription cancelled locally.');
     notifyListeners();
+  }
+
+  /// Opens the device's store subscription page (Google Play or App Store)
+  /// to allow the user to manage/cancel their subscription.
+  Future<void> redirectToStoreSubscriptions() async {
+    Uri url;
+    if (Platform.isAndroid) {
+      url = Uri.parse(
+        'https://play.google.com/store/account/subscriptions?package=com.tuhin.cash_memo_creator&sku=cash_memo_pro',
+      );
+    } else if (Platform.isIOS) {
+      url = Uri.parse('https://apps.apple.com/account/subscriptions');
+    } else {
+      url = Uri.parse('https://play.google.com/store/account/subscriptions');
+    }
+
+    try {
+      final bool launched = await launchUrl(url, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        debugPrint('💳 [SubscriptionService] Failed to launch subscription URL directly.');
+        // Fallback to the generic Google Play subscriptions link
+        final Uri fallbackUrl = Uri.parse('https://play.google.com/store/account/subscriptions');
+        await launchUrl(fallbackUrl, mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      debugPrint('💳 [SubscriptionService] Error launching URL: $e');
+    }
   }
 
   // ─── Purchase stream listener ────────────────────────────────────────────

@@ -27,6 +27,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class MainActivity extends FlutterActivity {
     private static final String CHANNEL = "com.tuhin.cash_memo_creator";
@@ -34,11 +36,14 @@ public class MainActivity extends FlutterActivity {
     private static final String PDF_MIME_TYPE = "application/pdf";
     private static final int REQUEST_WRITE_PERMISSION = 100;
 
+    // Executor thread pool for offloading background Binder IPC and I/O tasks off the main UI thread
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+
     @Override
     public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {
         super.configureFlutterEngine(flutterEngine);
 
-        // Existing Method Channel for saving PDF
+        // Method Channel for saving, querying, and deleting PDFs
         new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), CHANNEL)
                 .setMethodCallHandler(
                         (call, result) -> {
@@ -56,8 +61,8 @@ public class MainActivity extends FlutterActivity {
                                         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_WRITE_PERMISSION);
 
                                     } else {
-                                        // Call the savePdf method for API level 30 or higher, or when permission is granted
-                                        savePdf(pdfData, folderName, fileName, result);
+                                        // Execute file write off the main UI thread
+                                        executor.execute(() -> savePdf(pdfData, folderName, fileName, result));
                                     }
 
                                 } else {
@@ -66,14 +71,16 @@ public class MainActivity extends FlutterActivity {
                             } else if (call.method.equals("getSavedPdfs")) {
                                 String folderName = call.argument("folderName");
                                 if (folderName != null) {
-                                    getSavedPdfs(folderName, result);
+                                    // Execute MediaStore Binder query off the main UI thread to prevent ANR
+                                    executor.execute(() -> getSavedPdfs(folderName, result));
                                 } else {
                                     result.error("INVALID_DATA", "Folder name is null", null);
                                 }
                             } else if (call.method.equals("deleteSavedPdf")) {
                                 String filePath = call.argument("filePath");
                                 if (filePath != null) {
-                                    deleteSavedPdf(filePath, result);
+                                    // Execute file deletion off the main UI thread
+                                    executor.execute(() -> deleteSavedPdf(filePath, result));
                                 } else {
                                     result.error("INVALID_DATA", "File path is null", null);
                                 }
@@ -83,7 +90,7 @@ public class MainActivity extends FlutterActivity {
                         }
                 );
 
-        // New Method Channel for getting API level
+        // Method Channel for getting API level
         new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), API_LEVEL_CHANNEL)
                 .setMethodCallHandler(
                         (call, result) -> {
@@ -94,6 +101,20 @@ public class MainActivity extends FlutterActivity {
                             }
                         }
                 );
+    }
+
+    @Override
+    public void onDestroy() {
+        executor.shutdown();
+        super.onDestroy();
+    }
+
+    private void sendSuccess(MethodChannel.Result result, Object data) {
+        runOnUiThread(() -> result.success(data));
+    }
+
+    private void sendError(MethodChannel.Result result, String errorCode, String errorMessage, Object errorDetails) {
+        runOnUiThread(() -> result.error(errorCode, errorMessage, errorDetails));
     }
 
     // Handle permission result
@@ -133,16 +154,16 @@ public class MainActivity extends FlutterActivity {
                 if (outputStream != null) {
                     outputStream.write(pdfData);
                     outputStream.flush();
-                    result.success("PDF saved successfully to " + uri.toString());
+                    sendSuccess(result, "PDF saved successfully to " + uri.toString());
                 } else {
-                    result.error("WRITE_ERROR", "Unable to open output stream", null);
+                    sendError(result, "WRITE_ERROR", "Unable to open output stream", null);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
-                result.error("WRITE_ERROR", "Error while saving PDF", e.getMessage());
+                sendError(result, "WRITE_ERROR", "Error while saving PDF", e.getMessage());
             }
         } else {
-            result.error("INSERT_ERROR", "Error while inserting into MediaStore", null);
+            sendError(result, "INSERT_ERROR", "Error while inserting into MediaStore", null);
         }
     }
 
@@ -154,7 +175,7 @@ public class MainActivity extends FlutterActivity {
         if (!directory.exists()) {
             boolean isCreated = directory.mkdirs();
             if (!isCreated) {
-                result.error("DIRECTORY_ERROR", "Failed to create directory", null);
+                sendError(result, "DIRECTORY_ERROR", "Failed to create directory", null);
                 return;
             }
         }
@@ -164,10 +185,10 @@ public class MainActivity extends FlutterActivity {
         try (FileOutputStream fos = new FileOutputStream(pdfFile)) {
             fos.write(pdfData);
             fos.flush();
-            result.success("PDF saved successfully to " + pdfFile.getAbsolutePath());
+            sendSuccess(result, "PDF saved successfully to " + pdfFile.getAbsolutePath());
         } catch (IOException e) {
             e.printStackTrace();
-            result.error("WRITE_ERROR", "Error while saving PDF", e.getMessage());
+            sendError(result, "WRITE_ERROR", "Error while saving PDF", e.getMessage());
         }
     }
 
@@ -216,9 +237,9 @@ public class MainActivity extends FlutterActivity {
                         }
                     }
                 }
-                result.success(pdfList);
+                sendSuccess(result, pdfList);
             } catch (Exception e) {
-                result.error("QUERY_ERROR", "Failed to query MediaStore: " + e.getMessage(), null);
+                sendError(result, "QUERY_ERROR", "Failed to query MediaStore: " + e.getMessage(), null);
             }
         } else {
             File directory = new File(Environment.getExternalStorageDirectory(), Environment.DIRECTORY_DOCUMENTS + "/" + folderName);
@@ -236,7 +257,7 @@ public class MainActivity extends FlutterActivity {
                     }
                 }
             }
-            result.success(pdfList);
+            sendSuccess(result, pdfList);
         }
     }
 
@@ -250,34 +271,34 @@ public class MainActivity extends FlutterActivity {
             try {
                 int deletedCount = getContentResolver().delete(uri, selection, selectionArgs);
                 if (deletedCount > 0) {
-                    result.success(true);
+                    sendSuccess(result, true);
                 } else {
                     if (file.exists() && file.delete()) {
-                        result.success(true);
+                        sendSuccess(result, true);
                     } else {
-                        result.success(false);
+                        sendSuccess(result, false);
                     }
                 }
             } catch (Exception e) {
                 try {
                     if (file.exists() && file.delete()) {
-                        result.success(true);
+                        sendSuccess(result, true);
                     } else {
-                        result.success(false);
+                        sendSuccess(result, false);
                     }
                 } catch (Exception ex) {
-                    result.error("DELETE_ERROR", "Failed to delete: " + e.getMessage(), null);
+                    sendError(result, "DELETE_ERROR", "Failed to delete: " + e.getMessage(), null);
                 }
             }
         } else {
             if (file.exists()) {
                 if (file.delete()) {
-                    result.success(true);
+                    sendSuccess(result, true);
                 } else {
-                    result.success(false);
+                    sendSuccess(result, false);
                 }
             } else {
-                result.success(true);
+                sendSuccess(result, true);
             }
         }
     }

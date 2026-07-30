@@ -17,6 +17,7 @@ android {
     namespace = "com.tuhin.cash_memo_creator"  // App's namespace
 
     compileSdk = 36
+    compileSdkVersion 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -32,6 +33,7 @@ android {
         applicationId = "com.tuhin.cash_memo_creator"
         minSdkVersion flutter.minSdkVersion
         targetSdk = 36
+        targetSdkVersion 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
@@ -71,3 +73,11 @@ dependencies {
     implementation "androidx.annotation:annotation:1.8.2"
 
 }
+
+configurations.all {
+    resolutionStrategy {
+        force 'com.android.billingclient:billing:9.1.0'
+    }
+}
+
+
